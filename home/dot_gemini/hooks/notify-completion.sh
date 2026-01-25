@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "jq is required for gemini notify hook." >&2
+  exit 1
+fi
+
 INPUT_JSON=$(cat)
 
-SESSION_ID=${GEMINI_SESSION_ID:-}
-CWD_PATH=${GEMINI_CWD:-}
-if command -v jq >/dev/null 2>&1; then
-  SESSION_ID=$(echo "$INPUT_JSON" | jq -r '.session_id // empty' 2>/dev/null || true)
-  CWD_PATH=$(echo "$INPUT_JSON" | jq -r '.cwd // empty' 2>/dev/null || true)
-fi
+SESSION_ID=$(echo "$INPUT_JSON" | jq -r '.session_id // empty' 2>/dev/null || true)
+CWD_PATH=$(echo "$INPUT_JSON" | jq -r '.cwd // empty' 2>/dev/null || true)
 
 if [[ -z "$SESSION_ID" ]]; then
   SESSION_ID=${GEMINI_SESSION_ID:-""}
