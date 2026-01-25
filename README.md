@@ -4,19 +4,21 @@ chezmoi で dotfiles と AI エージェント設定を管理するためのリ�
 
 ## レイアウト
 
-- `home/`: chezmoi のソース
+- `home/`: chezmoi のソース（汎用的な設定）
 - `home/dot_*`: 実ファイルを `dot_` で表現
 - `home/dot_*/*.tmpl`: テンプレート
 - `home/dot_*/*.d`: 分割設定
 
-## エージェント向けプロンプト
+## プロジェクト向けプロンプト
 
-以下のファイルは `PROMPT_GUIDELINES.md` の方針に従って作成しています。
+このリポジトリに対するプロンプトはプロジェクトルートに配置します。
 
-- `home/dot_claude/CLAUDE.md`
-- `home/dot_codex/AGENTS.md`
-- `home/dot_gemini/GEMINI.md`
-- `home/dot_copilot/copilot-instructions.md`
+- `CLAUDE.md`
+- `AGENTS.md`
+- `GEMINI.md`
+- `.github/copilot-instructions.md`
+
+`home/` 配下にあるプロンプトは、配布先（ユーザー環境）の汎用設定です。
 
 ## age 暗号化の使い方
 
