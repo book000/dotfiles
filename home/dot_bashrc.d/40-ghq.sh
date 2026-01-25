@@ -1,9 +1,4 @@
-# Work helpers.
-mkwork() {
-  local dir="${1:-$HOME/work}"
-  mkdir -p "$dir" && cd "$dir" || return
-}
-
+# ghq helpers.
 gcd() {
   command -v ghq >/dev/null 2>&1 || { echo "ghq not found." >&2; return 1; }
   command -v fzf >/dev/null 2>&1 || { echo "fzf not found." >&2; return 1; }
@@ -44,8 +39,3 @@ ghc() {
 }
 
 alias gcl='ghc'
-
-alias claude='claude --dangerously-skip-permissions'
-alias codex='codex --yolo'
-alias gemini='gemini --yolo'
-alias copilot='copilot --yolo'
