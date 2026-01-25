@@ -1,112 +1,112 @@
-# Beware! This file is rewritten by htop when settings are changed in the interface.
-# The parser is also very primitive, and not human-friendly.
-# Process list columns (as configured in the Setup screen "Available Columns"; order here is display order).
+# 注意！このファイルはインターフェースで設定が変更されるとhtopによって書き換えられます。
+# パーサーは非常に原始的であり、人間にとって読みやすいものではありません。
+# プロセスリストの列（セットアップ画面の「Available Columns」で設定。ここの順序が表示順序です）。
 fields=0 48 17 18 38 39 40 2 46 47 49 1
 
-# Column used to sort the list view (same concept as --sort-key).
+# リストビューのソートに使用される列（--sort-keyと同じ概念）。
 sort_key=46
 
-# Sort order direction for list view (htop can invert sort order interactively).
+# リストビューのソート方向（htopは対話的にソート順を反転できます）。
 sort_direction=-1
 
-# Column used to sort when tree view is enabled.
+# ツリービューが有効な場合のソートに使用される列。
 tree_sort_key=46
 
-# Sort order direction for tree view (htop can invert sort order interactively).
+# ツリービューのソート方向（htopは対話的にソート順を反転できます）。
 tree_sort_direction=-1
 
-# Hide kernel threads in the process list.
+# プロセスリストでカーネルスレッドを隠す。
 hide_kernel_threads=1
 
-# Hide userland threads in the process list.
+# プロセスリストでユーザーランドスレッドを隠す。
 hide_userland_threads=0
 
-# Shadow (dim) processes owned by other users.
+# 他のユーザーが所有するプロセスを薄暗く表示する（シャドウ）。
 shadow_other_users=0
 
-# Show thread names in the process list when available.
+# 可能であればプロセスリストにスレッド名を表示する。
 show_thread_names=0
 
-# Show full paths to running programs (toggle key: p).
+# 実行中のプログラムへのフルパスを表示する（トグルキー: p）。
 show_program_path=1
 
-# Highlight the program basename in the Command column when configured.
+# 設定されている場合、Command列でプログラムのベース名をハイライトする。
 highlight_base_name=0
 
-# Highlight memory sizes (MiB/GiB) in the UI.
+# UIでメモリサイズ（MiB/GiB）をハイライトする。
 highlight_megabytes=1
 
-# Highlight threads in the process list.
+# プロセスリストでスレッドをハイライトする。
 highlight_threads=1
 
-# Highlight new and old processes (similar to --highlight-changes).
+# 新旧のプロセスをハイライトする（--highlight-changesと同様）。
 highlight_changes=0
 
-# Delay (seconds) for how long process changes remain highlighted.
+# プロセスの変更がハイライトされたままになる遅延時間（秒）。
 highlight_changes_delay_secs=5
 
-# Find the command name within the command line when showing/working with it.
+# コマンドラインを表示/操作する際に、その中のコマンド名を見つける。
 find_comm_in_cmdline=1
 
-# Strip the executable path from the command line when showing it.
+# コマンドラインを表示する際に、実行ファイルのパスを取り除く。
 strip_exe_from_cmdline=1
 
-# Merge exe, comm, and cmdline into the Command column (toggle key: m).
+# exe、comm、cmdlineをCommand列にマージする（トグルキー: m）。
 show_merged_command=0
 
-# Show processes in tree view (toggle key: t / F5).
+# ツリービューでプロセスを表示する（トグルキー: t / F5）。
 tree_view=0
 
-# Always sort tree view by PID hierarchy.
+# ツリービューを常にPID階層でソートする。
 tree_view_always_by_pid=0
 
-# Add a margin between the header and the process list.
+# ヘッダーとプロセスリストの間にマージン（余白）を追加する。
 header_margin=1
 
-# Show detailed CPU time in the process list.
+# プロセスリストに詳細なCPU時間を表示する。
 detailed_cpu_time=0
 
-# Number CPUs starting from 1 instead of 0.
+# CPU番号を0ではなく1から開始する。
 cpu_count_from_one=0
 
-# Show CPU usage in the header meters.
+# ヘッダーメーターにCPU使用率を表示する。
 show_cpu_usage=1
 
-# Show CPU frequency in the header meters (if available).
+# ヘッダーメーターにCPU周波数を表示する（利用可能な場合）。
 show_cpu_frequency=0
 
-# Show CPU temperature in the header meters (requires sensors support).
+# ヘッダーメーターにCPU温度を表示する（センサーのサポートが必要）。
 show_cpu_temperature=0
 
-# Use Fahrenheit for temperatures (0 = Celsius).
+# 温度に華氏を使用する（0 = 摂氏）。
 degree_fahrenheit=0
 
-# Update process names over time (e.g., if they change).
+# 時間の経過とともにプロセス名を更新する（変更された場合など）。
 update_process_names=0
 
-# Include guest time in the CPU meter.
+# CPUメーターにゲスト時間を含める。
 account_guest_in_cpu_meter=0
 
-# Color scheme index (selectable in Setup).
+# カラースキームのインデックス（セットアップで選択可能）。
 color_scheme=0
 
-# Enable mouse support (disabled by --no-mouse).
+# マウスサポートを有効にする（--no-mouseで無効化）。
 enable_mouse=1
 
-# Refresh delay between updates (in tenths of a second).
+# 更新間の遅延時間（10分の1秒単位）。15 = 1.5秒。
 delay=15
 
-# Left-side header meters (names chosen in Setup).
+# 左側のヘッダーメーター（セットアップで選択された名前）。
 left_meters=LeftCPUs Memory Swap
 
-# Display modes for left meters (bar/text/LED, depending on mode number).
+# 左側メーターの表示モード（モード番号に応じてバー/テキスト/LED）。
 left_meter_modes=1 1 1
 
-# Right-side header meters (names chosen in Setup).
+# 右側のヘッダーメーター（セットアップで選択された名前）。
 right_meters=RightCPUs Tasks LoadAverage Uptime
 
-# Display modes for right meters (bar/text/LED, depending on mode number).
+# 右側メーターの表示モード（モード番号に応じてバー/テキスト/LED）。
 right_meter_modes=1 2 2 2
 
-# Show the function key bar at the bottom.
+# 下部のファンクションキーバーを隠す。
 hide_function_bar=0
