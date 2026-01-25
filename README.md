@@ -24,6 +24,7 @@ chezmoi で dotfiles と AI エージェント設定を管理するためのリ�
 
 このリポジトリは `chezmoi` の age 暗号化を使う前提で構成しています。
 機密情報（Discord Webhook / WakaTime API Key など）は暗号化して管理します。
+`home/dot_wakatime.cfg.age` は暗号化済みファイルとしてコミットします。
 
 ### セットアップ手順（各マシンごと）
 
