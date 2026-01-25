@@ -2,6 +2,3 @@ Host *
   AddKeysToAgent yes
   ServerAliveInterval 30
   ServerAliveCountMax 3
-
-Match exec "uname -s | grep -q Darwin"
-  UseKeychain yes
