@@ -215,7 +215,7 @@ tmux_session_selector() {
 }
 
 # SSH接続かつtmux外かつTTYありのときのみ自動起動（scp/rsync等を避ける）
-if [[ -z "${TMUX:-}" && -n "${SSH_CONNECTION:-}" && -t 0 && -t 1 ]]; then
+if [[ -z "${TMUX:-}" && -n "${SSH_CONNECTION:-}" && -t 0 && -t 1 && $- == *i* && -z "${TMUX_SELECTOR_DISABLE_AUTO:-}" ]]; then
   while true; do
     sleep 1
     tmux_session_selector || break

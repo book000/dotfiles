@@ -144,10 +144,15 @@ if [[ -n "$LAST_MESSAGES" ]]; then
   done
 fi
 
+content="Claude Code Finished (${MACHINE_NAME})"
+if [[ -n "${MENTION_USER_ID}" ]]; then
+  content="<@${MENTION_USER_ID}> ${content}"
+fi
+
 # embed形式のJSONペイロードを作成
 PAYLOAD=$(cat <<EOF_JSON
 {
-  "content": "<@${MENTION_USER_ID}> Claude Code Finished (${MACHINE_NAME})",
+  "content": "${content}",
   "embeds": [
     {
       "title": "Claude Code セッション完了",
@@ -160,9 +165,11 @@ PAYLOAD=$(cat <<EOF_JSON
 EOF_JSON
 )
 
-# Discord Webhookに送信
-curl -H "Content-Type: application/json" \
-     -X POST \
-     -d "${PAYLOAD}" \
-     "${DISCORD_TOKEN}"
-
+webhook_url="${DISCORD_WEBHOOK_URL:-${DISCORD_TOKEN:-}}"
+if [[ -n "${webhook_url}" ]]; then
+  # Discord Webhookに送信
+  curl -H "Content-Type: application/json" \
+       -X POST \
+       -d "${PAYLOAD}" \
+       "${webhook_url}"
+fi
