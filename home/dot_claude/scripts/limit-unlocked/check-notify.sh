@@ -78,8 +78,14 @@ if [ -n "$NEW_NOTIFICATIONS" ]; then
         DESCRIPTION="${cwd} のリミットが経過し、再度利用可能になりました。"
         COLOR=5814783 # 青系色
 
+        if [ -n "$MENTION_USER_ID" ]; then
+            CONTENT="<@${MENTION_USER_ID}>"
+        else
+            CONTENT=""
+        fi
+
         PAYLOAD=$(jq -n \
-            --arg content "<@${MENTION_USER_ID}>" \
+            --arg content "$CONTENT" \
             --arg title "$TITLE" \
             --arg description "$DESCRIPTION" \
             --argjson color $COLOR \
@@ -98,4 +104,3 @@ if [ -n "$NEW_NOTIFICATIONS" ]; then
     # 通知済みファイル更新
     echo "$NEW_NOTIFICATIONS" >> "$NOTIFIED_FILE"
 fi
-
