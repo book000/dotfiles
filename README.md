@@ -1,3 +1,23 @@
+## 概要
+
+chezmoi で dotfiles と AI エージェント設定を管理するためのリポジトリです。
+
+## レイアウト
+
+- `home/`: chezmoi のソース
+- `home/dot_*`: 実ファイルを `dot_` で表現
+- `home/dot_*/*.tmpl`: テンプレート
+- `home/dot_*/*.d`: 分割設定
+
+## エージェント向けプロンプト
+
+以下のファイルは `PROMPT_GUIDELINES.md` の方針に従って作成しています。
+
+- `home/dot_claude/CLAUDE.md`
+- `home/dot_codex/AGENTS.md`
+- `home/dot_gemini/GEMINI.md`
+- `home/dot_copilot/copilot-instructions.md`
+
 ## age 暗号化の使い方
 
 このリポジトリは `chezmoi` の age 暗号化を使う前提で構成しています。
@@ -21,10 +41,10 @@ age-keygen -o ~/.config/chezmoi/key.txt
 3. 暗号化ファイルを作成（例: Discord Webhook）
 
 ```
-chezmoi add --encrypt ~/.config/notify/discord.env
+chezmoi add --encrypt ~/.config/notify/gemini.env
 ```
 
-4. `key.txt.age` をこのリポジトリのルートに配置（必要なら .gitignore に追加）
+4. `key.txt.age` をこのリポジトリのルートに配置
 
 ```
 cp ~/.config/chezmoi/key.txt.age ./key.txt.age
