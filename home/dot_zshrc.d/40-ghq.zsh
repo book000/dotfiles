@@ -1,13 +1,20 @@
 # ghq helpers.
+
+# ghqで管理されているリポジトリを選択して移動する関数
 gcd() {
   command -v ghq >/dev/null 2>&1 || { echo "ghq not found." >&2; return 1; }
   command -v fzf >/dev/null 2>&1 || { echo "fzf not found." >&2; return 1; }
 
   local dir
+  # fzfを使ってリポジトリを選択
   dir="$(ghq list -p | fzf --prompt='Repo> ' --height=40% --reverse)" || return 1
+  # 選択されたディレクトリが存在すれば移動
   [[ -n "$dir" ]] && cd "$dir"
 }
 
+# リポジトリを ghq get し、必要に応じて移動や表示を行う関数
+# 引数なしの場合は fzf で選択
+# 引数ありの場合はそのリポジトリを取得して移動
 ghc() {
   command -v ghq >/dev/null 2>&1 || { echo "ghq not found." >&2; return 1; }
 
@@ -17,6 +24,7 @@ ghc() {
     repo="$(ghq list | fzf --prompt='Repo (owner/name or URL)> ' --height=40% --reverse)" || return 1
   fi
 
+  # URL形式の正規化
   if [[ "$repo" == https://github.com/* ]]; then
     repo="${repo#https://github.com/}"
   elif [[ "$repo" == http://github.com/* ]]; then
@@ -35,6 +43,7 @@ ghc() {
     repo="git@github.com:${repo}.git"
   fi
 
+  # リポジトリを取得し、そのディレクトリへ移動
   ghq get --look "$repo"
 }
 
