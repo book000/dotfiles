@@ -1,0 +1,15 @@
+*~
+*.swp
+.DS_Store
+.idea/
+.vscode/
+.direnv/
+.env
+node_modules/
+dist/
+build/
+coverage/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.cache/
