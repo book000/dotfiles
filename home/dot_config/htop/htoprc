@@ -1,39 +1,112 @@
 # Beware! This file is rewritten by htop when settings are changed in the interface.
 # The parser is also very primitive, and not human-friendly.
+# Process list columns (as configured in the Setup screen "Available Columns"; order here is display order).
 fields=0 48 17 18 38 39 40 2 46 47 49 1
+
+# Column used to sort the list view (same concept as --sort-key).
 sort_key=46
+
+# Sort order direction for list view (htop can invert sort order interactively).
 sort_direction=-1
+
+# Column used to sort when tree view is enabled.
 tree_sort_key=46
+
+# Sort order direction for tree view (htop can invert sort order interactively).
 tree_sort_direction=-1
+
+# Hide kernel threads in the process list.
 hide_kernel_threads=1
+
+# Hide userland threads in the process list.
 hide_userland_threads=0
+
+# Shadow (dim) processes owned by other users.
 shadow_other_users=0
+
+# Show thread names in the process list when available.
 show_thread_names=0
+
+# Show full paths to running programs (toggle key: p).
 show_program_path=1
+
+# Highlight the program basename in the Command column when configured.
 highlight_base_name=0
+
+# Highlight memory sizes (MiB/GiB) in the UI.
 highlight_megabytes=1
+
+# Highlight threads in the process list.
 highlight_threads=1
+
+# Highlight new and old processes (similar to --highlight-changes).
 highlight_changes=0
+
+# Delay (seconds) for how long process changes remain highlighted.
 highlight_changes_delay_secs=5
+
+# Find the command name within the command line when showing/working with it.
 find_comm_in_cmdline=1
+
+# Strip the executable path from the command line when showing it.
 strip_exe_from_cmdline=1
+
+# Merge exe, comm, and cmdline into the Command column (toggle key: m).
 show_merged_command=0
+
+# Show processes in tree view (toggle key: t / F5).
 tree_view=0
+
+# Always sort tree view by PID hierarchy.
 tree_view_always_by_pid=0
+
+# Add a margin between the header and the process list.
 header_margin=1
+
+# Show detailed CPU time in the process list.
 detailed_cpu_time=0
+
+# Number CPUs starting from 1 instead of 0.
 cpu_count_from_one=0
+
+# Show CPU usage in the header meters.
 show_cpu_usage=1
+
+# Show CPU frequency in the header meters (if available).
 show_cpu_frequency=0
+
+# Show CPU temperature in the header meters (requires sensors support).
 show_cpu_temperature=0
+
+# Use Fahrenheit for temperatures (0 = Celsius).
 degree_fahrenheit=0
+
+# Update process names over time (e.g., if they change).
 update_process_names=0
+
+# Include guest time in the CPU meter.
 account_guest_in_cpu_meter=0
+
+# Color scheme index (selectable in Setup).
 color_scheme=0
+
+# Enable mouse support (disabled by --no-mouse).
 enable_mouse=1
+
+# Refresh delay between updates (in tenths of a second).
 delay=15
+
+# Left-side header meters (names chosen in Setup).
 left_meters=LeftCPUs Memory Swap
+
+# Display modes for left meters (bar/text/LED, depending on mode number).
 left_meter_modes=1 1 1
+
+# Right-side header meters (names chosen in Setup).
 right_meters=RightCPUs Tasks LoadAverage Uptime
+
+# Display modes for right meters (bar/text/LED, depending on mode number).
 right_meter_modes=1 2 2 2
+
+# Show the function key bar at the bottom.
 hide_function_bar=0
