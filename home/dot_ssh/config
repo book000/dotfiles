@@ -1,6 +1,10 @@
 Host *
   # 秘密鍵をssh-agentに自動的に追加し、パスフレーズの再入力を不要にする
   AddKeysToAgent yes
+  # macOS のみ UseKeychain を有効化
+  Match exec "uname | grep -q Darwin"
+    UseKeychain yes
+  Match all
   # サーバーからの切断を防ぐため、30秒ごとに生存確認パケットを送信する
   ServerAliveInterval 30
   # 生存確認パケットの応答がない場合、3回試行した後に切断する
