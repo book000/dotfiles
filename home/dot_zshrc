@@ -1,11 +1,15 @@
+# ユーザーローカルのbinディレクトリをPATHの先頭に追加
 export PATH="$HOME/.local/bin:$PATH"
 
-# Load extra config fragments.
+# 追加の設定ファイルを読み込む
 if [ -d "$HOME/.zshrc.d" ]; then
+  # マッチするファイルがない場合にエラーを出さないようにする
   setopt nullglob
+  # ~/.zshrc.d/ 以下の .zsh ファイルを辞書順に読み込む
   for f in ${(on)${(f)"$(LC_ALL=C print -rl -- "$HOME/.zshrc.d/"*.zsh | LC_ALL=C sort)"}}; do
     [ -r "$f" ] && source "$f"
   done
   unset f
+  # オプションを元に戻す
   unsetopt nullglob
 fi

@@ -13,3 +13,9 @@ coverage/
 .ruff_cache/
 .mypy_cache/
 .cache/
+venv/
+.venv/
+*.bak
+Thumbs.db
+__pycache__/
+*.pyc

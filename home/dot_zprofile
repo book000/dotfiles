@@ -1,9 +1,12 @@
-# Load extra profile fragments.
+# 追加のプロファイル設定ファイルを読み込む
 if [ -d "$HOME/.zprofile.d" ]; then
+  # マッチするファイルがない場合にエラーを出さないようにする
   setopt nullglob
+  # ~/.zprofile.d/ 以下の .zsh ファイルを辞書順に読み込む
   for f in ${(on)${(f)"$(LC_ALL=C print -rl -- "$HOME/.zprofile.d/"*.zsh | LC_ALL=C sort)"}}; do
     [ -r "$f" ] && source "$f"
   done
   unset f
+  # オプションを元に戻す
   unsetopt nullglob
 fi
