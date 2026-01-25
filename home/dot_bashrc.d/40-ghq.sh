@@ -17,16 +17,20 @@ gcd() {
 # 引数ありの場合はそのリポジトリを取得して移動
 ghc() {
   command -v ghq >/dev/null 2>&1 || { echo "ghq not found." >&2; return 1; }
+  command -v fzf >/dev/null 2>&1 || { echo "fzf not found." >&2; return 1; }
+  command -v gh >/dev/null 2>&1 || { echo "gh not found." >&2; return 1; }
 
   local repo="$1"
-  # 引数がない場合は fzf でリポジトリリストから選択させる（既存のリストから選択という意味？）
-  # 元のコードの意図としては、ghq list から選択して、それを ghq get --look する形に見えますが、
-  # ghq list は既にローカルにあるものです。
-  # 文脈的に「ローカルにあるリポジトリへ移動」か「新規取得」か混ざっている可能性がありますが、
-  # 元のコードを尊重しつつコメントします。
+  # 引数がない場合は gh コマンドでターゲットのリポジトリ一覧を取得し、fzf で選択させる
   if [[ -z "$repo" ]]; then
-    command -v fzf >/dev/null 2>&1 || { echo "fzf not found." >&2; return 1; }
-    repo="$(ghq list | fzf --prompt='Repo (owner/name or URL)> ' --height=40% --reverse)" || return 1
+    local targets=("book000" "tomacheese" "jaoafa")
+    local repos=""
+    for target in "${targets[@]}"; do
+      if list=$(gh repo list "$target" --limit 1000 --json nameWithOwner --jq '.[].nameWithOwner' 2>/dev/null); then
+        repos+="$list"$'\n'
+      fi
+    done
+    repo="$(echo "$repos" | grep -v '^$' | sort -u | fzf --prompt='Repo> ' --height=40% --reverse)" || return 1
   fi
 
   # URL形式の正規化

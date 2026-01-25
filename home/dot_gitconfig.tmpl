@@ -4,15 +4,45 @@
 
 [core]
   excludesfile = ~/.gitignore_global
+  # 改行コードの自動変換を無効化する
+  autocrlf = input
+  # コメント文字を ; に設定し、issue番号(#123)などをコメントと誤認されないようにする
+  commentChar = ";"
+  # untracked files のステータス確認を高速化する
+  # See https://git-scm.com/docs/git-update-index#_untracked_cache
+  untrackedCache = true
 
 [init]
-  defaultBranch = main
+  defaultBranch = master
+
+[apply]
+  # パッチ適用時に空白文字のエラーを検出して修正する
+  whitespace = fix
 
 [pull]
   rebase = false
 
+[diff]
+  # 範囲内のサブモジュールのコミット一覧を表示する
+  submodule = log
+
+[fetch]
+  # リモートで削除された追跡ブランチをローカルでも削除する
+  prune = true
+
 [merge]
   conflictstyle = zdiff3
+  # 新しく作成されるマージコミットメッセージに、マージされるコミットのサマリを含める
+  log = true
 
-[includeIf "gitdir:~/work/"]
-  path = ~/.gitconfig.work
+[mergetool]
+  # マージ後に .orig バックアップファイルを保存しない
+  keepBackup = false
+
+[rebase]
+  # リベース開始前に一時的な stash エントリを作成する
+  autostash = true
+
+[status]
+  # サブモジュールのコミットサマリを表示する
+  submoduleSummary = true

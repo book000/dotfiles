@@ -9,7 +9,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/completion-notify/notify-completion-with-embed.sh"
+            "command": "~/.claude/scripts/completion-notify/notify-completion.sh"
           }
         ]
       }
