@@ -1,0 +1,19 @@
+{
+  "hooksConfig": {
+    "enabled": true
+  },
+  "hooks": {
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "notify-completion",
+            "type": "command",
+            "command": "~/.gemini/hooks/notify-completion.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

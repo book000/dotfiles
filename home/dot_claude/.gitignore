@@ -1,0 +1,13 @@
+# .claude は opt-in 方式で設定していく
+/*
+/*/
+**/.env
+**/data/
+
+!scripts/
+!rules/
+
+!.gitignore
+!README.md
+!CLAUDE.md
+!settings.json
