@@ -1,0 +1,11 @@
+export PATH="$HOME/.local/bin:$PATH"
+
+# Load extra config fragments.
+if [ -d "$HOME/.zshrc.d" ]; then
+  setopt nullglob
+  for f in ${(on)${(f)"$(LC_ALL=C print -rl -- "$HOME/.zshrc.d/"*.zsh | LC_ALL=C sort)"}}; do
+    [ -r "$f" ] && source "$f"
+  done
+  unset f
+  unsetopt nullglob
+fi

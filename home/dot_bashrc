@@ -1,0 +1,16 @@
+# Only run in interactive shells.
+case $- in
+  *i*) ;;
+  *) return ;;
+esac
+
+# Load extra config fragments.
+if [ -d "$HOME/.bashrc.d" ]; then
+  shopt -s nullglob
+  mapfile -t __bashrc_files < <(LC_ALL=C printf '%s\n' "$HOME/.bashrc.d/"*.sh | LC_ALL=C sort)
+  for f in "${__bashrc_files[@]}"; do
+    [ -r "$f" ] && . "$f"
+  done
+  unset f __bashrc_files
+  shopt -u nullglob
+fi

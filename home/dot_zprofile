@@ -1,0 +1,9 @@
+# Load extra profile fragments.
+if [ -d "$HOME/.zprofile.d" ]; then
+  setopt nullglob
+  for f in ${(on)${(f)"$(LC_ALL=C print -rl -- "$HOME/.zprofile.d/"*.zsh | LC_ALL=C sort)"}}; do
+    [ -r "$f" ] && source "$f"
+  done
+  unset f
+  unsetopt nullglob
+fi
