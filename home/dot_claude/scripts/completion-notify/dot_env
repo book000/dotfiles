@@ -1,5 +1,5 @@
 # ~/.env から読み込む
-if [ -f "$HOME/.env" ]; then
+if [[ -f "$HOME/.env" ]]; then
     source "$HOME/.env"
 else
     echo "⚠️  Warning: $HOME/.env not found." >&2
