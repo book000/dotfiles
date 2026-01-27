@@ -1,0 +1,39 @@
+# =========================================
+# chezmoi dotfiles 環境変数設定
+# =========================================
+# このファイルを ~/.env にコピーして使用してください
+#
+# 使い方:
+#   cp ~/.env.example ~/.env
+#   vi ~/.env  # 値を編集
+#
+# 注意: ~/.env はGitに含めないでください（機密情報を含むため）
+# =========================================
+
+# -----------------------------------------
+# Discord Webhooks - Claude completion-notify
+# -----------------------------------------
+# Claude Code の Stop hook で通知を送信する Webhook URL
+DISCORD_CLAUDE_WEBHOOK="https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+
+# Discord でメンションするユーザー ID（オプション）
+# 設定しない場合は空文字列のまま
+DISCORD_CLAUDE_MENTION_USER_ID=""
+
+# -----------------------------------------
+# Discord Webhooks - Claude limit-unlocked
+# -----------------------------------------
+# Claude Code の制限解除を通知する Webhook URL
+DISCORD_CLAUDE_LIMIT_WEBHOOK="https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+
+# Discord でメンションするユーザー ID（オプション）
+DISCORD_CLAUDE_LIMIT_MENTION_USER_ID=""
+
+# -----------------------------------------
+# Discord Webhooks - Gemini
+# -----------------------------------------
+# Gemini CLI の通知を送信する Webhook URL
+DISCORD_GEMINI_WEBHOOK="https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+
+# Discord でメンションするユーザー ID（オプション）
+DISCORD_GEMINI_MENTION_USER_ID=""

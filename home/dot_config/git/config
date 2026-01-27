@@ -1,6 +1,11 @@
-[user]
-  name = {{ .git_name }}
-  email = {{ .git_email }}
+# User-specific settings are in ~/.gitconfig.local
+# Create ~/.gitconfig.local with:
+#   [user]
+#     name = Your Name
+#     email = your.email@example.com
+
+[include]
+    path = ~/.gitconfig.local
 
 [core]
   # 改行コードの自動変換を無効化する

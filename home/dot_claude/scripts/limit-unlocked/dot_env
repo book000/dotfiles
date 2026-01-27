@@ -1,0 +1,18 @@
+# Source from ~/.env
+if [ -f "$HOME/.env" ]; then
+    source "$HOME/.env"
+else
+    echo "⚠️  Warning: $HOME/.env not found." >&2
+    echo "Some features may not work. Create $HOME/.env with required variables." >&2
+    echo "See ~/.env.example for reference." >&2
+fi
+
+# Export variables for limit-unlocked script
+export DISCORD_WEBHOOK_URL="${DISCORD_CLAUDE_LIMIT_WEBHOOK:-}"
+export MENTION_USER_ID="${DISCORD_CLAUDE_LIMIT_MENTION_USER_ID:-}"
+
+# Webhook URL の存在チェック（空の場合は警告）
+if [[ -z "${DISCORD_WEBHOOK_URL}" ]]; then
+    echo "⚠️  Warning: DISCORD_WEBHOOK_URL is not set in $HOME/.env." >&2
+    echo "Notifications will not be sent." >&2
+fi

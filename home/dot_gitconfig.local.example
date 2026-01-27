@@ -1,0 +1,13 @@
+# =========================================
+# Git user configuration
+# =========================================
+# このファイルを ~/.gitconfig.local にコピーして使用してください
+#
+# 使い方:
+#   cp ~/.gitconfig.local.example ~/.gitconfig.local
+#   vi ~/.gitconfig.local  # 名前とメールアドレスを編集
+# =========================================
+
+[user]
+    name = Your Name
+    email = your.email@example.com

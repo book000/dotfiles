@@ -34,4 +34,5 @@
 
 - 目的: chezmoi で dotfiles と AI エージェント設定を管理する。
 - `home/` 配下が chezmoi のソースであり、実ファイルは `dot_` プレフィックスで管理する。
-- `.env` は `dot_env.tmpl` を使って生成する。
+- `.env` は `~/.env.example` をコピーして手動で作成する（chezmoi 管理外）。
+- Git 設定は `~/.gitconfig.local.example` をコピーして手動で作成する（chezmoi 管理外）。

@@ -20,43 +20,45 @@ chezmoi で dotfiles と AI エージェント設定を管理するためのリ�
 
 `home/` 配下にあるプロンプトは、配布先（ユーザー環境）の汎用設定です。
 
-## age 暗号化の使い方
+## 初回セットアップ
 
-このリポジトリは `chezmoi` の age 暗号化を使う前提で構成しています。
-機密情報（Discord Webhook / WakaTime API Key など）は暗号化して管理します。
-`home/encrypted_dot_wakatime.cfg.age` は暗号化済みファイルとしてコミットします。
+### 1. Git 設定
 
-### セットアップ手順（各マシンごと）
+`~/.gitconfig.local` を作成し、ユーザー情報を設定してください：
 
-1. age 鍵を作成
-
-```
-age-keygen -o ~/.config/chezmoi/key.txt
+```bash
+cp ~/.gitconfig.local.example ~/.gitconfig.local
+vi ~/.gitconfig.local
 ```
 
-2. 公開鍵を `~/.config/chezmoi/chezmoi.toml` に設定
-
-```
-[age]
-  recipient = "age1..."
-```
-
-3. 暗号化ファイルを作成（例: Discord Webhook）
-
-```
-chezmoi add --encrypt ~/.config/notify/gemini.env
+設定例:
+```ini
+[user]
+    name = Your Name
+    email = your.email@example.com
 ```
 
-4. `key.txt.age` をこのリポジトリのルートに配置
+### 2. 環境変数設定（オプション）
 
+通知機能を使用する場合は、`~/.env` を作成してください：
+
+```bash
+cp ~/.env.example ~/.env
+vi ~/.env
 ```
-cp ~/.config/chezmoi/key.txt.age ./key.txt.age
+
+設定例:
+```bash
+DISCORD_CLAUDE_WEBHOOK="https://discord.com/api/webhooks/xxxxx/xxxxx"
+DISCORD_CLAUDE_MENTION_USER_ID="123456789012345678"
 ```
 
-`run_onchange_before_decrypt-private-key.sh.tmpl` が `key.txt.age` を復号して
-`~/.config/chezmoi/key.txt` を作成します。
+**注意:** `~/.env` は機密情報を含むため、Git にコミットしないでください。
 
-### マシンごとの Webhook
+### 3. chezmoi apply
 
-Discord Webhook は各マシンの `~/.config/chezmoi/chezmoi.toml` で設定してください。
-この値は Git に入れず、ローカルで管理する前提です。
+設定ファイルを適用します：
+
+```bash
+chezmoi apply
+```

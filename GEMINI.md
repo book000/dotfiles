@@ -23,7 +23,8 @@
 ## コーディング規約
 
 - 既存ファイルの構成に合わせる。
-- `.env` は `dot_env.tmpl` を使用して生成する。
+- `.env` は `~/.env.example` をコピーして手動で作成する（chezmoi 管理外）。
+- Git 設定は `~/.gitconfig.local.example` をコピーして手動で作成する（chezmoi 管理外）。
 - 機密情報は平文でコミットしない。
 
 ## 開発コマンド

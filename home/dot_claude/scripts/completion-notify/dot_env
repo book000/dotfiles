@@ -1,0 +1,12 @@
+# Source from ~/.env
+if [ -f "$HOME/.env" ]; then
+    source "$HOME/.env"
+else
+    echo "⚠️  Warning: $HOME/.env not found." >&2
+    echo "Some features may not work. Create $HOME/.env with required variables." >&2
+    echo "See ~/.env.example for reference." >&2
+fi
+
+# Export variables for completion-notify script
+export DISCORD_WEBHOOK_URL="${DISCORD_CLAUDE_WEBHOOK:-}"
+export MENTION_USER_ID="${DISCORD_CLAUDE_MENTION_USER_ID:-}"

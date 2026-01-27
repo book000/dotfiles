@@ -62,8 +62,8 @@ Claude Code の作業方針と、このリポジトリ固有のルールを示�
 ## 実装パターン
 
 推奨:
-- 秘密情報はテンプレート化し、必要なら age で暗号化する。
 - シェル設定は `.d` ディレクトリに分割する。
+- 秘密情報は `~/.env` または `~/.gitconfig.local` で管理する（chezmoi 管理外）。
 
 非推奨:
 - 秘密情報の平文コミット。
@@ -113,5 +113,7 @@ Claude Code の作業方針と、このリポジトリ固有のルールを示�
 
 ## リポジトリ固有
 
-- `.env` は `dot_env.tmpl` から生成する。
-- Discord Webhook などの機密情報は暗号化またはローカル設定で管理する。
+- Git 設定は `~/.gitconfig.local` で管理（chezmoi 管理外）。
+- 通知系の環境変数は `~/.env` で管理（chezmoi 管理外）。
+- `.env.example` と `.gitconfig.local.example` をサンプルとして提供。
+- wakatime は別途管理するため、dotfiles での暗号化管理は行わない。
