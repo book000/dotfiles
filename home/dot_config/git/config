@@ -1,5 +1,5 @@
-# User-specific settings are in ~/.gitconfig.local
-# Create ~/.gitconfig.local with:
+# ユーザー固有の設定は ~/.gitconfig.local に記載してください
+# ~/.gitconfig.local を以下の内容で作成してください:
 #   [user]
 #     name = Your Name
 #     email = your.email@example.com

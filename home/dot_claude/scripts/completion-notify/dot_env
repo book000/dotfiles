@@ -1,4 +1,4 @@
-# Source from ~/.env
+# ~/.env から読み込む
 if [ -f "$HOME/.env" ]; then
     source "$HOME/.env"
 else
@@ -7,6 +7,6 @@ else
     echo "See ~/.env.example for reference." >&2
 fi
 
-# Export variables for completion-notify script
+# completion-notify スクリプト用の環境変数をエクスポート
 export DISCORD_WEBHOOK_URL="${DISCORD_CLAUDE_WEBHOOK:-}"
 export MENTION_USER_ID="${DISCORD_CLAUDE_MENTION_USER_ID:-}"
