@@ -1,3 +1,6 @@
+# マシン個別定義
+Include conf.d/*.conf
+
 Host *
   # 秘密鍵をssh-agentに自動的に追加し、パスフレーズの再入力を不要にする
   AddKeysToAgent yes
