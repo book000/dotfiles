@@ -20,7 +20,7 @@ args:
 
 ## Issue 情報の取得
 
-issue 番号 `{{issue_number}}` の情報を以下のコマンドで取得してください：
+issue 番号 `{{issue_number}}` の情報を以下のコマンドなどで取得してください。この時、issue のコメントをも取得してください。
 
 ```bash
 gh issue view {{issue_number}} --json title,state,body
