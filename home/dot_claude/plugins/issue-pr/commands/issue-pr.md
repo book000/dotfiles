@@ -110,12 +110,45 @@ request-review-copilot https://github.com/<OWNER>/<REPO>/pull/<PR_NUMBER>
 
 10 分以内に GitHub Copilot からレビューコメントが投稿される場合があります。以下の手順で対応してください：
 
-1. レビューコメントが投稿されるまで待機（最大 10 分）
-2. 各レビューコメントに対して適切に対応
-3. 対応完了後、各レビュースレッドに返信
-4. 対応したレビュースレッドのみ resolve
+#### 4.1. レビューコメントの待機
 
-レビュースレッドの resolve 方法：
+GitHub Copilot のレビューを待機します（最大 10 分）：
+
+```bash
+# 10 分待機
+echo "GitHub Copilot のレビューを待機しています（10分）..."
+sleep 600
+
+# レビューの確認
+gh api graphql -f query='
+query {
+  repository(owner: "<OWNER>", name: "<REPO>") {
+    pullRequest(number: <PR_NUMBER>) {
+      reviews(last: 5) {
+        nodes {
+          author {
+            login
+          }
+          state
+          createdAt
+        }
+      }
+    }
+  }
+}' --jq '.data.repository.pullRequest.reviews.nodes[] | select(.author.login == "copilot")'
+```
+
+レビューが投稿されていない場合は、制約によりレビューが実施されなかったため、スキップして次に進みます。
+
+#### 4.2. レビューコメントへの対応
+
+レビューコメントが投稿された場合：
+
+1. 各レビューコメントに対して適切に対応
+2. 対応完了後、各レビュースレッドに返信
+3. 対応したレビュースレッドのみ resolve
+
+#### 4.3. レビュースレッドの resolve 方法
 
 ```bash
 # レビュースレッド ID を取得
