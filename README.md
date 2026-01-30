@@ -8,16 +8,16 @@ cp ~/.env.example ~/.env
 vim ~/.env
 ```
 
-## 便利なコマンド
+## Claude Code プラグイン
 
 ### issue-pr
 
-GitHub の issue を確認し、対応のためのブランチを作成して、Claude CLI で PR を作成します。
+GitHub の issue を確認し、対応のためのブランチを作成して PR を作成する Claude Code プラグインです。
 
-```bash
-issue-pr <issue_number>
+```
+/issue-pr <issue_number>
 ```
 
 - issue のタイトルから適切なブランチ名を自動生成します
 - デフォルトブランチ（master または main）から最新の状態でブランチを作成します
-- Claude CLI を起動して issue の対応を依頼します
+- issue の内容に基づいて対応を行い、PR を作成します
