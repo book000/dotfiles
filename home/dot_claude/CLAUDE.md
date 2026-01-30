@@ -121,7 +121,59 @@ Codex CLI や Gemini CLI の他エージェントに相談することができ�
 2. PR本文の内容は、ブランチの現在の状態を、今までのこのPRでの更新履歴を含むことなく、最新の状態のみ、漏れなく日本語で記載されていること。このPRを見たユーザーが、最終的にどのような変更を含むPRなのかをわかりやすく、細かく記載されていること
 3. `gh pr checks <PR ID> --watch` で GitHub Actions CI を待ち、その結果がエラーとなっていないこと。成功している場合でも、ログを確認し、誤って成功扱いになっていないこと。もし GitHub Actions が動作しない場合は、ローカルで CI と同等のテストを行い、CI が成功することを保証しなければなりません。
 4. `request-review-copilot` コマンドが存在する場合、`request-review-copilot https://github.com/$OWNER/$REPO/pull/$PR_NUMBER` で GitHub Copilot へレビューを依頼すること。レビュー依頼は自動で行われる場合もあるし、制約により `request-review-copilot` を実行しても GitHub Copilot がレビューしないケースがある
-5. 10分以内に投稿される GitHub Copilot レビューへの対応を行うこと。対応したら、レビューコメントそれぞれに対して返信を行うこと。レビュアーに GitHub Copilot がアサインされていない場合はスキップして構わない
+5. 10分以内に投稿される GitHub Copilot レビューへの対応を行うこと。対応したら、レビューコメントそれぞれに対して返信を行い、対応したレビュースレッドのみ resolve すること。レビュアーに GitHub Copilot がアサインされていない場合はスキップして構わない
 6. `/code-review:code-review` によるコードレビューを実施したこと。コードレビュー内容に対しては、**スコアが 50 以上の指摘事項** に対して対応してください (80 がボーダーラインではありません)
+
+#### GitHub Copilot レビュースレッドの resolve 方法
+
+レビュースレッドを resolve するには、GitHub GraphQL API を使用します。
+
+以下の例では、`OWNER`、`REPO`、`PR_NUMBER`、`THREAD_ID` をプレースホルダーとして使用しています。実際の値（リポジトリオーナー名、リポジトリ名、PR 番号、スレッド ID）に置き換えてください。
+
+**1. レビュースレッド ID を取得**
+
+```bash
+# プレースホルダーを実際の値に置き換える例
+OWNER="book000"
+REPO="dotfiles"
+PR_NUMBER=23
+
+gh api graphql -f query="
+query {
+  repository(owner: \"$OWNER\", name: \"$REPO\") {
+    pullRequest(number: $PR_NUMBER) {
+      reviewThreads(first: 10) {
+        nodes {
+          id
+          isResolved
+          comments(first: 1) {
+            nodes {
+              body
+              path
+            }
+          }
+        }
+      }
+    }
+  }
+}"
+```
+
+**2. 各スレッドを resolve**
+
+```bash
+# THREAD_ID は手順 1 で取得した値を使用
+THREAD_ID="取得したスレッドID"
+
+gh api graphql -f query="
+mutation {
+  resolveReviewThread(input: {threadId: \"$THREAD_ID\"}) {
+    thread {
+      id
+      isResolved
+    }
+  }
+}"
+```
 
 @CLAUDE.local.md
