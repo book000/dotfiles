@@ -40,15 +40,15 @@ gh issue view {{issue_number}} --json title,state,body
    - `git symbolic-ref refs/remotes/origin/HEAD` で取得
    - 取得できない場合は master または main を確認
 
-3. issue タイトルからブランチ名を生成：
-   - タイトルを小文字に変換
-   - 英数字以外をハイフンに置換
-   - 日本語のみのタイトルの場合は `issue-{{issue_number}}` を使用
-   - ブランチタイプを決定：
-     - タイトルが "fix" または "bug" で始まる場合: `fix/`
-     - タイトルが "docs" または "doc" で始まる場合: `docs/`
-     - タイトルが "refactor" で始まる場合: `refactor/`
-     - それ以外: `feat/`
+3. issue の内容に基づいてブランチ名を生成：
+   - issue の内容を確認し、適切なブランチ名を決定
+   - ブランチタイプは CLAUDE.md の Conventional Branch の定義に従う：
+     - バグ修正の場合: `fix/`
+     - ドキュメント更新の場合: `docs/`
+     - リファクタリングの場合: `refactor/`
+     - 新機能追加の場合: `feat/`
+   - ブランチ名は英数字とハイフンで構成し、内容を簡潔に表現
+   - 例: `feat/add-user-authentication`, `fix/resolve-login-error`
 
 4. デフォルトブランチから新しいブランチを作成：
    ```bash
@@ -72,7 +72,94 @@ PR 本文には以下を含めてください：
 - 主な機能・変更点
 - テスト結果
 
-## 注意事項
+## PR 作成後の対応
+
+PR を作成したら、以下の手順を **必ず** 実施してください：
+
+### 1. issue 作成者にレビューを依頼
+
+権限がある場合、issue 作成者にレビューを依頼します：
+
+```bash
+# issue 作成者を取得
+ISSUE_AUTHOR=$(gh issue view {{issue_number}} --json author --jq '.author.login')
+
+# レビューを依頼（権限エラーの場合はスキップ）
+gh pr edit <PR_NUMBER> --add-reviewer "$ISSUE_AUTHOR" 2>/dev/null || echo "レビュー依頼をスキップしました"
+```
+
+### 2. CI の確認
+
+GitHub Actions CI が設定されている場合、以下のコマンドで CI の完了を待ちます：
+
+```bash
+gh pr checks <PR_NUMBER> --watch
+```
+
+CI が設定されていない場合は、ローカルで同等のテストを実行してください。
+
+### 3. GitHub Copilot へのコードレビュー依頼
+
+`request-review-copilot` コマンドが利用可能な場合、GitHub Copilot にレビューを依頼します：
+
+```bash
+request-review-copilot https://github.com/<OWNER>/<REPO>/pull/<PR_NUMBER>
+```
+
+### 4. GitHub Copilot レビューコメントへの対応
+
+10 分以内に GitHub Copilot からレビューコメントが投稿される場合があります。以下の手順で対応してください：
+
+1. レビューコメントが投稿されるまで待機（最大 10 分）
+2. 各レビューコメントに対して適切に対応
+3. 対応完了後、各レビュースレッドに返信
+4. 対応したレビュースレッドのみ resolve
+
+レビュースレッドの resolve 方法：
+
+```bash
+# レビュースレッド ID を取得
+gh api graphql -f query='
+query {
+  repository(owner: "<OWNER>", name: "<REPO>") {
+    pullRequest(number: <PR_NUMBER>) {
+      reviewThreads(first: 10) {
+        nodes {
+          id
+          isResolved
+          comments(first: 1) {
+            nodes {
+              body
+              path
+            }
+          }
+        }
+      }
+    }
+  }
+}'
+
+# スレッドを resolve
+gh api graphql -f query='
+mutation {
+  resolveReviewThread(input: {threadId: "<THREAD_ID>"}) {
+    thread {
+      id
+      isResolved
+    }
+  }
+}'
+```
+
+### 5. コードレビューの実施
+
+`/code-review:code-review` コマンドでコードレビューを実施し、スコア 50 以上の指摘事項に対応してください。
+
+### 6. PR 本文の確認
+
+PR 本文が最新の状態を正しく反映していることを確認し、必要に応じて更新してください。
+
+## コミット前の注意事項
 
 - Conventional Commits に従ってコミットメッセージを作成
 - コミット内容にセンシティブな情報が含まれていないことを確認
