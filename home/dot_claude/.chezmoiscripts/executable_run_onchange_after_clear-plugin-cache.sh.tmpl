@@ -1,0 +1,20 @@
+#!/bin/bash
+# このスクリプトは、パッチファイルが変更されたときにプラグインキャッシュをクリアします
+
+# パッチファイルのハッシュ（ファイル内容が変わったときのみ実行されるように）
+# hash: {{ include "patches/code-review-threshold.patch" | sha256sum }}
+
+echo "🔄 プラグインキャッシュをクリア中..."
+
+# code-review プラグインのキャッシュをクリア
+if [ -d "$HOME/.claude/plugins/cache/claude-plugins-official/code-review" ]; then
+    rm -rf "$HOME/.claude/plugins/cache/claude-plugins-official/code-review"
+    echo "✅ code-review プラグインのキャッシュをクリアしました"
+else
+    echo "ℹ️  code-review プラグインのキャッシュは存在しません"
+fi
+
+# 他のプラグインのキャッシュもクリアする場合はここに追加
+# 例: rm -rf "$HOME/.claude/plugins/cache/claude-plugins-official/pr-review-toolkit"
+
+echo "✅ プラグインキャッシュのクリアが完了しました"

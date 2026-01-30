@@ -10,6 +10,7 @@
 !commands/
 !patches/
 !hookify.*.local.md
+!.chezmoiscripts/
 
 !.gitignore
 !README.md
