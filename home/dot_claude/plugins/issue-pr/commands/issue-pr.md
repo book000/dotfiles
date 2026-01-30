@@ -106,17 +106,17 @@ CI が設定されていない場合は、ローカルで同等のテストを�
 request-review-copilot https://github.com/<OWNER>/<REPO>/pull/<PR_NUMBER>
 ```
 
-### 4. GitHub Copilot レビューコメントへの対応
+### 4. レビューコメントへの対応
 
-10 分以内に GitHub Copilot からレビューコメントが投稿される場合があります。以下の手順で対応してください：
+10 分以内に GitHub Copilot や他のユーザーからレビューコメントが投稿される場合があります。以下の手順で対応してください：
 
 #### 4.1. レビューコメントの待機
 
-GitHub Copilot のレビューを待機します（最大 10 分、30秒ごとにチェック）：
+レビューを待機します（最大 10 分、30秒ごとにチェック）：
 
 ```bash
-# GitHub Copilot のレビューを待機（最大 10 分）
-echo "GitHub Copilot のレビューを待機しています（最大10分）..."
+# レビューの待機（最大 10 分）
+echo "レビューを待機しています（最大10分）..."
 
 OWNER="<OWNER>"
 REPO="<REPO>"
@@ -125,26 +125,33 @@ MAX_WAIT=600  # 10分
 INTERVAL=30   # 30秒ごとにチェック
 ELAPSED=0
 
+# PR 作成時のレビュー数を取得
+INITIAL_REVIEW_COUNT=$(gh api graphql -f query="
+query {
+  repository(owner: \"$OWNER\", name: \"$REPO\") {
+    pullRequest(number: $PR_NUMBER) {
+      reviews {
+        totalCount
+      }
+    }
+  }
+}" --jq '.data.repository.pullRequest.reviews.totalCount')
+
 while [ $ELAPSED -lt $MAX_WAIT ]; do
-  # レビューの確認
-  REVIEW_COUNT=$(gh api graphql -f query="
+  # 現在のレビュー数を確認
+  CURRENT_REVIEW_COUNT=$(gh api graphql -f query="
   query {
     repository(owner: \"$OWNER\", name: \"$REPO\") {
       pullRequest(number: $PR_NUMBER) {
-        reviews(last: 5) {
-          nodes {
-            author {
-              login
-            }
-            createdAt
-          }
+        reviews {
+          totalCount
         }
       }
     }
-  }" --jq '[.data.repository.pullRequest.reviews.nodes[] | select(.author.login == "copilot" or .author.login == "copilot-pull-request-reviewer")] | length')
+  }" --jq '.data.repository.pullRequest.reviews.totalCount')
 
-  if [ "$REVIEW_COUNT" -gt 0 ]; then
-    echo "GitHub Copilot のレビューが投稿されました。"
+  if [ "$CURRENT_REVIEW_COUNT" -gt "$INITIAL_REVIEW_COUNT" ]; then
+    echo "新しいレビューが投稿されました。"
     break
   fi
 
@@ -154,7 +161,7 @@ while [ $ELAPSED -lt $MAX_WAIT ]; do
 done
 
 if [ $ELAPSED -ge $MAX_WAIT ]; then
-  echo "制約によりレビューが実施されなかったため、スキップします。"
+  echo "レビューが投稿されなかったため、スキップします。"
 fi
 ```
 
