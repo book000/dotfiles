@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# code-review プラグインの閾値変更パッチを適用するスクリプト
+# このスクリプトは chezmoi apply 時に毎回実行される（冪等性チェックあり）
+
+set -e
+
+PATCH_FILE="$HOME/.claude/patches/code-review-threshold.patch"
+TARGET_FILE="$HOME/.claude/plugins/marketplaces/claude-plugins-official/plugins/code-review/commands/code-review.md"
+
+echo "Applying code-review plugin threshold patch..."
+
+# パッチファイルの存在確認
+if [[ ! -f "$PATCH_FILE" ]]; then
+    echo "⚠️  Patch file not found: $PATCH_FILE" >&2
+    exit 0
+fi
+
+# 対象ファイルの存在確認
+if [[ ! -f "$TARGET_FILE" ]]; then
+    echo "⚠️  Target file not found: $TARGET_FILE" >&2
+    echo "   code-review plugin may not be installed" >&2
+    exit 0
+fi
+
+# パッチが既に適用されているか確認
+if grep -q "Filter out any issues with a score less than 50" "$TARGET_FILE"; then
+    echo "✓ Patch already applied"
+    exit 0
+fi
+
+# パッチを適用（プラグインルートディレクトリに移動してから実行）
+cd "$(dirname "$(dirname "$TARGET_FILE")")"
+if patch -p1 --batch --forward < "$PATCH_FILE"; then
+    echo "✓ Patch applied successfully (threshold: 80 → 50)"
+else
+    echo "❌ Failed to apply patch" >&2
+    echo "   Plugin structure may have changed" >&2
+    exit 1
+fi

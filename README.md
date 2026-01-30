@@ -29,8 +29,8 @@ Claude Code の `/code-review:code-review` コマンドは、デフォルトで�
 ### 仕組み
 
 1. **パッチファイル**: `home/dot_claude/patches/code-review-threshold.patch` に閾値変更パッチを配置
-2. **自動適用**: `chezmoi apply` 時に `.chezmoiscripts/run_once_apply-code-review-patch.sh.tmpl` が実行され、パッチを自動適用
-3. **冪等性**: 既にパッチが適用されている場合はスキップ
+2. **自動適用**: `chezmoi apply` 時に `.chezmoiscripts/run_after_apply-code-review-patch.sh.tmpl` が毎回実行され、パッチを自動適用
+3. **冪等性**: 既にパッチが適用されている場合はスキップ（何度実行しても安全）
 
 ### 閾値の変更方法
 
@@ -41,7 +41,7 @@ Claude Code の `/code-review:code-review` コマンドは、デフォルトで�
 +6. Filter out any issues with a score less than 50. If there are no issues that meet this criteria, do not proceed.
 ```
 
-変更後、`chezmoi apply` を実行すると新しい閾値が適用されます。
+変更後、`chezmoi apply` を実行すると新しい閾値が適用されます（スクリプトは毎回実行され、冪等性があります）。
 
 ### 注意事項
 
