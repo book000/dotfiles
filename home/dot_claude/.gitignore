@@ -6,6 +6,7 @@
 
 !scripts/
 !rules/
+!plugins/
 
 !.gitignore
 !README.md
