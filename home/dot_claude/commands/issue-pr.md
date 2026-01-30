@@ -100,7 +100,8 @@ CI が設定されていない場合は、ローカルで同等のテストを�
 
 ### 3. GitHub Copilot へのコードレビュー依頼
 
-`request-review-copilot` コマンドが利用可能な場合、GitHub Copilot にレビューを依頼します。
+`request-review-copilot` コマンドが利用可能な場合、GitHub Copilot にレビューを依頼します。  
+レビューが返ってくるのをフロントで待つ必要はありませんが、エージェント機能を用いてバックグラウンドで監視すると良いでしょう。
 
 ```bash
 request-review-copilot https://github.com/<OWNER>/<REPO>/pull/<PR_NUMBER>
