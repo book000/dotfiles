@@ -7,6 +7,8 @@
 !scripts/
 !rules/
 !plugins/
+!commands/
+!hookify.*.local.md
 
 !.gitignore
 !README.md

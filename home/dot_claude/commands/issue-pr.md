@@ -116,13 +116,13 @@ request-review-copilot https://github.com/<OWNER>/<REPO>/pull/<PR_NUMBER>
 
 ```bash
 # レビューの待機（最大 10 分）
-echo "レビューを待機しています（最大10分）..."
+echo "レビューを待機しています（最大 10 分）..."
 
 OWNER="<OWNER>"
 REPO="<REPO>"
 PR_NUMBER=<PR_NUMBER>
-MAX_WAIT=600  # 10分
-INTERVAL=30   # 30秒ごとにチェック
+MAX_WAIT=600  # 10 分
+INTERVAL=30   # 30 秒ごとにチェック
 ELAPSED=0
 
 # PR 作成時のレビュー数を取得
@@ -177,10 +177,10 @@ fi
 
 ```bash
 # レビュースレッド ID を取得
-gh api graphql -f query='
+gh api graphql -f query="
 query {
-  repository(owner: "<OWNER>", name: "<REPO>") {
-    pullRequest(number: <PR_NUMBER>) {
+  repository(owner: \"$OWNER\", name: \"$REPO\") {
+    pullRequest(number: $PR_NUMBER) {
       reviewThreads(first: 10) {
         nodes {
           id
@@ -195,18 +195,18 @@ query {
       }
     }
   }
-}'
+}"
 
 # スレッドを resolve
-gh api graphql -f query='
+gh api graphql -f query="
 mutation {
-  resolveReviewThread(input: {threadId: "<THREAD_ID>"}) {
+  resolveReviewThread(input: {threadId: \"$THREAD_ID\"}) {
     thread {
       id
       isResolved
     }
   }
-}'
+}"
 ```
 
 ### 5. コードレビューの実施
