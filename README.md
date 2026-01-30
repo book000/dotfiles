@@ -30,7 +30,8 @@ Claude Code の `/code-review:code-review` コマンドは、デフォルトで�
 
 1. **パッチファイル**: `home/dot_claude/patches/code-review-threshold.patch` に閾値変更パッチを配置
 2. **自動適用**: `chezmoi apply` 時に `.chezmoiscripts/run_after_apply-code-review-patch.sh.tmpl` が毎回実行され、パッチを自動適用
-3. **冪等性**: 既にパッチが適用されている場合はスキップ（何度実行しても安全）
+3. **キャッシュクリア**: パッチファイルが変更されると、`dot_claude/.chezmoiscripts/run_onchange_after_clear-plugin-cache.sh.tmpl` が自動実行され、プラグインキャッシュ (`~/.claude/plugins/cache/`) をクリア
+4. **冪等性**: 既にパッチが適用されている場合はスキップ（何度実行しても安全）
 
 ### 閾値の変更方法
 
