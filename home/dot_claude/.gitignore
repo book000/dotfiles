@@ -7,6 +7,7 @@
 !scripts/
 !rules/
 !plugins/
+!commands/
 
 !.gitignore
 !README.md
