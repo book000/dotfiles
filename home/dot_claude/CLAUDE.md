@@ -128,13 +128,20 @@ Codex CLI や Gemini CLI の他エージェントに相談することができ�
 
 レビュースレッドを resolve するには、GitHub GraphQL API を使用します。
 
+以下の例では、`OWNER`、`REPO`、`PR_NUMBER`、`THREAD_ID` をプレースホルダーとして使用しています。実際の値（リポジトリオーナー名、リポジトリ名、PR 番号、スレッド ID）に置き換えてください。
+
 **1. レビュースレッド ID を取得**
 
 ```bash
-gh api graphql -f query='
+# プレースホルダーを実際の値に置き換える例
+OWNER="book000"
+REPO="dotfiles"
+PR_NUMBER=23
+
+gh api graphql -f query="
 query {
-  repository(owner: "OWNER", name: "REPO") {
-    pullRequest(number: PR_NUMBER) {
+  repository(owner: \"$OWNER\", name: \"$REPO\") {
+    pullRequest(number: $PR_NUMBER) {
       reviewThreads(first: 10) {
         nodes {
           id
@@ -149,21 +156,24 @@ query {
       }
     }
   }
-}'
+}"
 ```
 
 **2. 各スレッドを resolve**
 
 ```bash
-gh api graphql -f query='
+# THREAD_ID は手順 1 で取得した値を使用
+THREAD_ID="取得したスレッドID"
+
+gh api graphql -f query="
 mutation {
-  resolveReviewThread(input: {threadId: "THREAD_ID"}) {
+  resolveReviewThread(input: {threadId: \"$THREAD_ID\"}) {
     thread {
       id
       isResolved
     }
   }
-}'
+}"
 ```
 
 @CLAUDE.local.md
