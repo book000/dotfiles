@@ -8,6 +8,7 @@
 !rules/
 !plugins/
 !commands/
+!patches/
 !hookify.*.local.md
 
 !.gitignore
