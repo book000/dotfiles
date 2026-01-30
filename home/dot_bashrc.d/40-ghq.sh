@@ -34,7 +34,7 @@ ghc() {
     repo="$(echo "$repos" | grep -v '^$' | sort -u | fzf)" || return 1
   fi
 
-  # URL形式の正規化
+  # URL 形式の正規化
   if [[ "$repo" == https://github.com/* ]]; then
     repo="${repo#https://github.com/}"
   elif [[ "$repo" == http://github.com/* ]]; then
@@ -103,14 +103,9 @@ ghc() {
     fi
   fi
 
-  # owner/repo 形式の場合、SSH URLに変換
+  # owner/repo 形式の場合、SSH URL に変換
   if [[ -n "$repo_name" ]]; then
     repo="git@github.com:${repo_name}.git"
-  else
-    # 既に URL 形式の場合はそのまま使用
-    if [[ "$repo" =~ ^[^/]+/[^/]+$ ]]; then
-      repo="git@github.com:${repo}.git"
-    fi
   fi
 
   # リポジトリを取得し、そのディレクトリ内のシェルを起動（または移動）
