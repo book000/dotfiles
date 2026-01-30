@@ -8,11 +8,11 @@ cp ~/.env.example ~/.env
 vim ~/.env
 ```
 
-## Claude Code プラグイン
+## Claude Code コマンド
 
 ### issue-pr
 
-GitHub の issue を確認し、対応のためのブランチを作成して PR を作成する Claude Code プラグインです。
+GitHub の issue を確認し、対応のためのブランチを作成して PR を作成する Claude Code コマンドです。
 
 ```
 /issue-pr <issue_number>
