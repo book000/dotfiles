@@ -15,6 +15,7 @@ gcd() {
 # リポジトリを ghq get し、必要に応じて移動や表示を行う関数
 # 引数なしの場合は fzf で選択
 # 引数ありの場合はそのリポジトリを取得して移動
+# write 権限がない場合は自動的に Fork してからクローンする
 ghc() {
   command -v ghq >/dev/null 2>&1 || { echo "ghq not found." >&2; return 1; }
   command -v fzf >/dev/null 2>&1 || { echo "fzf not found." >&2; return 1; }
@@ -33,7 +34,7 @@ ghc() {
     repo="$(echo "$repos" | grep -v '^$' | sort -u | fzf --prompt='Repo> ' --height=40% --reverse)" || return 1
   fi
 
-  # URL形式の正規化
+  # URL 形式の正規化
   if [[ "$repo" == https://github.com/* ]]; then
     repo="${repo#https://github.com/}"
   elif [[ "$repo" == http://github.com/* ]]; then
@@ -47,9 +48,65 @@ ghc() {
   repo="${repo%.git}"
   repo="${repo%/}"
 
-  # owner/repo 形式の場合、SSH URLに変換
+  # owner/repo 形式を保持（権限チェック用）
+  local repo_name=""
   if [[ "$repo" =~ ^[^/]+/[^/]+$ ]]; then
-    repo="git@github.com:${repo}.git"
+    repo_name="$repo"
+  fi
+
+  # write 権限チェック（owner/repo 形式の場合のみ）
+  if [[ -n "$repo_name" ]]; then
+    echo "Checking write permission for $repo_name..."
+    local permission
+    if ! permission=$(gh api "repos/$repo_name" --jq '.permissions.push' 2>/dev/null); then
+      echo "Failed to check repository permissions. Please check your authentication." >&2
+      return 1
+    fi
+
+    if [[ "$permission" == "false" ]]; then
+      echo "No write permission. Checking if fork exists..."
+      local current_user
+      if ! current_user=$(gh api user --jq '.login' 2>/dev/null); then
+        echo "Failed to get current user. Please check your authentication." >&2
+        return 1
+      fi
+
+      if [[ -z "$current_user" ]]; then
+        echo "Failed to get current user." >&2
+        return 1
+      fi
+
+      # Fork が既に存在するかチェック（.fork フラグと .parent を確認）
+      local fork_check
+      fork_check=$(gh api "repos/$current_user/${repo_name#*/}" --jq 'if .fork and .parent.full_name == "'"$repo_name"'" then "true" else "false" end' 2>/dev/null || echo "not_found")
+
+      if [[ "$fork_check" == "not_found" ]]; then
+        echo "Creating fork..."
+        if ! gh repo fork "$repo_name" --clone=false 2>/dev/null; then
+          echo "Failed to create fork." >&2
+          return 1
+        fi
+        echo "Fork created successfully."
+      elif [[ "$fork_check" == "true" ]]; then
+        echo "Fork already exists."
+      else
+        echo "Repository $current_user/${repo_name#*/} exists but is not a fork of $repo_name." >&2
+        return 1
+      fi
+
+      # Fork のリポジトリに変更
+      repo_name="$current_user/${repo_name#*/}"
+      echo "Using fork: $repo_name"
+    elif [[ "$permission" == "null" ]] || [[ -z "$permission" ]]; then
+      echo "Failed to determine repository permissions." >&2
+      return 1
+    # permission == "true" の場合は write 権限があるため、そのままクローンする
+    fi
+  fi
+
+  # owner/repo 形式の場合、SSH URL に変換
+  if [[ -n "$repo_name" ]]; then
+    repo="git@github.com:${repo_name}.git"
   fi
 
   # リポジトリを取得し、そのディレクトリへ移動
