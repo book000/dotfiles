@@ -112,33 +112,51 @@ request-review-copilot https://github.com/<OWNER>/<REPO>/pull/<PR_NUMBER>
 
 #### 4.1. レビューコメントの待機
 
-GitHub Copilot のレビューを待機します（最大 10 分）：
+GitHub Copilot のレビューを待機します（最大 10 分、30秒ごとにチェック）：
 
 ```bash
-# 10 分待機
-echo "GitHub Copilot のレビューを待機しています（10分）..."
-sleep 600
+# GitHub Copilot のレビューを待機（最大 10 分）
+echo "GitHub Copilot のレビューを待機しています（最大10分）..."
 
-# レビューの確認
-gh api graphql -f query='
-query {
-  repository(owner: "<OWNER>", name: "<REPO>") {
-    pullRequest(number: <PR_NUMBER>) {
-      reviews(last: 5) {
-        nodes {
-          author {
-            login
+OWNER="<OWNER>"
+REPO="<REPO>"
+PR_NUMBER=<PR_NUMBER>
+MAX_WAIT=600  # 10分
+INTERVAL=30   # 30秒ごとにチェック
+ELAPSED=0
+
+while [ $ELAPSED -lt $MAX_WAIT ]; do
+  # レビューの確認
+  REVIEW_COUNT=$(gh api graphql -f query="
+  query {
+    repository(owner: \"$OWNER\", name: \"$REPO\") {
+      pullRequest(number: $PR_NUMBER) {
+        reviews(last: 5) {
+          nodes {
+            author {
+              login
+            }
+            createdAt
           }
-          state
-          createdAt
         }
       }
     }
-  }
-}' --jq '.data.repository.pullRequest.reviews.nodes[] | select(.author.login == "copilot")'
-```
+  }" --jq '[.data.repository.pullRequest.reviews.nodes[] | select(.author.login == "copilot" or .author.login == "copilot-pull-request-reviewer")] | length')
 
-レビューが投稿されていない場合は、制約によりレビューが実施されなかったため、スキップして次に進みます。
+  if [ "$REVIEW_COUNT" -gt 0 ]; then
+    echo "GitHub Copilot のレビューが投稿されました。"
+    break
+  fi
+
+  sleep $INTERVAL
+  ELAPSED=$((ELAPSED + INTERVAL))
+  echo "待機中... ($ELAPSED / $MAX_WAIT 秒)"
+done
+
+if [ $ELAPSED -ge $MAX_WAIT ]; then
+  echo "制約によりレビューが実施されなかったため、スキップします。"
+fi
+```
 
 #### 4.2. レビューコメントへの対応
 
