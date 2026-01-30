@@ -100,6 +100,7 @@ ghc() {
     elif [[ "$permission" == "null" ]] || [[ -z "$permission" ]]; then
       echo "Failed to determine repository permissions." >&2
       return 1
+    # permission == "true" の場合は write 権限があるため、そのままクローンする
     fi
   fi
 
