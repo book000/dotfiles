@@ -124,9 +124,18 @@ check_environment() {
 backup_ssh_config() {
   log_info "SSH 設定をチェックしています..."
 
-  local ssh_config="$HOME/.ssh/config"
-  local backup_dir="$HOME/.ssh/conf.d"
+  local ssh_dir="$HOME/.ssh"
+  local ssh_config="$ssh_dir/config"
+  local backup_dir="$ssh_dir/conf.d"
   local backup_file="$backup_dir/00-prev-config.conf"
+
+  # ~/.ssh ディレクトリのパーミッションを 700 に設定
+  if [[ -d "$ssh_dir" ]]; then
+    chmod 700 "$ssh_dir"
+  else
+    mkdir -p "$ssh_dir"
+    chmod 700 "$ssh_dir"
+  fi
 
   if [[ -f "$ssh_config" ]]; then
     if [[ -f "$backup_file" ]]; then
@@ -506,6 +515,9 @@ EOF
   read -r -p "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id
   echo "DISCORD_GEMINI_MENTION_USER_ID=\"$mention_user_id\"" >> "$env_file"
 
+  # .env ファイルのパーミッションを 600 に設定（センシティブ情報を含むため）
+  chmod 600 "$env_file"
+
   log_info ".env を作成しました"
 }
 
@@ -526,12 +538,31 @@ apply_chezmoi() {
   chezmoi apply
   log_info "chezmoi の設定が正常に適用されました"
 
+  # chezmoi apply 後にパーミッションを再設定
+  local ssh_dir="$HOME/.ssh"
+  local ssh_conf_d="$ssh_dir/conf.d"
+  local ssh_config="$ssh_dir/config"
+
+  if [[ -d "$ssh_dir" ]]; then
+    chmod 700 "$ssh_dir"
+  fi
+
+  if [[ -d "$ssh_conf_d" ]]; then
+    chmod 700 "$ssh_conf_d"
+  fi
+
+  if [[ -f "$ssh_config" ]]; then
+    chmod 600 "$ssh_config"
+  fi
+
   # .env のコピー
   local env_file="$HOME/.env"
   local example_file="$HOME/.env.example"
 
   if [[ ! -f "$env_file" ]] && [[ -f "$example_file" ]]; then
     cp "$example_file" "$env_file"
+    # .env ファイルのパーミッションを 600 に設定（センシティブ情報を含むため）
+    chmod 600 "$env_file"
     log_info ".env を .env.example からコピーしました"
     log_warn "Discord Webhook URL などを設定してください: $env_file"
   fi
