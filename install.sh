@@ -433,15 +433,87 @@ setup_env() {
   log_info ".env をセットアップしています..."
 
   local env_file="$HOME/.env"
-  local example_file="$HOME/.env.example"
 
   if [[ -f "$env_file" ]]; then
-    log_warn ".env が既に存在します (スキップ)"
-  else
-    # chezmoi apply 後に .env.example が存在する場合はコピー
-    # インストール時点では存在しないため、後でコピーするようにメッセージを表示
-    log_info ".env は chezmoi apply 後に .env.example からコピーしてください"
+    log_warn ".env が既に存在します"
+
+    if [[ "${NO_INTERACTIVE:-0}" != "1" ]]; then
+      local confirm
+      read -r -p "上書きしますか? [y/N]: " confirm
+      if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        log_info ".env のセットアップをスキップしました"
+        return 0
+      fi
+    else
+      log_info ".env のセットアップをスキップしました"
+      return 0
+    fi
   fi
+
+  # 非対話モードの場合は後で .env.example からコピー
+  if [[ "${NO_INTERACTIVE:-0}" == "1" ]]; then
+    log_info ".env は chezmoi apply 後に .env.example からコピーしてください"
+    return 0
+  fi
+
+  # 対話モードの場合は Discord Webhook URL などを入力
+  cat > "$env_file" <<'EOF'
+# =========================================
+# chezmoi dotfiles 環境変数設定
+# =========================================
+
+EOF
+
+  # Claude completion-notify
+  echo "# -----------------------------------------" >> "$env_file"
+  echo "# Discord Webhooks - Claude completion-notify" >> "$env_file"
+  echo "# -----------------------------------------" >> "$env_file"
+
+  local webhook_url
+  read -r -p "Claude completion-notify の Discord Webhook URL (空欄でスキップ): " webhook_url
+  if [[ -n "$webhook_url" ]]; then
+    echo "DISCORD_CLAUDE_WEBHOOK=\"$webhook_url\"" >> "$env_file"
+  else
+    echo "DISCORD_CLAUDE_WEBHOOK=\"\"" >> "$env_file"
+  fi
+
+  local mention_user_id
+  read -r -p "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id
+  echo "DISCORD_CLAUDE_MENTION_USER_ID=\"$mention_user_id\"" >> "$env_file"
+  echo "" >> "$env_file"
+
+  # Claude limit-unlocked
+  echo "# -----------------------------------------" >> "$env_file"
+  echo "# Discord Webhooks - Claude limit-unlocked" >> "$env_file"
+  echo "# -----------------------------------------" >> "$env_file"
+
+  read -r -p "Claude limit-unlocked の Discord Webhook URL (空欄でスキップ): " webhook_url
+  if [[ -n "$webhook_url" ]]; then
+    echo "DISCORD_CLAUDE_LIMIT_WEBHOOK=\"$webhook_url\"" >> "$env_file"
+  else
+    echo "DISCORD_CLAUDE_LIMIT_WEBHOOK=\"\"" >> "$env_file"
+  fi
+
+  read -r -p "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id
+  echo "DISCORD_CLAUDE_LIMIT_MENTION_USER_ID=\"$mention_user_id\"" >> "$env_file"
+  echo "" >> "$env_file"
+
+  # Gemini
+  echo "# -----------------------------------------" >> "$env_file"
+  echo "# Discord Webhooks - Gemini" >> "$env_file"
+  echo "# -----------------------------------------" >> "$env_file"
+
+  read -r -p "Gemini の Discord Webhook URL (空欄でスキップ): " webhook_url
+  if [[ -n "$webhook_url" ]]; then
+    echo "DISCORD_GEMINI_WEBHOOK=\"$webhook_url\"" >> "$env_file"
+  else
+    echo "DISCORD_GEMINI_WEBHOOK=\"\"" >> "$env_file"
+  fi
+
+  read -r -p "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id
+  echo "DISCORD_GEMINI_MENTION_USER_ID=\"$mention_user_id\"" >> "$env_file"
+
+  log_info ".env を作成しました"
 }
 
 # chezmoi apply を実行
