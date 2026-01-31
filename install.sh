@@ -164,8 +164,8 @@ install_chezmoi() {
     # ~/.local/bin が存在しない場合は作成
     mkdir -p "$HOME/.local/bin"
 
-    # chezmoi を ~/.local/bin にインストール
-    sh -c "$(curl -fsLS https://get.chezmoi.io/lb)"
+    # chezmoi を ~/.local/bin にインストール（ホームディレクトリから実行）
+    (cd "$HOME" && sh -c "$(curl -fsLS https://get.chezmoi.io/lb)")
 
     log_info "chezmoi が正常にインストールされました"
   fi
