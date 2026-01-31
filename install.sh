@@ -165,7 +165,7 @@ install_chezmoi() {
     mkdir -p "$HOME/.local/bin"
 
     # chezmoi を ~/.local/bin にインストール
-    sh -c "$(curl -fsLS get.chezmoi.io/lb)"
+    sh -c "$(curl -fsLS https://get.chezmoi.io/lb)"
 
     log_info "chezmoi が正常にインストールされました"
   fi
@@ -182,7 +182,7 @@ install_chezmoi() {
 
   # init のみ実行（apply は後で）
   log_info "chezmoi を初期化しています (apply なし)..."
-  chezmoi init book000
+  chezmoi init book000 || { log_error "Failed to initialize chezmoi"; return 1; }
 }
 
 # apt パッケージのインストール
@@ -208,8 +208,7 @@ install_apt_packages() {
 
   # パッケージのインストール
   log_info "パッケージをインストールしています: ${packages[*]}"
-  # shellcheck disable=SC2068
-  sudo apt install -y ${packages[@]}
+  sudo apt install -y "${packages[@]}"
 }
 
 # gh CLI のインストール
@@ -278,18 +277,50 @@ install_ghq() {
   # 一時ディレクトリでダウンロード
   local temp_dir
   temp_dir=$(mktemp -d)
-  cd "$temp_dir"
 
-  curl -L -o ghq.zip "$download_url"
-  unzip ghq.zip
+  # 一時ディレクトリのクリーンアップを設定
+  trap "rm -rf '$temp_dir'" RETURN
+
+  if [[ ! -d "$temp_dir" ]]; then
+    log_error "Failed to create temporary directory"
+    return 1
+  fi
+
+  cd "$temp_dir" || {
+    log_error "Failed to change directory to temporary directory"
+    return 1
+  }
+
+  # ghq のアーカイブをダウンロード
+  if ! curl -L -o ghq.zip "$download_url"; then
+    log_error "Failed to download ghq archive"
+    cd - > /dev/null || true
+    return 1
+  fi
+
+  # ダウンロードしたアーカイブを展開
+  if ! unzip -q ghq.zip; then
+    log_error "Failed to unzip ghq archive"
+    cd - > /dev/null || true
+    return 1
+  fi
+
+  # 展開後の ghq バイナリを特定
+  local ghq_binary
+  ghq_binary=$(find . -maxdepth 2 -type f -name ghq -print -quit)
+
+  if [[ -z "$ghq_binary" ]]; then
+    log_error "ghq binary not found after extraction"
+    cd - > /dev/null || true
+    return 1
+  fi
 
   # ~/.local/bin にインストール
   mkdir -p "$HOME/.local/bin"
-  mv ghq*/ghq "$HOME/.local/bin/"
+  mv "$ghq_binary" "$HOME/.local/bin/ghq"
   chmod +x "$HOME/.local/bin/ghq"
 
   cd - > /dev/null
-  rm -rf "$temp_dir"
 
   log_info "ghq が正常にインストールされました"
 }
@@ -415,6 +446,17 @@ setup_env() {
 
 # chezmoi apply を実行
 apply_chezmoi() {
+  log_info "必要な設定ファイルの確認..."
+
+  # .gitconfig.local と .env の存在確認（警告のみ）
+  if [[ ! -f "$HOME/.gitconfig.local" ]]; then
+    log_warn ".gitconfig.local が見つかりません。テンプレート展開でエラーが発生する可能性があります"
+  fi
+
+  if [[ ! -f "$HOME/.env" ]]; then
+    log_warn ".env が見つかりません。テンプレート展開でエラーが発生する可能性があります"
+  fi
+
   log_info "chezmoi の設定を適用しています..."
   chezmoi apply
   log_info "chezmoi の設定が正常に適用されました"
