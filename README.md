@@ -1,12 +1,85 @@
 # book000/dotfiles
 
+このリポジトリは、chezmoi を使用して dotfiles と AI エージェント設定を管理するものです。
+
+## インストール方法
+
+### 推奨: 2 ステップインストール（より安全）
+
 ```bash
-sh -c "$(curl -fsSL get.chezmoi.io)" -- init --apply book000
-cp ~/.gitconfig.local.example ~/.gitconfig.local
+# ステップ 1: スクリプトをダウンロード
+curl -fsSL https://raw.githubusercontent.com/book000/dotfiles/master/install.sh -o /tmp/install.sh
+
+# ステップ 2: スクリプトを確認（推奨）
+less /tmp/install.sh
+
+# ステップ 3: 実行
+bash /tmp/install.sh
+```
+
+### ワンライナー（自己責任）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/book000/dotfiles/master/install.sh | bash
+```
+
+### 非対話モード
+
+CI や自動化で使用する場合は、`NO_INTERACTIVE=1` を設定してください:
+
+```bash
+NO_INTERACTIVE=1 bash /tmp/install.sh
+```
+
+非対話モードでは、以下の設定がスキップまたはデフォルト値で作成されます:
+
+- `.gitconfig.local`: `.gitconfig.local.example` からコピー（後で手動編集が必要）
+- `.env`: `.env.example` からコピー（後で手動編集が必要）
+- mkwork の `work_root`: デフォルトで `~/work` に設定
+
+## インストール後の設定
+
+インストール完了後、以下のファイルを編集してください:
+
+### 1. .gitconfig.local
+
+Git のユーザー名とメールアドレスを設定します:
+
+```bash
 vim ~/.gitconfig.local
-cp ~/.env.example ~/.env
+```
+
+### 2. .env
+
+Discord Webhook URL などの環境変数を設定します:
+
+```bash
 vim ~/.env
 ```
+
+### 3. PATH の設定
+
+`~/.local/bin` が PATH に含まれていない場合は、シェル設定ファイル（`~/.bashrc` または `~/.zshrc`）に以下を追加してください:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+## サポート環境
+
+- **OS**: Ubuntu, Debian
+- **アーキテクチャ**: x86_64 (amd64), aarch64/arm64
+
+macOS と Windows は現在サポートされていません。
+
+## セキュリティに関する注意事項
+
+`curl | bash` 方式には以下のリスクがあります:
+
+- **部分的なコンテンツ実行**: TCP 接続が途中で切れた場合、不完全なスクリプトが実行される可能性があります
+- **サーバー側のコンテンツ切り替え**: User-Agent を検出して、異なるコンテンツを配信される可能性があります
+
+より安全にインストールするには、2 ステップインストールを推奨します。
 
 ## Claude Code コマンド
 
