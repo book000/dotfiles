@@ -139,15 +139,8 @@ backup_ssh_config() {
       mv "$ssh_config" "$backup_file"
       chmod 600 "$backup_file"
 
-      # 新しい config を作成し、Include を追加
-      cat > "$ssh_config" <<EOF
-# dotfiles インストーラーにより生成
-Include conf.d/*.conf
-EOF
-      chmod 600 "$ssh_config"
-
       log_info "SSH 設定をバックアップしました: $backup_file"
-      log_info "Include ディレクティブを追加しました: $ssh_config"
+      log_info "chezmoi apply で新しい config が作成されます"
     fi
   else
     log_info "SSH 設定が見つかりません (スキップ)"
