@@ -102,8 +102,8 @@ FIELDS="[]"
 FIELDS=$(echo "$FIELDS" | jq --arg name "📁 実行ディレクトリ" --arg value "$CWD_PATH" --arg inline "true" \
   '. + [{"name": $name, "value": $value, "inline": $inline}]')
 
-# フィールド: セッションID
-FIELDS=$(echo "$FIELDS" | jq --arg name "🆔 セッションID" --arg value "$SESSION_ID" --arg inline "true" \
+# フィールド: セッション ID
+FIELDS=$(echo "$FIELDS" | jq --arg name "🆔 セッション ID" --arg value "$SESSION_ID" --arg inline "true" \
   '. + [{"name": $name, "value": $value, "inline": $inline}]')
 
 # フィールド: 入力JSON

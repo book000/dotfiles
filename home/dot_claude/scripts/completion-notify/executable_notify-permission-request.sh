@@ -128,22 +128,25 @@ if [[ -n "${MENTION_USER_ID}" ]]; then
   content="<@${MENTION_USER_ID}> ${content}"
 fi
 
-# embed 形式の JSON ペイロードを作成
-PAYLOAD=$(cat <<EOF_JSON
-{
-  "content": "${content}",
-  "embeds": [
-    {
-      "title": "⚠️ Claude Code 権限リクエスト",
-      "description": "Claude が **${TOOL_NAME}** ツールの使用許可を求めています。",
-      "color": 16776960,
-      "timestamp": "${TIMESTAMP}",
-      "fields": ${FIELDS}
-    }
-  ]
-}
-EOF_JSON
-)
+# Discord メッセージの description を構築
+description="Claude が **${TOOL_NAME}** ツールの使用許可を求めています。"
+
+# embed 形式の JSON ペイロードを作成（jq を使用して適切にエスケープ）
+PAYLOAD=$(jq -n \
+  --arg content "$content" \
+  --arg description "$description" \
+  --arg timestamp "$TIMESTAMP" \
+  --argjson fields "$FIELDS" \
+  '{
+    content: $content,
+    embeds: [{
+      title: "⚠️ Claude Code 権限リクエスト",
+      description: $description,
+      color: 16776960,
+      timestamp: $timestamp,
+      fields: $fields
+    }]
+  }')
 
 webhook_url="${DISCORD_WEBHOOK_URL}"
 if [[ -n "${webhook_url}" ]]; then

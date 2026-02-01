@@ -126,4 +126,4 @@ Claude Code の作業方針と、このリポジトリ固有のルールを示�
 2. **PermissionRequest フック**: 権限リクエスト時に Discord 通知
 3. **Notification フック**: `permission_prompt` または `idle_prompt` 発生時に Discord 通知
 
-通知には `~/.env` の `DISCORD_WEBHOOK_URL` と `MENTION_USER_ID` を使用する。
+通知には `~/.env` の `DISCORD_CLAUDE_WEBHOOK` と `DISCORD_CLAUDE_MENTION_USER_ID` を使用する。

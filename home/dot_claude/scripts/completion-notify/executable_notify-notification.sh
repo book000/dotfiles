@@ -164,22 +164,24 @@ if [[ -n "${MENTION_USER_ID}" ]]; then
   content="<@${MENTION_USER_ID}> ${content}"
 fi
 
-# embed 形式の JSON ペイロードを作成
-PAYLOAD=$(cat <<EOF_JSON
-{
-  "content": "${content}",
-  "embeds": [
-    {
-      "title": "${EMBED_TITLE}",
-      "description": "${MESSAGE}",
-      "color": ${COLOR},
-      "timestamp": "${TIMESTAMP}",
-      "fields": ${FIELDS}
-    }
-  ]
-}
-EOF_JSON
-)
+# embed 形式の JSON ペイロードを作成（jq を使用して適切にエスケープ）
+PAYLOAD=$(jq -n \
+  --arg content "$content" \
+  --arg title "$EMBED_TITLE" \
+  --arg description "$MESSAGE" \
+  --arg timestamp "$TIMESTAMP" \
+  --argjson color "$COLOR" \
+  --argjson fields "$FIELDS" \
+  '{
+    content: $content,
+    embeds: [{
+      title: $title,
+      description: $description,
+      color: $color,
+      timestamp: $timestamp,
+      fields: $fields
+    }]
+  }')
 
 webhook_url="${DISCORD_WEBHOOK_URL}"
 if [[ -n "${webhook_url}" ]]; then

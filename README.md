@@ -106,10 +106,10 @@ Claude Code がユーザー操作を必要とする場合に、Discord Webhook �
 
 ```bash
 # Discord Webhook URL (必須)
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+DISCORD_CLAUDE_WEBHOOK=https://discord.com/api/webhooks/...
 
 # メンション先のユーザー ID (オプション)
-MENTION_USER_ID=123456789012345678
+DISCORD_CLAUDE_MENTION_USER_ID=123456789012345678
 ```
 
 ## Claude Code コマンド
