@@ -3,7 +3,7 @@
 # dotfiles インストーラー
 # ==============================================================================
 # 使用方法:
-#   推奨 (2 ステップ検証):
+#   推奨 (3 ステップインストール):
 #     curl -fsSL https://raw.githubusercontent.com/book000/dotfiles/master/install.sh -o /tmp/install.sh
 #     less /tmp/install.sh  # スクリプトを確認
 #     bash /tmp/install.sh
