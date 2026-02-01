@@ -2,20 +2,20 @@
   "env": {
     "IS_DEMO": "1"
   },
-  "extraKnownMarketplaces": [
-    {
-      "type": "github",
-      "owner": "hiroro-work",
-      "repo": "claude-plugins",
-      "alias": "hiropon-plugins"
+  "extraKnownMarketplaces": {
+    "hiropon-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "hiroro-work/claude-plugins"
+      }
     },
-    {
-      "type": "github",
-      "owner": "wakatime",
-      "repo": "claude-code-wakatime",
-      "alias": "wakatime"
+    "wakatime": {
+      "source": {
+        "source": "github",
+        "repo": "wakatime/claude-code-wakatime"
+      }
     }
-  ],
+  },
   "hooks": {
     "Stop": [
       {
