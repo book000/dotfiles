@@ -11,3 +11,6 @@
 [user]
     name = Your Name
     email = your.email@example.com
+
+[ghq]
+    root = ~/repos

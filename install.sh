@@ -202,6 +202,7 @@ install_apt_packages() {
     "vim"
     "fzf"
     "powerline"
+    "jq"
   )
 
   # apt update
@@ -260,10 +261,20 @@ install_ghq() {
   log_info "GitHub Release から最新版を取得しています..."
 
   local version
-  version=$(curl -s https://api.github.com/repos/x-motemen/ghq/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+  local api_response
+  api_response=$(curl -fsSL https://api.github.com/repos/x-motemen/ghq/releases/latest)
 
-  if [[ -z "$version" ]]; then
-    log_error "Failed to get latest version"
+  # jq が利用可能なら JSON を安全にパースする
+  if command -v jq &> /dev/null; then
+    version=$(printf '%s\n' "$api_response" | jq -r '.tag_name' | sed -E 's/^v//')
+  else
+    # jq が利用できない場合は従来の grep / sed にフォールバックする
+    log_warn "jq is not installed. Falling back to grep/sed for version parsing"
+    version=$(printf '%s\n' "$api_response" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+  fi
+
+  if [[ -z "$version" || "$version" == "null" ]]; then
+    log_error "Failed to parse latest version from GitHub API"
     return 1
   fi
 
@@ -419,14 +430,46 @@ setup_gitconfig_local() {
   else
     # 非対話モードでは .gitconfig.local.example をコピー
     local example_file="$HOME/.gitconfig.local.example"
-    if [[ -f "$example_file" ]]; then
-      cp "$example_file" "$gitconfig_local"
-      log_warn "非対話モード: .gitconfig.local.example をコピーしました"
-      log_warn "後で手動で編集してください: $gitconfig_local"
-    else
-      log_warn "非対話モード: .gitconfig.local.example が見つかりません"
-      log_warn "chezmoi apply 後に .gitconfig.local を手動で設定してください"
+
+    # $HOME に .gitconfig.local.example が存在しない場合は chezmoi のソースディレクトリから取得
+    if [[ ! -f "$example_file" ]]; then
+      local chezmoi_source
+      chezmoi_source=$(chezmoi source-path 2>/dev/null || echo "$HOME/.local/share/chezmoi")
+      local source_example="$chezmoi_source/home/dot_gitconfig.local.example"
+
+      if [[ -f "$source_example" ]]; then
+        cp "$source_example" "$example_file"
+        log_info "chezmoi ソースから .gitconfig.local.example をコピーしました"
+      else
+        # chezmoi ソースにも存在しない場合はデフォルト値で作成
+        log_warn "非対話モード: .gitconfig.local.example が見つかりません。デフォルト値で作成します"
+        cat > "$example_file" << 'EOF'
+# =========================================
+# Git user configuration
+# =========================================
+# このファイルを ~/.gitconfig.local にコピーして使用してください
+#
+# 使い方:
+#   cp ~/.gitconfig.local.example ~/.gitconfig.local
+#   vi ~/.gitconfig.local  # 名前とメールアドレスを編集
+# =========================================
+
+[user]
+    name = Your Name
+    email = your.email@example.com
+
+[ghq]
+    root = ~/repos
+
+EOF
+        log_info "デフォルトの .gitconfig.local.example を作成しました"
+      fi
     fi
+
+    # .gitconfig.local.example をコピー
+    cp "$example_file" "$gitconfig_local"
+    log_warn "非対話モード: .gitconfig.local.example をコピーしました"
+    log_warn "後で手動で編集してください: $gitconfig_local"
   fi
 }
 
@@ -452,9 +495,9 @@ setup_env() {
     fi
   fi
 
-  # 非対話モードの場合は後で .env.example からコピー
+  # 非対話モードの場合は後で .env.example から自動コピー
   if [[ "${NO_INTERACTIVE:-0}" == "1" ]]; then
-    log_info ".env は chezmoi apply 後に .env.example からコピーしてください"
+    log_info ".env は非対話モードのためここでは作成しません (chezmoi apply 前に .env.example から自動コピーされます)"
     return 0
   fi
 
@@ -521,6 +564,20 @@ EOF
   log_info ".env を作成しました"
 }
 
+# 非対話モードで .env.example から .env をコピー
+copy_env_if_needed() {
+  local env_file="$HOME/.env"
+  local example_file="$HOME/.env.example"
+
+  if [[ ! -f "$env_file" ]] && [[ -f "$example_file" ]]; then
+    cp "$example_file" "$env_file"
+    # .env ファイルのパーミッションを 600 に設定（センシティブ情報を含むため）
+    chmod 600 "$env_file"
+    log_info ".env を .env.example からコピーしました"
+    log_warn "Discord Webhook URL などを設定してください: $env_file"
+  fi
+}
+
 # chezmoi apply を実行
 apply_chezmoi() {
   log_info "必要な設定ファイルの確認..."
@@ -554,18 +611,6 @@ apply_chezmoi() {
   if [[ -f "$ssh_config" ]]; then
     chmod 600 "$ssh_config"
   fi
-
-  # .env のコピー
-  local env_file="$HOME/.env"
-  local example_file="$HOME/.env.example"
-
-  if [[ ! -f "$env_file" ]] && [[ -f "$example_file" ]]; then
-    cp "$example_file" "$env_file"
-    # .env ファイルのパーミッションを 600 に設定（センシティブ情報を含むため）
-    chmod 600 "$env_file"
-    log_info ".env を .env.example からコピーしました"
-    log_warn "Discord Webhook URL などを設定してください: $env_file"
-  fi
 }
 
 # メイン処理
@@ -582,6 +627,7 @@ main() {
   install_mkwork
   setup_gitconfig_local
   setup_env
+  copy_env_if_needed  # chezmoi apply 前に .env をコピー（テンプレート展開エラー回避）
   apply_chezmoi
 
   log_info ""
