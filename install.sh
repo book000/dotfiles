@@ -50,6 +50,22 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# バージョン比較関数
+# 引数: version_ge <version1> <version2>
+# 戻り値: version1 >= version2 の場合 0、それ以外は 1
+version_ge() {
+  local v1="$1"
+  local v2="$2"
+
+  # sort -V を使ってバージョンをソート
+  # 最大のバージョンが v1 と一致すれば v1 >= v2
+  if [ "$(printf '%s\n%s' "$v1" "$v2" | sort -V | tail -n1)" = "$v1" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 # 環境チェック
 check_environment() {
   log_info "環境をチェックしています..."
@@ -118,6 +134,34 @@ check_environment() {
       return 1
     fi
   done
+
+  # Git バージョンチェック（2.35.0 以上が必要）
+  log_info "Git バージョンをチェックしています..."
+  local git_version
+  git_version=$(git --version 2>/dev/null | sed -E 's/git version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+
+  if [ -z "$git_version" ]; then
+    log_error "Failed to detect Git version"
+    return 1
+  fi
+
+  if ! version_ge "$git_version" "2.35.0"; then
+    log_error "Git version 2.35.0 or higher is required (current: $git_version)"
+    log_error "zdiff3 merge conflict style requires Git 2.35.0+"
+    log_error ""
+
+    # Ubuntu/Debian の場合は PPA の案内
+    if [[ "$DISTRO" == "ubuntu" ]] || [[ "$DISTRO" == "debian" ]]; then
+      log_error "On Ubuntu/Debian, install the latest Git from PPA:"
+      log_error "  sudo add-apt-repository ppa:git-core/ppa"
+      log_error "  sudo apt update"
+      log_error "  sudo apt install git"
+    fi
+
+    return 1
+  fi
+
+  log_info "Git version: $git_version (OK)"
 }
 
 # SSH 設定の退避
