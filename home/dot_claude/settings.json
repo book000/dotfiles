@@ -49,6 +49,17 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/completion-notify/notify-user-prompt-submit.sh"
+          }
+        ]
+      }
     ]
   },
   "enabledPlugins": {
