@@ -1,35 +1,38 @@
 #!/bin/bash
 
-# Claude Code Stop hook として動作するスクリプト
-# Stop hookは以下の形式のJSONを標準入力から受け取る:
+# Claude Code PermissionRequest hook として動作するスクリプト
+# PermissionRequest hook は以下の形式の JSON を標準入力から受け取る:
 # {
 #   "session_id": "string",
 #   "transcript_path": "~/.claude/projects/.../session.jsonl",
+#   "cwd": "string",
 #   "permission_mode": "string",
-#   "hook_event_name": "Stop",
-#   "stop_hook_active": boolean
+#   "hook_event_name": "PermissionRequest",
+#   "tool_name": "string",
+#   "tool_input": {...},
+#   "permission_suggestions": [...]
 # }
 
 cd "$(dirname "$0")" || exit 1
 source ./.env
 
-# Windowsパスをシェル互換パスに変換する関数
+# Windows パスをシェル互換パスに変換する関数
 # WSL: C:\Users\... → /mnt/c/Users/...
 # Git Bash/MSYS2: C:\Users\... → /c/Users/...
 # Linux/Unix: そのまま
 convert_path() {
   local path="$1"
 
-  # チルダをHOMEに展開
+  # チルダを HOME に展開
   if [[ "$path" == "~"* ]]; then
     path="${HOME}${path:1}"
   fi
 
-  # Windowsパス形式かどうかをチェック (例: C:\ or C:/)
+  # Windows パス形式かどうかをチェック (例: C:\ or C:/)
   # 正規表現でバックスラッシュを正しくマッチさせるため、^[A-Za-z]: のみでチェック
   if [[ "$path" =~ ^[A-Za-z]: ]]; then
     local third_char="${path:2:1}"
-    # 3文字目がスラッシュまたはバックスラッシュの場合のみ変換
+    # 3 文字目がスラッシュまたはバックスラッシュの場合のみ変換
     if [[ "$third_char" == "/" ]] || [[ "$third_char" == '\' ]]; then
       local drive_letter="${path:0:1}"
       local rest="${path:2}"
@@ -40,10 +43,10 @@ convert_path() {
 
       # 環境を検出してパスを変換
       if [[ -f /proc/version ]] && grep -qiE '(microsoft|wsl)' /proc/version 2>/dev/null; then
-        # WSL環境
+        # WSL 環境
         path="/mnt/${drive_letter}${rest}"
       elif [[ -n "$MSYSTEM" ]] || [[ "$(uname -s)" == MINGW* ]] || [[ "$(uname -s)" == MSYS* ]]; then
-        # Git Bash/MSYS2環境
+        # Git Bash/MSYS2 環境
         path="/${drive_letter}${rest}"
       fi
     fi
@@ -52,13 +55,15 @@ convert_path() {
   echo "$path"
 }
 
-# JSON入力を読み取り
+# JSON 入力を読み取り
 INPUT_JSON=$(cat)
 
-# jqで必要な情報を抽出
+# jq で必要な情報を抽出
 SESSION_ID=$(echo "$INPUT_JSON" | jq -r '.session_id // empty')
 TRANSCRIPT_PATH_RAW=$(echo "$INPUT_JSON" | jq -r '.transcript_path // empty')
 CWD_PATH=$(echo "$INPUT_JSON" | jq -r '.cwd // empty')
+TOOL_NAME=$(echo "$INPUT_JSON" | jq -r '.tool_name // empty')
+TOOL_INPUT=$(echo "$INPUT_JSON" | jq -c '.tool_input // {}')
 
 # パスを変換
 if [[ -n "$TRANSCRIPT_PATH_RAW" ]]; then
@@ -106,68 +111,46 @@ FIELDS=$(echo "$FIELDS" | jq --arg name "📁 実行ディレクトリ" --arg va
 FIELDS=$(echo "$FIELDS" | jq --arg name "🆔 セッション ID" --arg value "$SESSION_ID" --arg inline "true" \
   '. + [{"name": $name, "value": $value, "inline": $inline}]')
 
-# フィールド: 入力JSON
-FIELDS=$(echo "$FIELDS" | jq --arg name "📝 入力JSON" --arg value "$INPUT_JSON" --arg inline "false" \
+# フィールド: ツール名
+FIELDS=$(echo "$FIELDS" | jq --arg name "🔧 ツール名" --arg value "$TOOL_NAME" --arg inline "true" \
   '. + [{"name": $name, "value": $value, "inline": $inline}]')
 
-# フィールド: 区切り (nameは zero-width space)
-FIELDS=$(echo "$FIELDS" | jq --arg name "​" --arg value "------------------------------" --arg inline "false" \
+# フィールド: ツール入力
+FIELDS=$(echo "$FIELDS" | jq --arg name "⚙️ ツール入力" --argjson value "$TOOL_INPUT" --arg inline "false" \
+  '. + [{"name": $name, "value": ($value | tostring), "inline": $inline}]')
+
+# フィールド: 入力 JSON
+FIELDS=$(echo "$FIELDS" | jq --arg name "📝 入力 JSON" --arg value "$INPUT_JSON" --arg inline "false" \
   '. + [{"name": $name, "value": $value, "inline": $inline}]')
 
-# jq -r 'select((.type == "assistant" or .type == "user") and .message.type == "message") | .type as $t | .message.content[]? | select(.type=="text") | [$t, .text] | @tsv' 9c213bb5-37f7-40b6-a588-5afe17407064.jsonl
-# 複数フィールド: 最新5件のメッセージを取得
-LAST_MESSAGES=$(jq -r '
-  select(
-    (.type == "user" and .message.role == "user" and (.message.content | type) == "string") or
-    (.type == "assistant" and .message.type == "message")
-  )
-  | [.type,
-     (if .type == "user" then .message.content
-      else ([.message.content[]? | select(.type=="text") | .text] | join(" ")) end)
-    ]
-  | select(.[1] != "")
-  | @tsv
-' $SESSION_PATH | tail -n 5)
-if [[ -n "$LAST_MESSAGES" ]]; then
-  IFS=$'\n' read -r -d '' -a messages_array <<< "$LAST_MESSAGES"
-  for message in "${messages_array[@]}"; do
-    IFS=$'\t' read -r type text <<< "$message"
-    # "\\n" を本当の改行 "\n" に変換
-    text=$(echo -e "${text//\\n/$'\n'}")
-    if [[ "$type" == "user" ]]; then
-      emoji="👤"
-    else
-      emoji="🤖"
-    fi
-    FIELDS=$(echo "$FIELDS" | jq --arg name "${emoji} 会話: $type" --arg value "$text" --arg inline "false" \
-      '. + [{"name": $name, "value": $value, "inline": $inline}]')
-  done
-fi
-
-content="Claude Code Finished (${MACHINE_NAME})"
+content="Claude Code Permission Request (${MACHINE_NAME})"
 if [[ -n "${MENTION_USER_ID}" ]]; then
   content="<@${MENTION_USER_ID}> ${content}"
 fi
 
-# embed形式のJSONペイロードを作成
-PAYLOAD=$(cat <<EOF_JSON
-{
-  "content": "${content}",
-  "embeds": [
-    {
-      "title": "Claude Code セッション完了",
-      "color": 5763719,
-      "timestamp": "${TIMESTAMP}",
-      "fields": ${FIELDS}
-    }
-  ]
-}
-EOF_JSON
-)
+# Discord メッセージの description を構築
+description="Claude が **${TOOL_NAME}** ツールの使用許可を求めています。"
+
+# embed 形式の JSON ペイロードを作成（jq を使用して適切にエスケープ）
+PAYLOAD=$(jq -n \
+  --arg content "$content" \
+  --arg description "$description" \
+  --arg timestamp "$TIMESTAMP" \
+  --argjson fields "$FIELDS" \
+  '{
+    content: $content,
+    embeds: [{
+      title: "⚠️ Claude Code 権限リクエスト",
+      description: $description,
+      color: 16776960,
+      timestamp: $timestamp,
+      fields: $fields
+    }]
+  }')
 
 webhook_url="${DISCORD_WEBHOOK_URL}"
 if [[ -n "${webhook_url}" ]]; then
-  # Discord Webhookに送信
+  # Discord Webhook に送信
   curl -H "Content-Type: application/json" \
        -X POST \
        -d "${PAYLOAD}" \

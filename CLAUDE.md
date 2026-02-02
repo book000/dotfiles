@@ -117,3 +117,13 @@ Claude Code の作業方針と、このリポジトリ固有のルールを示�
 - 通知系の環境変数は `~/.env` で管理（chezmoi 管理外）。
 - `.env.example` と `.gitconfig.local.example` をサンプルとして提供。
 - wakatime は別途管理するため、dotfiles での暗号化管理は行わない。
+
+## Claude Code 通知機能
+
+以下の Claude Code フックが設定されている:
+
+1. **Stop フック**: セッション完了時に Discord 通知
+2. **PermissionRequest フック**: 権限リクエスト時に Discord 通知
+3. **Notification フック**: `permission_prompt` または `idle_prompt` 発生時に Discord 通知
+
+通知には `~/.env` の `DISCORD_CLAUDE_WEBHOOK` と `DISCORD_CLAUDE_MENTION_USER_ID` を使用する。

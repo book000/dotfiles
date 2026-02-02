@@ -81,6 +81,37 @@ macOS と Windows は現在サポートされていません。
 
 より安全にインストールするには、3 ステップインストール（ダウンロード、確認、実行）を推奨します。
 
+## Claude Code 通知機能
+
+Claude Code がユーザー操作を必要とする場合に、Discord Webhook を使用して通知する機能が実装されています。
+
+### 通知されるイベント
+
+1. **セッション完了通知 (Stop hook)**
+   - Claude が処理を完了した際に通知
+   - 最新 5 件の会話履歴を含む
+
+2. **権限リクエスト通知 (PermissionRequest hook)**
+   - Claude がツールの使用許可を求めている際に通知
+   - リクエストされたツール名と入力パラメータを含む
+
+3. **ユーザー操作必要通知 (Notification hook)**
+   - 以下のタイプの通知が Discord に送信されます:
+     - `permission_prompt`: 権限プロンプトが表示された場合
+     - `idle_prompt`: Claude がアイドル状態の場合
+
+### 設定方法
+
+通知機能を有効にするには、`~/.env` ファイルに以下の環境変数を設定してください:
+
+```bash
+# Discord Webhook URL (必須)
+DISCORD_CLAUDE_WEBHOOK=https://discord.com/api/webhooks/...
+
+# メンション先のユーザー ID (オプション)
+DISCORD_CLAUDE_MENTION_USER_ID=123456789012345678
+```
+
 ## Claude Code コマンド
 
 ### issue-pr
