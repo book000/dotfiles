@@ -140,7 +140,7 @@ check_environment() {
   local git_version
   git_version=$(git --version 2>/dev/null | sed -E 's/git version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
 
-  if [ -z "$git_version" ]; then
+  if [[ -z "$git_version" ]]; then
     log_error "Failed to detect Git version"
     return 1
   fi
