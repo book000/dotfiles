@@ -167,9 +167,7 @@ EOF_JSON
 
 webhook_url="${DISCORD_WEBHOOK_URL}"
 if [[ -n "${webhook_url}" ]]; then
-  # Discord Webhookに送信
-  curl -H "Content-Type: application/json" \
-       -X POST \
-       -d "${PAYLOAD}" \
-       "${webhook_url}"
+  # バックグラウンドで通知処理を実行
+  SCRIPT_DIR="$(dirname "$0")"
+  echo "${PAYLOAD}" | "$SCRIPT_DIR/send-discord-notification.sh" &
 fi
