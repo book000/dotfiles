@@ -187,5 +187,5 @@ webhook_url="${DISCORD_WEBHOOK_URL}"
 if [[ -n "${webhook_url}" ]]; then
   # バックグラウンドで通知処理を実行
   SCRIPT_DIR="$(dirname "$0")"
-  echo "${PAYLOAD}" | "$SCRIPT_DIR/send-discord-notification.sh" &
+  printf '%s\n' "${PAYLOAD}" | "$SCRIPT_DIR/send-discord-notification.sh" >/dev/null 2>&1 &
 fi

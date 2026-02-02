@@ -1,7 +1,17 @@
 #!/bin/bash
-# UserPromptSubmit フック: プロンプト送信時に最後の送信時刻を記録し、通知キャンセルフラグを作成
 
-cd "$(dirname "$0")" || exit 0
+# Claude Code UserPromptSubmit hook として動作するスクリプト
+# UserPromptSubmit hook は以下の形式の JSON を標準入力から受け取る:
+# {
+#   "session_id": "string",
+#   "transcript_path": "~/.claude/projects/.../session.jsonl",
+#   "cwd": "string",
+#   "permission_mode": "string",
+#   "hook_event_name": "UserPromptSubmit"
+# }
+
+cd "$(dirname "$0")" || exit 1
+source ./.env
 
 # データディレクトリの作成
 DATA_DIR="$HOME/.claude/scripts/completion-notify/data"
