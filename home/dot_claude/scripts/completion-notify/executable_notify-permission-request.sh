@@ -123,6 +123,39 @@ FIELDS=$(echo "$FIELDS" | jq --arg name "⚙️ ツール入力" --argjson value
 FIELDS=$(echo "$FIELDS" | jq --arg name "📝 入力 JSON" --arg value "$INPUT_JSON" --arg inline "false" \
   '. + [{"name": $name, "value": $value, "inline": $inline}]')
 
+# フィールド: 区切り (name は zero-width space)
+FIELDS=$(echo "$FIELDS" | jq --arg name "​" --arg value "------------------------------" --arg inline "false" \
+  '. + [{"name": $name, "value": $value, "inline": $inline}]')
+
+# 複数フィールド: 最新 5 件のメッセージを取得
+LAST_MESSAGES=$(jq -r '
+  select(
+    (.type == "user" and .message.role == "user" and (.message.content | type) == "string") or
+    (.type == "assistant" and .message.type == "message")
+  )
+  | [.type,
+     (if .type == "user" then .message.content
+      else ([.message.content[]? | select(.type=="text") | .text] | join(" ")) end)
+    ]
+  | select(.[1] != "")
+  | @tsv
+' $SESSION_PATH | tail -n 5)
+if [[ -n "$LAST_MESSAGES" ]]; then
+  IFS=$'\n' read -r -d '' -a messages_array <<< "$LAST_MESSAGES"
+  for message in "${messages_array[@]}"; do
+    IFS=$'\t' read -r type text <<< "$message"
+    # "\\n" を本当の改行 "\n" に変換
+    text=$(echo -e "${text//\\n/$'\n'}")
+    if [[ "$type" == "user" ]]; then
+      emoji="👤"
+    else
+      emoji="🤖"
+    fi
+    FIELDS=$(echo "$FIELDS" | jq --arg name "${emoji} 会話: $type" --arg value "$text" --arg inline "false" \
+      '. + [{"name": $name, "value": $value, "inline": $inline}]')
+  done
+fi
+
 content="Claude Code Permission Request (${MACHINE_NAME})"
 if [[ -n "${MENTION_USER_ID}" ]]; then
   content="<@${MENTION_USER_ID}> ${content}"
