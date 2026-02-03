@@ -58,7 +58,7 @@ action: |
 
 ## 既存ルールとの違い
 
-- `hookify.require-code-review-fixes.local.md`: `event: stop` で会話終了時にチェック（現在は無効化）
+- `hookify.require-code-review-fixes.local.md`: `event: stop` で会話終了時にチェック
 - このルール: `event: PostToolUse` でコードレビュー実行直後にチェック
 
 このルールにより、コードレビュー実行直後に即座にブロック・リマインドされます。
