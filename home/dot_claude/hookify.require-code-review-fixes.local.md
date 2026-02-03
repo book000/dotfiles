@@ -1,6 +1,6 @@
 ---
 name: require-code-review-fixes
-enabled: true
+enabled: false
 event: stop
 action: block
 ---
@@ -25,3 +25,11 @@ CLAUDE.md のルールに従い、**スコア 50 以上の指摘事項**に対�
 - [ ] CI が成功しているか？
 
 問題を修正してから、再度停止してください。
+
+## 注意
+
+このルールは現在 **無効化** されています。
+
+理由: `hookify.code-review-immediate-fix.local.md` で `PostToolUse` イベントによりコードレビュー実行直後にブロックされるため、停止時の無条件ブロックは不要です。
+
+停止時の安全網が必要な場合は、スコア判定を追加して条件化してください。
