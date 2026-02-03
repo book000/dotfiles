@@ -1,8 +1,8 @@
 # SSHログイン時（tmux外・TTYあり）に tmux セッション選択UI（fzf）を起動する。
 #
 # 設計ポイント（重要）:
-# - セッション名が「0」「1」のような数字でも誤解釈されないよう、tmuxターゲットは常に "=${session_name}" で厳密指定する
-#   （-t 0 が window 0 に解釈される問題を根絶）
+# - セッション名が「0」「1」のような数字でも誤解釈されないよう、tmuxターゲットは常に "${session_name}:" で厳密指定する
+#   （tmux 3.2a では "=1" が window 1 と誤解釈されるバグがあるため、session_name: 構文を使用）
 # - セッション0件でも即 new-session しない（必ず選択UIを出す）
 # - 候補にはアクティブpaneの cwd を表示
 # - プレビューは pane_id を使う（セッション名を直接使わない）
@@ -101,10 +101,10 @@ tmux_session_selector() {
 
       [[ "${sattached:-0}" -gt 0 ]] && attach_status=" (attached)" || attach_status=""
 
-      # 重要: 数字名でも壊れないよう "=${session_name}" で厳密指定
-      pane_id="$(tmux list-panes -t "=${sname}" -F '#{pane_id} #{pane_active}' 2>/dev/null | awk '$2==1{print $1;exit}')"
+      # 重要: 数字名でも壊れないよう "${session_name}:" で厳密指定
+      pane_id="$(tmux list-panes -t "${sname}:" -F '#{pane_id} #{pane_active}' 2>/dev/null | awk '$2==1{print $1;exit}')"
       if [[ -z "$pane_id" ]]; then
-        pane_id="$(tmux list-panes -t "=${sname}" -F '#{pane_id}' 2>/dev/null | head -n1)"
+        pane_id="$(tmux list-panes -t "${sname}:" -F '#{pane_id}' 2>/dev/null | head -n1)"
       fi
 
       cmd="unknown"
@@ -201,8 +201,8 @@ tmux_session_selector() {
       tmux new-session
       ;;
     SESSION)
-      # 重要: 数字名でも曖昧にならないよう =name で attach
-      tmux attach-session -t "=${sel_key}"
+      # 重要: 数字名でも曖昧にならないよう session_name: で attach
+      tmux attach-session -t "${sel_key}:"
       ;;
     ACTION)
       _tmux_run_action "$sel_key"
