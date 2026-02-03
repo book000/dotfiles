@@ -2,20 +2,7 @@
   "env": {
     "IS_DEMO": "1"
   },
-  "extraKnownMarketplaces": {
-    "hiropon-plugins": {
-      "source": {
-        "source": "github",
-        "repo": "hiroro-work/claude-plugins"
-      }
-    },
-    "wakatime": {
-      "source": {
-        "source": "github",
-        "repo": "wakatime/claude-code-wakatime"
-      }
-    }
-  },
+  "model": "sonnet",
   "hooks": {
     "Stop": [
       {
@@ -75,7 +62,21 @@
     "plugin-dev@claude-plugins-official": true,
     "hookify@claude-plugins-official": true,
     "ask-codex@hiropon-plugins": true,
-    "ask-gemini@hiropon-plugins": true
+    "ask-gemini@hiropon-plugins": true,
+    "ask-copilot@hiropon-plugins": true
   },
-  "model": "sonnet"
+  "extraKnownMarketplaces": {
+    "hiropon-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "hiroro-work/claude-plugins"
+      }
+    },
+    "wakatime": {
+      "source": {
+        "source": "github",
+        "repo": "wakatime/claude-code-wakatime"
+      }
+    }
+  }
 }
