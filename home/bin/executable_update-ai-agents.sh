@@ -22,7 +22,7 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
 }
 
-# ログローテーション（10MB超えたらローテーション）
+# ログローテーション (10 MB 超えたらローテーション)
 rotate_log() {
     if [[ -f "$LOG_FILE" ]] && [[ $(stat -c%s "$LOG_FILE" 2>/dev/null || echo 0) -gt 10485760 ]]; then
         mv "$LOG_FILE" "$LOG_FILE.old"
@@ -32,7 +32,7 @@ rotate_log() {
 
 # ロックファイル機構
 acquire_lock() {
-    # 古いロックファイルのクリーンアップ（1時間以上前）
+    # 古いロックファイルのクリーンアップ (1 時間以上前)
     if [[ -f "$LOCK_FILE" ]]; then
         local lock_age=$(($(date +%s) - $(stat -c %Y "$LOCK_FILE" 2>/dev/null || echo 0)))
         if [[ $lock_age -gt 3600 ]]; then
@@ -47,7 +47,7 @@ acquire_lock() {
     touch "$LOCK_FILE"
 }
 
-# タイムスタンプチェック（--quick オプション用）
+# タイムスタンプチェック (--quick オプション用)
 check_timestamp() {
     if [[ -f "$TIMESTAMP_FILE" ]]; then
         local last_update
@@ -56,7 +56,7 @@ check_timestamp() {
         current_time=$(date +%s)
         local elapsed=$((current_time - last_update))
 
-        # 24時間以内ならスキップ
+        # 24 時間以内ならスキップ
         if [[ $elapsed -lt 86400 ]]; then
             log "⏭️  Skipping update (last update: $((elapsed / 3600)) hours ago)"
             exit 0
@@ -77,7 +77,7 @@ check_disk_space() {
     local available
     available=$(df -BM "$CACHE_DIR" 2>/dev/null | awk 'NR==2 {print $4}' | tr -d 'M' || echo 1000)
     if [[ $available -lt 100 ]]; then
-        log "❌ Insufficient disk space: ${available}MB available"
+        log "❌ Insufficient disk space: ${available} MB available"
         exit 1
     fi
 }
@@ -98,7 +98,7 @@ check_npm_permissions() {
     fi
 }
 
-# プロセス実行中チェック（pidof 優先）
+# プロセス実行中チェック (pidof 優先)
 is_running() {
     local cmd=$1
     pidof "$cmd" >/dev/null 2>&1
@@ -237,13 +237,13 @@ main() {
 
     local exit_code=0
 
-    # 各エージェントを個別に更新（1つ失敗しても続行）
+    # 各エージェントを個別に更新 (1 つ失敗しても続行)
     update_claude || exit_code=1
     update_copilot || exit_code=1
     update_codex || exit_code=1
     update_gemini || exit_code=1
 
-    # タイムスタンプ更新（成功時のみ）
+    # タイムスタンプ更新 (成功時のみ)
     if [[ $exit_code -eq 0 ]]; then
         date +%s > "$TIMESTAMP_FILE"
     fi
