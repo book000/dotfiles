@@ -1,5 +1,7 @@
 # book000/dotfiles
 
+<!-- CI verification test -->
+
 このリポジトリは、chezmoi を使用して dotfiles と AI エージェント設定を管理するものです。
 
 ## インストール方法
