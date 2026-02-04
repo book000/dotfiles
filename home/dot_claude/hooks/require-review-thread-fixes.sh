@@ -64,10 +64,15 @@ else
 fi
 
 # GraphQL API で未解決レビュースレッドを取得
-GRAPHQL_QUERY='
-query {
-  repository(owner: "'$OWNER'", name: "'$REPO'") {
-    pullRequest(number: '$PR_NUMBER') {
+# セキュリティのため、変数をパラメータ化して使用
+GRAPHQL_RESPONSE=$(gh api graphql \
+  -f owner="$OWNER" \
+  -f repo="$REPO" \
+  -F number="$PR_NUMBER" \
+  -f query='
+query($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
       reviewThreads(first: 100) {
         nodes {
           id
@@ -87,9 +92,7 @@ query {
     }
   }
 }
-'
-
-GRAPHQL_RESPONSE=$(gh api graphql -f query="$GRAPHQL_QUERY" 2>/dev/null)
+' 2>/dev/null)
 
 # GraphQL API エラーの場合はブロックしない
 if [[ -z "$GRAPHQL_RESPONSE" ]]; then
