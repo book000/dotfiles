@@ -162,3 +162,5 @@ Claude Code の `/code-review:code-review` コマンドは、デフォルトで�
 
 - code-review プラグインの構造が変更された場合、パッチの適用に失敗する可能性があります
 - その場合は、パッチファイルを手動で更新する必要があります
+
+<!-- CI verification test -->
