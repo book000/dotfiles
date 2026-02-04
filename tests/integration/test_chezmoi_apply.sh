@@ -27,10 +27,11 @@ fi
 
 # chezmoi を初期化
 # .chezmoiroot ファイルが存在するため、リポジトリルート全体をソースとして指定
-"$CHEZMOI_BIN" init --source="$(pwd)"
+SOURCE_DIR="$(pwd)"
+"$CHEZMOI_BIN" init --source="$SOURCE_DIR"
 
 # chezmoi apply を実行 (dry-run)
-if ! "$CHEZMOI_BIN" apply --dry-run; then
+if ! "$CHEZMOI_BIN" apply --dry-run --source="$SOURCE_DIR"; then
   echo "❌ chezmoi apply dry-run failed"
   exit 1
 fi
@@ -38,7 +39,7 @@ fi
 echo "✅ chezmoi apply dry-run passed"
 
 # 実際に apply
-if ! "$CHEZMOI_BIN" apply; then
+if ! "$CHEZMOI_BIN" apply --source="$SOURCE_DIR"; then
   echo "❌ chezmoi apply failed"
   exit 1
 fi
@@ -60,7 +61,13 @@ echo "✅ Basic files generated successfully"
 
 # Idempotency テスト: 2 回目の apply で差分がないことを確認
 echo "Testing idempotency..."
-DIFF_OUTPUT=$("$CHEZMOI_BIN" diff 2>&1)
+# .chezmoiscripts/ ディレクトリの変更は無視 (chezmoi の内部管理ファイル)
+DIFF_OUTPUT=$("$CHEZMOI_BIN" diff --source="$SOURCE_DIR" 2>&1 | awk '
+  BEGIN { skip = 0 }
+  /^diff --git a\/.chezmoiscripts\// { skip = 1; next }
+  /^diff --git/ { skip = 0 }
+  !skip { print }
+')
 if [ -n "$DIFF_OUTPUT" ]; then
   echo "❌ Idempotency test failed: chezmoi diff showed changes after apply"
   echo "$DIFF_OUTPUT"
