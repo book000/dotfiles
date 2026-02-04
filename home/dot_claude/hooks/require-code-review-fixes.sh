@@ -4,23 +4,20 @@
 TRANSCRIPT_PATH="${TRANSCRIPT_PATH:-}"
 
 # transcript ファイルが存在しない場合
-if [[ ! -f "$TRANSCRIPT_PATH" ]]; then
+if [[ -z "$TRANSCRIPT_PATH" ]] || [[ ! -f "$TRANSCRIPT_PATH" ]]; then
   echo '{"block":false}'
   exit 0
 fi
 
-# transcript を読み込み
-TRANSCRIPT=$(cat "$TRANSCRIPT_PATH")
-
 # コードレビュー実施チェック
-if ! echo "$TRANSCRIPT" | grep -q '/code-review:code-review'; then
+if ! grep -q '/code-review:code-review' "$TRANSCRIPT_PATH"; then
   # コードレビュー未実施の場合はブロックしない
   echo '{"block":false}'
   exit 0
 fi
 
-# スコアを抽出
-SCORES=$(echo "$TRANSCRIPT" | grep -oP 'Score:\s*\K\d+' || echo "")
+# スコアを抽出（ファイルから直接読み込み）
+SCORES=$(grep -oP 'Score:\s*\K\d+' "$TRANSCRIPT_PATH" 2>/dev/null || echo "")
 
 # スコア 50 以上の指摘をフィルタリング
 HIGH_SCORES=()
@@ -43,3 +40,4 @@ fi
 
 # スコア 50 未満のみ、または指摘なしの場合はブロックしない
 echo '{"block":false}'
+exit 0

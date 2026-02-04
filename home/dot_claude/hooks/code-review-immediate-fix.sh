@@ -14,7 +14,7 @@ if [[ "$SKILL" != "code-review:code-review" ]]; then
 fi
 
 # toolResult からスコアを抽出
-SCORES=$(echo "$TOOL_RESULT" | grep -oP 'Score:\s*\K\d+' || echo "")
+SCORES=$(echo "$TOOL_RESULT" | grep -oP 'Score:\s*\K\d+' 2>/dev/null || echo "")
 
 # スコア 50 以上の指摘をフィルタリング
 HIGH_SCORES=()
@@ -37,14 +37,14 @@ fi
 
 # スコア情報がある場合（すべて 50 未満）
 if [[ -n "$SCORES" ]]; then
-  TOTAL_SCORES=$(echo "$SCORES" | wc -l)
+  TOTAL_SCORES=$(echo "$SCORES" | grep -c '^')
   MESSAGE="ℹ️ コードレビューで $TOTAL_SCORES 件の指摘事項が見つかりました（すべてスコア 50 未満）。\n\n必要に応じて対応を検討してください。"
   jq -n --arg msg "$MESSAGE" '{"block":false,"message":$msg}'
   exit 0
 fi
 
 # スコア情報がない場合は "Found X issue(s)" から判定
-TOTAL_ISSUES=$(echo "$TOOL_RESULT" | grep -oP 'Found \K\d+(?= issues?)' || echo "")
+TOTAL_ISSUES=$(echo "$TOOL_RESULT" | grep -oP 'Found \K\d+(?= issues?)' 2>/dev/null || echo "")
 if [[ -n "$TOTAL_ISSUES" && "$TOTAL_ISSUES" -gt 0 ]]; then
   MESSAGE="ℹ️ コードレビューで $TOTAL_ISSUES 件の指摘事項が見つかりました（スコア情報なし）。\n\n必要に応じて対応を検討してください。"
   jq -n --arg msg "$MESSAGE" '{"block":false,"message":$msg}'
@@ -53,3 +53,4 @@ fi
 
 # 問題なし
 echo '{"block":false}'
+exit 0
