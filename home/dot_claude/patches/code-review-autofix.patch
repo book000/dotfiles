@@ -1,0 +1,47 @@
+--- a/commands/code-review.md
++++ b/commands/code-review.md
+@@ -26,6 +26,38 @@ To do this, follow these steps precisely:
+ 6. Filter out any issues with a score less than 50. If there are no issues that meet this criteria, do not proceed.
+ 7. Use a Haiku agent to repeat the eligibility check from #1, to make sure that the pull request is still eligible for code review.
+-8. Finally, use the gh bash command to comment back on the pull request with the result. When writing your comment, keep in mind to:
++8. **CHECK PR AUTHOR**: Use `gh pr view <PR number> --json author` to check the PR author. **Only proceed with auto-fix (steps 9-11) if the author is the current user (akubiusa) or a bot created by the user**. For PRs created by others (e.g., Renovate, dependabot, external contributors), skip to step 12 and post the review comment without auto-fixing.
++
++9. **CRITICAL NEW STEP - AUTO-FIX ISSUES** (only for own PRs): Before posting the review comment, **immediately fix all issues with score >= 50**. This is MANDATORY and must be done before step 12. For each issue:
++   a. Use Read tool to read the affected file
++   b. Use Edit tool to fix the issue based on the review feedback
++   c. Verify the fix addresses the issue
++   d. Do NOT commit yet - fix all issues first
++
++10. **COMMIT ALL FIXES** (only for own PRs): After all issues are fixed, commit the changes:
++   a. Use `git add` to stage all modified files
++   b. Create a commit with message:
++      ```
++      fix: コードレビュー指摘事項を自動修正
++
++      - [list all fixed issues]
++
++      Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
++      ```
++   c. Push to the PR branch using `git push origin <branch-name>`
++
++11. **UPDATE PR DESCRIPTION** (only for own PRs): Use `gh pr edit <PR number> --body "..."` to update the PR description, noting that code review issues have been automatically fixed.
++
++12. Finally, use the gh bash command to comment back on the pull request with the result. **If auto-fix was performed (steps 9-11), add a note that issues have been automatically fixed in commit [sha]**. When writing your comment, keep in mind to:
+    a. Keep your output brief
+    b. Avoid emojis
+    c. Link and cite relevant code, files, and URLs
++   d. Include this format (if auto-fix was performed):
++
++      Found X issues and **automatically fixed them** in commit [sha]:
++
++      1. <issue description>
++
++      **Fixed**: <fix description>
++
++      Or, if auto-fix was not performed (PR created by others):
++
++      Found X issues:
++
++      1. <issue description>
++
++**CRITICAL**: For PRs created by the current user (akubiusa), steps 8-11 are MANDATORY. Do NOT post the review comment without completing these steps first. Failure to auto-fix issues on own PRs is a violation of CLAUDE.md rules and will result in blocked execution. For PRs created by others (e.g., Renovate, dependabot), skip auto-fix and post review comment only.
