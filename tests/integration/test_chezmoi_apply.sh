@@ -69,14 +69,30 @@ fi
 
 echo "✅ Idempotency test passed"
 
-# シンボリックリンクの整合性確認 (例: Claude Code フックのシンボリックリンク)
-if [ -L "$HOME/.claude/hooks/PostToolUse" ]; then
-  TARGET=$(readlink "$HOME/.claude/hooks/PostToolUse")
-  if [ ! -f "$HOME/.claude/hooks/$TARGET" ]; then
-    echo "❌ Symlink broken: PostToolUse -> $TARGET"
-    exit 1
+# シンボリックリンクの整合性確認 (Claude Code フックのシンボリックリンク)
+HOOKS_DIR="$HOME/.claude/hooks"
+SYMLINKS=(
+  "code-review-immediate-fix.sh"
+  "require-code-review-fixes.sh"
+  "require-review-thread-fixes.sh"
+)
+
+SYMLINK_CHECKED=0
+for symlink in "${SYMLINKS[@]}"; do
+  SYMLINK_PATH="$HOOKS_DIR/$symlink"
+  if [ -L "$SYMLINK_PATH" ]; then
+    TARGET=$(readlink "$SYMLINK_PATH")
+    if [ ! -f "$HOOKS_DIR/$TARGET" ]; then
+      echo "❌ Symlink broken: $symlink -> $TARGET"
+      exit 1
+    fi
+    echo "✅ Symlink integrity verified: $symlink -> $TARGET"
+    SYMLINK_CHECKED=$((SYMLINK_CHECKED + 1))
   fi
-  echo "✅ Symlink integrity verified"
+done
+
+if [ $SYMLINK_CHECKED -gt 0 ]; then
+  echo "✅ All $SYMLINK_CHECKED symlinks verified"
 fi
 
 # 環境変数テンプレートの検証

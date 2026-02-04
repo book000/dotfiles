@@ -33,7 +33,8 @@ SKIP_GHQ=0
 SKIP_MKWORK=0
 SKIP_INTERACTIVE=0
 
-# ヘルプ表示関数
+# ヘルプメッセージを表示する関数
+# このスクリプトの使用方法とオプションの説明を出力する
 show_help() {
   cat <<EOF
 使用方法: $0 [OPTIONS]
@@ -127,7 +128,10 @@ log_error() {
   echo -e "${RED}[ERROR]${NC} $1" >&2
 }
 
-# コマンド実行関数 (DRY_RUN モード対応)
+# コマンドを実行する関数 (DRY_RUN モード対応)
+# DRY_RUN=1 の場合は実行せずログ出力のみ行う
+# それ以外の場合は渡された引数をそのままコマンドとして実行する
+# 引数: 実行するコマンドとその引数
 run_command() {
   if [[ "$DRY_RUN" == "1" ]]; then
     log_info "[DRY RUN] $*"
