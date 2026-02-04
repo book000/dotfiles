@@ -14,7 +14,7 @@
           },
           {
             "type": "command",
-            "command": "node ~/.claude/hooks/require-code-review-fixes.js"
+            "command": "bash ~/.claude/hooks/require-code-review-fixes.sh"
           }
         ]
       }
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ~/.claude/hooks/code-review-immediate-fix.js"
+            "command": "bash ~/.claude/hooks/code-review-immediate-fix.sh"
           }
         ]
       }
