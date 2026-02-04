@@ -95,7 +95,7 @@ ghc() {
         return 1
       fi
 
-      # 元のリポジトリ名を保存（ upstream 登録用）
+      # 元のリポジトリ名を保存（upstream 登録用）
       original_repo_name="$repo_name"
 
       # Fork のリポジトリに変更
@@ -115,7 +115,7 @@ ghc() {
 
   # リポジトリを取得
   if ! ghq get "$repo"; then
-    echo "Failed to clone repository." >&2
+    echo "Failed to clone repository. Please check if ghq is properly configured." >&2
     return 1
   fi
 
@@ -124,11 +124,16 @@ ghc() {
   if [[ -n "$repo_name" ]]; then
     repo_path=$(ghq list -p -e "$repo_name")
   else
+    # URL 形式の場合は ghq list で検索（複数マッチの可能性に注意）
     repo_path=$(ghq list -p "$repo" | head -n1)
+    if [[ -z "$repo_path" ]]; then
+      echo "Failed to find repository in ghq list." >&2
+      return 1
+    fi
   fi
 
   if [[ -z "$repo_path" ]]; then
-    echo "Failed to get repository path." >&2
+    echo "Failed to get repository path. Please check if the repository was cloned successfully." >&2
     return 1
   fi
 
