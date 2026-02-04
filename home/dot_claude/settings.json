@@ -11,6 +11,21 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/completion-notify/notify-completion.sh"
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/require-code-review-fixes.js"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/hooks/code-review-immediate-fix.js"
           }
         ]
       }
