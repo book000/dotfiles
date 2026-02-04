@@ -7,7 +7,7 @@ echo "Running shellcheck on all shell scripts..."
 
 FAILED=0
 
-# shellcheck が zsh をサポートしているか確認
+# zsh サポートの確認
 ZSH_SUPPORTED=1
 if ! shellcheck --version 2>&1 | grep -q 'zsh'; then
   echo "⚠️  Warning: shellcheck does not support zsh, skipping zsh files"
