@@ -25,9 +25,9 @@ if [ ! -x "$CHEZMOI_BIN" ]; then
   CHEZMOI_BIN="$TEST_HOME/bin/chezmoi"
 fi
 
-# chezmoi を初期化 (--apply なしで初期化のみ)
-mkdir -p "$HOME/.local/share/chezmoi"
-cp -r "$(pwd)/home/"* "$HOME/.local/share/chezmoi/"
+# chezmoi を初期化
+# .chezmoiroot ファイルが存在するため、リポジトリルート全体をソースとして指定
+"$CHEZMOI_BIN" init --source="$(pwd)"
 
 # chezmoi apply を実行 (dry-run)
 if ! "$CHEZMOI_BIN" apply --dry-run; then
