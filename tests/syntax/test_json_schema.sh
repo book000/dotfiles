@@ -12,6 +12,7 @@ if ! command -v check-jsonschema &> /dev/null; then
 fi
 
 FAILED=0
+FILES_CHECKED=0
 
 # Claude Code settings.json (公式スキーマを使用)
 if [ -f "home/dot_claude/settings.json" ]; then
@@ -22,6 +23,7 @@ if [ -f "home/dot_claude/settings.json" ]; then
   else
     echo "✅ Claude Code settings.json validation passed"
   fi
+  FILES_CHECKED=$((FILES_CHECKED + 1))
 fi
 
 # Gemini CLI settings.json (公式スキーマを使用)
@@ -33,7 +35,14 @@ if [ -f "home/dot_gemini/settings.json" ]; then
   else
     echo "✅ Gemini CLI settings.json validation passed"
   fi
+  FILES_CHECKED=$((FILES_CHECKED + 1))
 fi
 
-echo "✅ All AI agent configuration files validated"
+# 検証対象のファイルが存在しない場合はエラー
+if [ $FILES_CHECKED -eq 0 ]; then
+  echo "❌ No AI agent configuration files found to validate"
+  exit 1
+fi
+
+echo "✅ All $FILES_CHECKED AI agent configuration files validated"
 exit $FAILED

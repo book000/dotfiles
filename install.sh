@@ -418,11 +418,15 @@ install_ghq() {
   # パッケージマネージャで試行
   if command -v apt &> /dev/null; then
     log_info "apt で ghq をインストールしています..."
-    if run_command sudo apt install -y ghq 2>/dev/null; then
-      log_info "ghq が apt からインストールされました"
-      return 0
+    if [[ "$DRY_RUN" == "1" ]]; then
+      log_info "[DRY RUN] apt で ghq のインストールをスキップし、GitHub Release からのインストールに進みます"
     else
-      log_warn "apt で ghq が見つかりませんでした。GitHub Release からダウンロードします"
+      if run_command sudo apt install -y ghq 2>/dev/null; then
+        log_info "ghq が apt からインストールされました"
+        return 0
+      else
+        log_warn "apt で ghq が見つかりませんでした。GitHub Release からダウンロードします"
+      fi
     fi
   fi
 
