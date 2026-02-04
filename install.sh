@@ -593,6 +593,7 @@ setup_gitconfig_local() {
 
     local git_email
     read -r -p "Git メールアドレス: " git_email
+    # shellcheck disable=SC2129
     echo "    email = $git_email" >> "$gitconfig_local"
 
     # ghq.root 設定
@@ -688,6 +689,7 @@ setup_env() {
 EOF
 
   # Claude completion-notify
+  # shellcheck disable=SC2129
   echo "# -----------------------------------------" >> "$env_file"
   echo "# Discord Webhooks - Claude completion-notify" >> "$env_file"
   echo "# -----------------------------------------" >> "$env_file"
@@ -702,6 +704,7 @@ EOF
 
   local mention_user_id
   read -r -p "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id
+  # shellcheck disable=SC2129
   echo "DISCORD_CLAUDE_MENTION_USER_ID=\"$mention_user_id\"" >> "$env_file"
   echo "" >> "$env_file"
 
@@ -718,6 +721,7 @@ EOF
   fi
 
   read -r -p "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id
+  # shellcheck disable=SC2129
   echo "DISCORD_CLAUDE_LIMIT_MENTION_USER_ID=\"$mention_user_id\"" >> "$env_file"
   echo "" >> "$env_file"
 
