@@ -65,11 +65,11 @@ fi
 
 # GraphQL API で未解決レビュースレッドを取得
 # セキュリティのため、変数をパラメータ化して使用
+# shellcheck disable=SC2016
 GRAPHQL_RESPONSE=$(gh api graphql \
   -f owner="$OWNER" \
   -f repo="$REPO" \
   -F number="$PR_NUMBER" \
-  # shellcheck disable=SC2016
   -f query='
 query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {

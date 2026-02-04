@@ -36,8 +36,8 @@ tmux_session_selector() {
     if [[ -d "$d" ]]; then
       local f
       for f in "$d"/*.sh; do
-        [[ -f "$f" ]] && # shellcheck source=/dev/null
-          source "$f"
+        # shellcheck source=/dev/null
+        [[ -f "$f" ]] && source "$f"
       done
     fi
   }

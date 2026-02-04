@@ -318,7 +318,7 @@ install_chezmoi() {
 
   # PATH の確認と案内
   if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-    log_warn "~/.local/bin が PATH に含まれていません"
+    log_warn "$HOME/.local/bin が PATH に含まれていません"
     log_warn "シェル設定ファイルに以下の行を追加してください:"
     log_warn "  export PATH=\"\$HOME/.local/bin:\$PATH\""
 
@@ -465,7 +465,7 @@ install_ghq() {
   temp_dir=$(mktemp -d)
 
   # 一時ディレクトリのクリーンアップを設定
-  trap "rm -rf '$temp_dir'" RETURN
+  trap 'rm -rf "$temp_dir"' RETURN
 
   if [[ ! -d "$temp_dir" ]]; then
     log_error "Failed to create temporary directory"
