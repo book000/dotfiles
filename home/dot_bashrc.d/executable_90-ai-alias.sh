@@ -1,6 +1,7 @@
 # AI CLI ツールのエイリアス設定
 # --dangerously-skip-permissions や --yolo は、確認プロンプトをスキップして実行するためのオプションです。
-alias claude='~/.local/share/chezmoi/update.sh; claude --dangerously-skip-permissions'
-alias codex='~/.local/share/chezmoi/update.sh; codex --yolo'
-alias gemini='~/.local/share/chezmoi/update.sh; gemini --yolo'
-alias copilot='~/.local/share/chezmoi/update.sh; copilot --yolo'
+# AI エージェントの自動更新 (update-ai-agents.sh --quick) を各 CLI 実行前に実行します。
+alias claude='~/.local/share/chezmoi/update.sh; ~/bin/update-ai-agents.sh --quick; claude --dangerously-skip-permissions'
+alias codex='~/.local/share/chezmoi/update.sh; ~/bin/update-ai-agents.sh --quick; codex --yolo'
+alias gemini='~/.local/share/chezmoi/update.sh; ~/bin/update-ai-agents.sh --quick; gemini --yolo'
+alias copilot='~/.local/share/chezmoi/update.sh; ~/bin/update-ai-agents.sh --quick; copilot --yolo'
