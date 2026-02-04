@@ -95,7 +95,7 @@ ghc() {
         return 1
       fi
 
-      # 元のリポジトリ名を保存（upstream 登録用）
+      # 元のリポジトリ名を保存（ upstream 登録用）
       original_repo_name="$repo_name"
 
       # Fork のリポジトリに変更
@@ -113,8 +113,27 @@ ghc() {
     repo="git@github.com:${repo_name}.git"
   fi
 
-  # リポジトリを取得し、そのディレクトリへ移動
-  ghq get --look "$repo"
+  # リポジトリを取得
+  if ! ghq get "$repo"; then
+    echo "Failed to clone repository." >&2
+    return 1
+  fi
+
+  # クローン先のディレクトリパスを取得
+  local repo_path
+  if [[ -n "$repo_name" ]]; then
+    repo_path=$(ghq list -p -e "$repo_name")
+  else
+    repo_path=$(ghq list -p "$repo" | head -n1)
+  fi
+
+  if [[ -z "$repo_path" ]]; then
+    echo "Failed to get repository path." >&2
+    return 1
+  fi
+
+  # ディレクトリに移動
+  cd "$repo_path" || return 1
 
   # Fork した場合は upstream を登録
   if [[ -n "$original_repo_name" ]]; then
