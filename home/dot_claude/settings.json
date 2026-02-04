@@ -14,11 +14,11 @@
           },
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/require-code-review-fixes.sh"
+            "command": "bash ~/.claude/hooks/executable_require-code-review-fixes.sh"
           },
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/require-review-thread-fixes.sh"
+            "command": "bash ~/.claude/hooks/executable_require-review-thread-fixes.sh"
           }
         ]
       }
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/code-review-immediate-fix.sh"
+            "command": "bash ~/.claude/hooks/executable_code-review-immediate-fix.sh"
           }
         ]
       }

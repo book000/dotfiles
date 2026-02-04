@@ -124,8 +124,8 @@ while IFS= read -r thread; do
   THREAD_ID=$(echo "$thread" | jq -r '.id' 2>/dev/null)
   THREAD_PATH=$(echo "$thread" | jq -r '.path // "unknown"' 2>/dev/null)
   THREAD_LINE=$(echo "$thread" | jq -r '.line // "N/A"' 2>/dev/null)
-  AUTHOR_LOGIN=$(echo "$thread" | jq -r '.comments[0].author.login // "unknown"' 2>/dev/null)
-  COMMENT_BODY=$(echo "$thread" | jq -r '.comments[0].body // ""' 2>/dev/null)
+  AUTHOR_LOGIN=$(echo "$thread" | jq -r '.comments.nodes[0].author.login // "unknown"' 2>/dev/null)
+  COMMENT_BODY=$(echo "$thread" | jq -r '.comments.nodes[0].body // ""' 2>/dev/null)
 
   # コメント冒頭 100 文字
   COMMENT_PREVIEW=$(echo "$COMMENT_BODY" | head -c 100)
@@ -204,7 +204,7 @@ c. 修正内容をコミット・プッシュ（必要に応じて）
 
 \`\`\`bash
 # 各レビュースレッド ID に対して実行
-THREAD_ID=\"取得したスレッドID\"
+THREAD_ID=\"取得したスレッド ID\"
 gh api graphql -f query='
 mutation {
   addPullRequestReviewThreadReply(input: {
