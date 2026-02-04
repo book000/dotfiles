@@ -69,6 +69,7 @@ GRAPHQL_RESPONSE=$(gh api graphql \
   -f owner="$OWNER" \
   -f repo="$REPO" \
   -F number="$PR_NUMBER" \
+  # shellcheck disable=SC2016
   -f query='
 query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
@@ -121,6 +122,7 @@ while IFS= read -r thread; do
     break
   fi
 
+  # shellcheck disable=SC2034
   THREAD_ID=$(echo "$thread" | jq -r '.id' 2>/dev/null)
   THREAD_PATH=$(echo "$thread" | jq -r '.path // "unknown"' 2>/dev/null)
   THREAD_LINE=$(echo "$thread" | jq -r '.line // "N/A"' 2>/dev/null)

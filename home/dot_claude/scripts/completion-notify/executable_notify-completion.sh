@@ -11,6 +11,7 @@
 # }
 
 cd "$(dirname "$0")" || exit 1
+# shellcheck source=/dev/null
 source ./.env
 
 # Windowsパスをシェル互換パスに変換する関数
@@ -30,7 +31,7 @@ convert_path() {
   if [[ "$path" =~ ^[A-Za-z]: ]]; then
     local third_char="${path:2:1}"
     # 3文字目がスラッシュまたはバックスラッシュの場合のみ変換
-    if [[ "$third_char" == "/" ]] || [[ "$third_char" == '\' ]]; then
+    if [[ "$third_char" == "/" ]] || [[ "$third_char" == "\\" ]]; then
       local drive_letter="${path:0:1}"
       local rest="${path:2}"
       # バックスラッシュをスラッシュに変換 (tr を使用)
@@ -127,7 +128,7 @@ LAST_MESSAGES=$(jq -r '
     ]
   | select(.[1] != "")
   | @tsv
-' $SESSION_PATH | tail -n 5)
+' "$SESSION_PATH" | tail -n 5)
 if [[ -n "$LAST_MESSAGES" ]]; then
   IFS=$'\n' read -r -d '' -a messages_array <<< "$LAST_MESSAGES"
   for message in "${messages_array[@]}"; do

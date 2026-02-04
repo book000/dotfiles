@@ -11,6 +11,7 @@
 # }
 
 cd "$(dirname "$0")" || exit 1
+# shellcheck source=/dev/null
 source ./.env
 
 # データディレクトリの作成
@@ -18,6 +19,7 @@ DATA_DIR="$HOME/.claude/scripts/completion-notify/data"
 mkdir -p "$DATA_DIR"
 
 # 入力 JSON を読み取る（使用しないが標準入力を消費する）
+# shellcheck disable=SC2034
 INPUT_JSON=$(cat)
 
 # 現在時刻を Unix timestamp で記録

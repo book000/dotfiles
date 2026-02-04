@@ -2,6 +2,7 @@
 # バックグラウンド通知処理: 1 分待機後、条件を満たせば Discord に通知を送信
 
 cd "$(dirname "$0")" || exit 1
+# shellcheck source=/dev/null
 source ./.env
 
 export DISCORD_WEBHOOK_URL="${DISCORD_CLAUDE_WEBHOOK:-}"
