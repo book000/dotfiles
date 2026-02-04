@@ -41,7 +41,17 @@ args:
 
 ### モード検出方法
 
-このコマンドは、system-reminder に "Plan mode is active" または "plan file" というテキストが含まれているかを確認してプランモードを検出します。検出できない場合は実行モードとして動作します。
+このコマンドは、system-reminder に "Plan mode is active" または "plan file" というテキストが含まれているかを確認してプランモードを検出します。
+
+**検出の詳細：**
+
+- 大文字小文字を区別しない部分一致で検出します
+- system-reminder は Claude Code のシステム機能として提供されるため、通常は安定しています
+- 検出に失敗した場合は、実行モードとして動作します（従来の動作を維持）
+
+**注意：**
+
+プランモードで実行したい場合は、必ず `/plan` コマンドでプランモードに入ってから `/issue-pr` を実行してください。
 
 ---
 
@@ -79,11 +89,18 @@ gh issue view {{issue_number}} --json title,state,body,comments,author
 
 Phase 1 で作成した不明点のリストを基に、AskUserQuestion ツールでユーザーに質問してください。
 
+**AskUserQuestion ツールの制限事項：**
+
+- **セッションごとの質問回数制限**: 約 4-6 回程度に制限されます
+- **タイムアウト制限**: 各質問は 60 秒でタイムアウトします
+- **サブエージェントからは使用不可**: Task ツールで起動したサブエージェントからは使用できません
+
 **質問の際の注意点：**
 
 - 推奨オプションがある場合は、最初のオプションに "(Recommended)" を付ける
 - 「このプランで良いですか？」という質問は **禁止** です（ExitPlanMode の役割）
 - 技術的な選択肢がある場合は、各オプションのメリット・デメリットを説明に含める
+- 質問回数の制限を考慮し、重要な質問に絞る
 
 **質問例：**
 
@@ -352,9 +369,20 @@ EOF
 ~/.claude/plans/[session-id].md
 ```
 
+**書き込み方法：**
+
+Write ツールを使用してプランファイルに要件定義書を記載してください：
+
+```
+Write({
+  file_path: "[system-reminder に記載されたプランファイルのパス]",
+  content: "[Phase 4 で作成した要件定義書の全文]"
+})
+```
+
 **注意：**
 
-- プランファイルは Git 管理外のディレクトリに保存されます
+- プランファイルは Git 管理外のディレクトリ（`~/.claude/plans/`）に保存されます
 - 判断記録はプランファイル内に記載してください（Git 管理下の Markdown ファイルには保存しない）
 
 ### Phase 7: ExitPlanMode の実行
@@ -533,29 +561,35 @@ INTERVAL=30   # 30 秒ごとにチェック
 ELAPSED=0
 
 # PR 作成時のレビュー数を取得
-INITIAL_REVIEW_COUNT=$(gh api graphql -f query="
-query {
-  repository(owner: \"$OWNER\", name: \"$REPO\") {
-    pullRequest(number: $PR_NUMBER) {
-      reviews {
-        totalCount
-      }
-    }
-  }
-}" --jq '.data.repository.pullRequest.reviews.totalCount')
-
-while [ $ELAPSED -lt $MAX_WAIT ]; do
-  # 現在のレビュー数を確認
-  CURRENT_REVIEW_COUNT=$(gh api graphql -f query="
-  query {
-    repository(owner: \"$OWNER\", name: \"$REPO\") {
-      pullRequest(number: $PR_NUMBER) {
+INITIAL_REVIEW_COUNT=$(gh api graphql \
+  -f owner="$OWNER" \
+  -f repo="$REPO" \
+  -F number="$PR_NUMBER" \
+  -f query='query($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $number) {
         reviews {
           totalCount
         }
       }
     }
-  }" --jq '.data.repository.pullRequest.reviews.totalCount')
+  }' --jq '.data.repository.pullRequest.reviews.totalCount')
+
+while [ $ELAPSED -lt $MAX_WAIT ]; do
+  # 現在のレビュー数を確認
+  CURRENT_REVIEW_COUNT=$(gh api graphql \
+    -f owner="$OWNER" \
+    -f repo="$REPO" \
+    -F number="$PR_NUMBER" \
+    -f query='query($owner: String!, $repo: String!, $number: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $number) {
+          reviews {
+            totalCount
+          }
+        }
+      }
+    }' --jq '.data.repository.pullRequest.reviews.totalCount')
 
   if [ "$CURRENT_REVIEW_COUNT" -gt "$INITIAL_REVIEW_COUNT" ]; then
     echo "新しいレビューが投稿されました。"
@@ -584,36 +618,40 @@ fi
 
 ```bash
 # レビュースレッド ID を取得
-gh api graphql -f query="
-query {
-  repository(owner: \"$OWNER\", name: \"$REPO\") {
-    pullRequest(number: $PR_NUMBER) {
-      reviewThreads(first: 10) {
-        nodes {
-          id
-          isResolved
-          comments(first: 1) {
-            nodes {
-              body
-              path
+gh api graphql \
+  -f owner="$OWNER" \
+  -f repo="$REPO" \
+  -F number="$PR_NUMBER" \
+  -f query='query($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $number) {
+        reviewThreads(first: 10) {
+          nodes {
+            id
+            isResolved
+            comments(first: 1) {
+              nodes {
+                body
+                path
+              }
             }
           }
         }
       }
     }
-  }
-}"
+  }'
 
 # スレッドを resolve
-gh api graphql -f query="
-mutation {
-  resolveReviewThread(input: {threadId: \"$THREAD_ID\"}) {
-    thread {
-      id
-      isResolved
+gh api graphql \
+  -f threadId="$THREAD_ID" \
+  -f query='mutation($threadId: ID!) {
+    resolveReviewThread(input: {threadId: $threadId}) {
+      thread {
+        id
+        isResolved
+      }
     }
-  }
-}"
+  }'
 ```
 
 ### 6. PR 本文の確認
