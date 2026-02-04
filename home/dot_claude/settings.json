@@ -15,6 +15,10 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/require-code-review-fixes.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/require-review-thread-fixes.sh"
           }
         ]
       }

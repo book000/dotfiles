@@ -122,13 +122,79 @@ Codex CLI や Gemini CLI の他エージェントに相談することができ�
 2. PR本文の内容は、ブランチの現在の状態を、今までのこのPRでの更新履歴を含むことなく、最新の状態のみ、漏れなく日本語で記載されていること。このPRを見たユーザーが、最終的にどのような変更を含むPRなのかをわかりやすく、細かく記載されていること
 3. `gh pr checks <PR ID> --watch` で GitHub Actions CI を待ち、その結果がエラーとなっていないこと。成功している場合でも、ログを確認し、誤って成功扱いになっていないこと。もし GitHub Actions が動作しない場合は、ローカルで CI と同等のテストを行い、CI が成功することを保証しなければなりません。
 4. `request-review-copilot` コマンドが存在する場合、`request-review-copilot https://github.com/$OWNER/$REPO/pull/$PR_NUMBER` で GitHub Copilot へレビューを依頼すること。レビュー依頼は自動で行われる場合もあるし、制約により `request-review-copilot` を実行しても GitHub Copilot がレビューしないケースがある
-5. GitHub Copilot レビューへの対応を行うこと。**レビューコメント取得漏れを防ぐため、以下を必ず実施すること:**
-   - まず、**すべての未解決レビュースレッドを確認する** (`gh api graphql` で `isResolved == false` のスレッドを取得)
-   - 各レビューコメントの内容を確認し、対応が必要か判断する
-   - 対応したレビューコメントには必ず返信を投稿する
-   - **対応が完了したレビュースレッドは必ず resolve する** (GraphQL API の `resolveReviewThread` mutation を使用)
-   - **対応完了後、再度すべての未解決レビュースレッドを確認し、取得漏れがないことを確認する**
-   - 新しいレビューコメントが追加されていないか定期的に確認する
+5. レビューコメントへの対応を行うこと。**レビューコメント対応漏れを防ぐため、以下を必ず順序通りに実施すること:**
+
+   **重要**: 各レビュースレッドに対して、必ず **返信を投稿** してから **resolve** してください。
+
+   a. まず、**すべての未解決レビュースレッドを確認する**:
+   ```bash
+   gh api graphql -f query='
+   query {
+     repository(owner: "$OWNER", name: "$REPO") {
+       pullRequest(number: $PR_NUMBER) {
+         reviewThreads(first: 100) {
+           nodes {
+             id
+             isResolved
+             comments(first: 10) {
+               nodes {
+                 author { login }
+                 body
+                 path
+               }
+             }
+           }
+         }
+       }
+     }
+   }'
+   ```
+
+   b. 各レビュースレッドに対して対応:
+   - レビューコメントの内容を確認し、対応が必要か判断
+   - 対応が必要な場合は適切な修正を実施
+   - 修正内容をコミット・プッシュ（必要に応じて）
+
+   c. **各レビュースレッドに返信を投稿**（重要）:
+   - **注意**: 通常のコメント（issue コメント）として投稿してはいけません
+   - **必ず** `addPullRequestReviewThreadReply` mutation を使用:
+   ```bash
+   gh api graphql -f query='
+   mutation {
+     addPullRequestReviewThreadReply(input: {
+       pullRequestReviewThreadId: "$THREAD_ID"
+       body: "対応内容を記載"
+     }) {
+       comment { id }
+     }
+   }'
+   ```
+
+   d. **対応が完了したレビュースレッドを resolve**:
+   - 返信を投稿した後、**必ず** resolve:
+   ```bash
+   gh api graphql -f query='
+   mutation {
+     resolveReviewThread(input: {threadId: "$THREAD_ID"}) {
+       thread {
+         id
+         isResolved
+       }
+     }
+   }'
+   ```
+
+   e. **対応完了後、再度すべての未解決レビュースレッドを確認**し、取得漏れがないことを確認
+
+   f. 新しいレビューコメントが追加されていないか定期的に確認
+
+   **注意事項**:
+   - GitHub Copilot や他のレビュアーからのコメントはすべて対応が必要です
+   - **よくある間違い**:
+     - ❌ 通常のコメント（issue コメント）として投稿している
+     - ❌ 返信を投稿したが resolve していない
+     - ❌ 一部のスレッドだけ対応している
+   - **command hooks により、未解決レビュースレッドがある場合はセッション終了時に自動的に処理がブロックされます**
 6. `/code-review:code-review` によるコードレビューを実施し、**スコア 50 以上の指摘事項に必ず対応すること**
    - コードレビューで指摘事項が見つかった場合、command hooks により処理がブロックされます
    - **スコア 50 以上の指摘事項への対応は必須**です（80 がボーダーラインではありません）

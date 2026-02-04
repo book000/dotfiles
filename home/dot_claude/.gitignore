@@ -9,6 +9,7 @@
 !plugins/
 !commands/
 !patches/
+!hooks/
 !hookify.*.local.md
 !.chezmoiscripts/
 
