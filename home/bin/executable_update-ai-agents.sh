@@ -66,10 +66,22 @@ check_timestamp() {
 
 # ネットワーク接続チェック
 check_network() {
-    if ! ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
-        log "⚠️  No network connection, skipping update"
-        exit 0
-    fi
+    # 複数のエンドポイントを試行
+    local targets=(
+        "https://www.google.com"
+        "https://1.1.1.1"
+    )
+
+    for target in "${targets[@]}"; do
+        if curl -s --connect-timeout 3 --max-time 5 "$target" >/dev/null 2>&1; then
+            # いずれか 1 つが成功すれば OK
+            return 0
+        fi
+    done
+
+    # すべて失敗した場合
+    log "⚠️  No network connection, skipping update"
+    exit 0
 }
 
 # ディスク容量チェック
