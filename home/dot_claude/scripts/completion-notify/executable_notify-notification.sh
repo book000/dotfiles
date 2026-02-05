@@ -109,22 +109,40 @@ if [[ "$NOTIFICATION_TYPE" == "idle_prompt" ]]; then
   else
     # セッション ID ごとに最後の通知タイムスタンプを記録
     LAST_IDLE_NOTIFY_FILE="$DATA_DIR/last-idle-notify-${SESSION_ID}.txt"
+    LOCK_DIR="$DATA_DIR/last-idle-notify-${SESSION_ID}.lock"
     COOLDOWN_SECONDS=60  # 60 秒以内の重複通知をスキップ
 
-    # 最後の通知時刻を取得
-    if [[ -f "$LAST_IDLE_NOTIFY_FILE" ]]; then
-      LAST_NOTIFY_TIME=$(cat "$LAST_IDLE_NOTIFY_FILE")
-      CURRENT_TIME=$(date +%s)
-      ELAPSED=$((CURRENT_TIME - LAST_NOTIFY_TIME))
+    # ロック取得を試行（mkdir はアトミック操作）
+    if mkdir "$LOCK_DIR" 2>/dev/null; then
+      # ロック取得に成功した場合のみ処理を続行
+      trap 'rmdir "$LOCK_DIR" 2>/dev/null' EXIT
 
-      if [[ $ELAPSED -lt $COOLDOWN_SECONDS ]]; then
-        echo "⏱️ Skipping idle_prompt notification (cooldown: ${ELAPSED}s < ${COOLDOWN_SECONDS}s)" >&2
-        exit 0
+      # 最後の通知時刻を取得
+      if [[ -f "$LAST_IDLE_NOTIFY_FILE" ]]; then
+        LAST_NOTIFY_TIME=$(cat "$LAST_IDLE_NOTIFY_FILE")
+
+        # 数値検証（既存コードの send-discord-notification.sh と同じパターン）
+        if [[ "$LAST_NOTIFY_TIME" =~ ^[0-9]+$ ]]; then
+          CURRENT_TIME=$(date +%s)
+          ELAPSED=$((CURRENT_TIME - LAST_NOTIFY_TIME))
+
+          if [[ $ELAPSED -lt $COOLDOWN_SECONDS ]]; then
+            echo "⏱️ Skipping idle_prompt notification (cooldown: ${ELAPSED}s < ${COOLDOWN_SECONDS}s)" >&2
+            rmdir "$LOCK_DIR" 2>/dev/null
+            exit 0
+          fi
+        else
+          echo "⚠️ LAST_NOTIFY_TIME is invalid, skipping cooldown check" >&2
+        fi
       fi
-    fi
 
-    # 現在時刻を記録
-    date +%s > "$LAST_IDLE_NOTIFY_FILE"
+      # 現在時刻を記録
+      date +%s > "$LAST_IDLE_NOTIFY_FILE"
+      rmdir "$LOCK_DIR" 2>/dev/null
+    else
+      # ロック取得に失敗した場合は別プロセスが処理中なのでスキップ
+      echo "⏸️ Another process is checking idle_prompt cooldown, skipping" >&2
+    fi
   fi
 fi
 
