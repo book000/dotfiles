@@ -14,6 +14,7 @@
 # }
 
 cd "$(dirname "$0")" || exit 1
+# shellcheck source=/dev/null
 source ./.env
 
 # データディレクトリの作成

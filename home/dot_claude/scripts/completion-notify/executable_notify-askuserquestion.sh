@@ -14,6 +14,7 @@
 # }
 
 cd "$(dirname "$0")" || exit 1
+# shellcheck source=/dev/null
 source ./.env
 
 # データディレクトリの作成
@@ -85,8 +86,10 @@ fi
 # transcript_path で指定されたファイルが存在しない場合は通知を送信しない
 # ワイルドカードが含まれる場合は展開して確認
 if [[ "$SESSION_PATH" == *"*"* ]]; then
-  # ワイルドカードを展開
-  SESSION_PATH_EXPANDED=($(ls $SESSION_PATH 2>/dev/null || true))
+  # ワイルドカードを展開（シェルグロブを使用）
+  shopt -s nullglob
+  SESSION_PATH_EXPANDED=($SESSION_PATH)
+  shopt -u nullglob
   if [[ ${#SESSION_PATH_EXPANDED[@]} -eq 0 ]]; then
     echo "Session file not found: $SESSION_PATH" >&2
     exit 0
@@ -100,7 +103,7 @@ fi
 webhook_url="${DISCORD_CLAUDE_WEBHOOK}"
 
 if [[ -z "${webhook_url}" ]]; then
-  if [[ -n "${CLAUDE_MENTION_USER_ID}" ]]; then
+  if [[ -n "${DISCORD_CLAUDE_MENTION_USER_ID}" ]]; then
     echo "DISCORD_CLAUDE_WEBHOOK is not set." >&2
     echo "Notification will not be sent." >&2
   fi
@@ -108,7 +111,7 @@ if [[ -z "${webhook_url}" ]]; then
 fi
 
 if [[ -z "${SESSION_ID}" ]]; then
-  if [[ -n "${CLAUDE_MENTION_USER_ID}" ]]; then
+  if [[ -n "${DISCORD_CLAUDE_MENTION_USER_ID}" ]]; then
     echo "SESSION_ID is not set." >&2
     echo "Notification will not be sent." >&2
   fi
