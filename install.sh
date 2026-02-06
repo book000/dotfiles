@@ -17,7 +17,7 @@
 #     --skip-gh          gh CLI のインストールをスキップ
 #     --skip-ghq         ghq のインストールをスキップ
 #     --skip-mkwork      mkwork のインストールをスキップ
-#     --skip-interactive 対話的な確認をスキップ (CI 用)
+#     --skip-interactive 対話的な確認をスキップ (CI 用、/dev/tty が利用できない場合も自動的に非対話モードになります)
 #     --help             ヘルプを表示
 # ==============================================================================
 
@@ -45,7 +45,7 @@ OPTIONS:
   --skip-gh          gh CLI のインストールをスキップ
   --skip-ghq         ghq のインストールをスキップ
   --skip-mkwork      mkwork のインストールをスキップ
-  --skip-interactive 対話的な確認をスキップ (CI 用)
+  --skip-interactive 対話的な確認をスキップ (CI 用、/dev/tty が利用できない場合も自動的に非対話モードになります)
   --help             このヘルプを表示
 
 例:
@@ -162,6 +162,48 @@ version_ge() {
   if [ "$(printf '%s\n%s' "$v1" "$v2" | sort -V | tail -n1)" = "$v1" ]; then
     return 0
   else
+    return 1
+  fi
+}
+
+# 端末から直接入力を読む関数
+# /dev/tty が利用可能な場合はそこから読み、利用できない場合は非対話モードにフォールバックする
+# 引数:
+#   $1: プロンプトメッセージ
+#   $2: 変数名（出力先）
+# 戻り値:
+#   0: 成功（入力を読み込んだ）
+#   1: 失敗（/dev/tty が利用できない、または --skip-interactive が指定されている）
+read_from_terminal() {
+  local prompt="$1"
+  local var_name="$2"
+  local input_value
+
+  # --skip-interactive が指定されている場合は入力をスキップ
+  if [[ "${SKIP_INTERACTIVE}" == "1" ]] || [[ "${NO_INTERACTIVE:-0}" == "1" ]]; then
+    return 1
+  fi
+
+  # /dev/tty が利用可能かチェック
+  if [[ -r /dev/tty ]]; then
+    # /dev/tty から入力を読む（パイプ実行時でも対話可能）
+    # プロンプトを表示してから read する
+    printf '%s' "$prompt" > /dev/tty
+    # set -e の影響を避けるため、|| true を使用
+    # shellcheck disable=SC2034
+    if IFS= read -r input_value < /dev/tty 2>&1; then
+      # 読み込んだ値を指定された変数に代入
+      # shellcheck disable=SC2229
+      eval "$var_name=\"\$input_value\""
+      return 0
+    else
+      # read が失敗した場合（/dev/tty が読めない、またはユーザーが Ctrl+D を押した）
+      log_warn "/dev/tty から入力を読み込めませんでした。非対話モードにフォールバックします"
+      return 1
+    fi
+  else
+    # /dev/tty が利用できない場合（CI 環境など）
+    log_warn "/dev/tty が利用できません。非対話モードにフォールバックします"
     return 1
   fi
 }
@@ -545,10 +587,9 @@ install_mkwork() {
   else
     mkdir -p "$HOME/.config/mkwork"
 
-    # 非対話モードでない場合は入力を受け付ける
-    if [[ "${NO_INTERACTIVE:-0}" != "1" ]]; then
-      local work_root
-      read -r -p "mkwork の作業ディレクトリ [~/work]: " work_root
+    # 対話入力を試みる
+    local work_root
+    if read_from_terminal "mkwork の作業ディレクトリ [~/work]: " work_root; then
       work_root="${work_root:-$HOME/work}"
       echo "work_root=$work_root" > "$config_file"
       log_info "mkwork の設定を作成しました: work_root=$work_root"
@@ -569,39 +610,33 @@ setup_gitconfig_local() {
   if [[ -f "$gitconfig_local" ]]; then
     log_warn ".gitconfig.local が既に存在します"
 
-    if [[ "${NO_INTERACTIVE:-0}" != "1" ]]; then
-      local confirm
-      read -r -p "上書きしますか? [y/N]: " confirm
+    local confirm
+    if read_from_terminal "上書きしますか? [y/N]: " confirm; then
       if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
         log_info ".gitconfig.local のセットアップをスキップしました"
         return 0
       fi
     else
+      # 非対話モードでは上書きしない
       log_info ".gitconfig.local のセットアップをスキップしました"
       return 0
     fi
   fi
 
-  # 非対話モードでない場合は入力を受け付ける
-  if [[ "${NO_INTERACTIVE:-0}" != "1" ]]; then
+  # 対話入力を試みる
+  local git_name git_email ghq_root
+  if read_from_terminal "Git ユーザー名: " git_name && \
+     read_from_terminal "Git メールアドレス: " git_email && \
+     read_from_terminal "ghq ルートディレクトリ [~/repos]: " ghq_root; then
     # Git user 設定
     echo "[user]" > "$gitconfig_local"
-
-    local git_name
-    read -r -p "Git ユーザー名: " git_name
-    echo "    name = $git_name" >> "$gitconfig_local"
-
-    local git_email
-    read -r -p "Git メールアドレス: " git_email
     # shellcheck disable=SC2129
+    echo "    name = $git_name" >> "$gitconfig_local"
     echo "    email = $git_email" >> "$gitconfig_local"
 
     # ghq.root 設定
     echo "" >> "$gitconfig_local"
     echo "[ghq]" >> "$gitconfig_local"
-
-    local ghq_root
-    read -r -p "ghq ルートディレクトリ [~/repos]: " ghq_root
     ghq_root="${ghq_root:-$HOME/repos}"
     echo "    root = $ghq_root" >> "$gitconfig_local"
 
@@ -661,26 +696,28 @@ setup_env() {
   if [[ -f "$env_file" ]]; then
     log_warn ".env が既に存在します"
 
-    if [[ "${NO_INTERACTIVE:-0}" != "1" ]]; then
-      local confirm
-      read -r -p "上書きしますか? [y/N]: " confirm
+    local confirm
+    if read_from_terminal "上書きしますか? [y/N]: " confirm; then
       if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
         log_info ".env のセットアップをスキップしました"
         return 0
       fi
     else
+      # 非対話モードでは上書きしない
       log_info ".env のセットアップをスキップしました"
       return 0
     fi
   fi
 
-  # 非対話モードの場合は後で .env.example から自動コピー
-  if [[ "${NO_INTERACTIVE:-0}" == "1" ]]; then
+  # 対話入力可能かチェック
+  local webhook_url
+  if ! read_from_terminal "Claude completion-notify の Discord Webhook URL (空欄でスキップ): " webhook_url; then
+    # 非対話モードの場合は後で .env.example から自動コピー
     log_info ".env は非対話モードのためここでは作成しません (chezmoi apply 前に .env.example から自動コピーされます)"
     return 0
   fi
 
-  # 対話モードの場合は Discord Webhook URL などを入力
+  # 対話モードで Discord Webhook URL などを入力
   cat > "$env_file" <<'EOF'
 # =========================================
 # chezmoi dotfiles 環境変数設定
@@ -694,8 +731,7 @@ EOF
   echo "# Discord Webhooks - Claude completion-notify" >> "$env_file"
   echo "# -----------------------------------------" >> "$env_file"
 
-  local webhook_url
-  read -r -p "Claude completion-notify の Discord Webhook URL (空欄でスキップ): " webhook_url
+  # webhook_url は上で既に読み込み済み
   if [[ -n "$webhook_url" ]]; then
     echo "DISCORD_CLAUDE_WEBHOOK=\"$webhook_url\"" >> "$env_file"
   else
@@ -703,7 +739,7 @@ EOF
   fi
 
   local mention_user_id
-  read -r -p "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id
+  read_from_terminal "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id || mention_user_id=""
   # shellcheck disable=SC2129
   echo "DISCORD_CLAUDE_MENTION_USER_ID=\"$mention_user_id\"" >> "$env_file"
   echo "" >> "$env_file"
@@ -713,14 +749,14 @@ EOF
   echo "# Discord Webhooks - Claude limit-unlocked" >> "$env_file"
   echo "# -----------------------------------------" >> "$env_file"
 
-  read -r -p "Claude limit-unlocked の Discord Webhook URL (空欄でスキップ): " webhook_url
+  read_from_terminal "Claude limit-unlocked の Discord Webhook URL (空欄でスキップ): " webhook_url || webhook_url=""
   if [[ -n "$webhook_url" ]]; then
     echo "DISCORD_CLAUDE_LIMIT_WEBHOOK=\"$webhook_url\"" >> "$env_file"
   else
     echo "DISCORD_CLAUDE_LIMIT_WEBHOOK=\"\"" >> "$env_file"
   fi
 
-  read -r -p "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id
+  read_from_terminal "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id || mention_user_id=""
   # shellcheck disable=SC2129
   echo "DISCORD_CLAUDE_LIMIT_MENTION_USER_ID=\"$mention_user_id\"" >> "$env_file"
   echo "" >> "$env_file"
@@ -730,14 +766,14 @@ EOF
   echo "# Discord Webhooks - Gemini" >> "$env_file"
   echo "# -----------------------------------------" >> "$env_file"
 
-  read -r -p "Gemini の Discord Webhook URL (空欄でスキップ): " webhook_url
+  read_from_terminal "Gemini の Discord Webhook URL (空欄でスキップ): " webhook_url || webhook_url=""
   if [[ -n "$webhook_url" ]]; then
     echo "DISCORD_GEMINI_WEBHOOK=\"$webhook_url\"" >> "$env_file"
   else
     echo "DISCORD_GEMINI_WEBHOOK=\"\"" >> "$env_file"
   fi
 
-  read -r -p "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id
+  read_from_terminal "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id || mention_user_id=""
   echo "DISCORD_GEMINI_MENTION_USER_ID=\"$mention_user_id\"" >> "$env_file"
 
   # .env ファイルのパーミッションを 600 に設定（センシティブ情報を含むため）
