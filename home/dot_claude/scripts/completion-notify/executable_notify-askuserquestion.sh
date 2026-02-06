@@ -38,8 +38,7 @@ convert_path() {
   if [[ "$path" =~ ^[A-Za-z]: ]]; then
     local third_char="${path:2:1}"
     # 3 文字目がスラッシュまたはバックスラッシュの場合のみ変換
-    # shellcheck disable=SC1003
-    if [[ "$third_char" == "/" ]] || [[ "$third_char" == '\' ]]; then
+    if [[ "$third_char" == "/" ]] || [[ "$third_char" == "\\" ]]; then
       local drive_letter="${path:0:1}"
       local rest="${path:2}"
       # バックスラッシュをスラッシュに変換 (tr を使用)
@@ -154,7 +153,8 @@ if [[ -n "${webhook_url}" ]]; then
   SCRIPT_DIR="$(dirname "$0")"
 
   # AskUserQuestion 表示中フラグを作成（idle_prompt 通知を抑制するため）
-  touch "$DATA_DIR/askuserquestion-active-${SESSION_ID}.flag"
+  # タイムスタンプを記録することで、Stop フック失敗時の古いフラグを検出可能にする
+  date +%s > "$DATA_DIR/askuserquestion-active-${SESSION_ID}.flag"
 
   # バックグラウンドで通知処理を実行（セッション ID を環境変数で渡す）
   export NOTIFICATION_SESSION_ID="$SESSION_ID"

@@ -280,7 +280,15 @@ if [[ -n "${webhook_url}" ]]; then
   if [[ "$NOTIFICATION_TYPE" == "idle_prompt" ]]; then
     # AskUserQuestion 表示中フラグが存在する場合は通知を送信しない
     if [[ -f "$DATA_DIR/askuserquestion-active-${SESSION_ID}.flag" ]]; then
-      exit 0
+      # フラグのタイムスタンプを確認（1時間以上古い場合は無視）
+      FLAG_TIMESTAMP=$(cat "$DATA_DIR/askuserquestion-active-${SESSION_ID}.flag" 2>/dev/null || echo "0")
+      CURRENT_TIME=$(date +%s)
+      # タイムスタンプが数値かつ1時間以内（3600秒）の場合のみ通知を抑制
+      if [[ "$FLAG_TIMESTAMP" =~ ^[0-9]+$ ]] && (( CURRENT_TIME - FLAG_TIMESTAMP < 3600 )); then
+        exit 0
+      fi
+      # 古いフラグは削除
+      rm -f "$DATA_DIR/askuserquestion-active-${SESSION_ID}.flag" 2>/dev/null
     fi
 
     # idle_prompt は既に 60 秒待機しているため、即座に通知
