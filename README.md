@@ -180,14 +180,33 @@ GitHub の issue を確認し、対応のためのブランチを作成して PR
 
 ## code-review プラグインのカスタマイズ
 
-Claude Code の `/code-review:code-review` コマンドは、デフォルトでスコア 80 以上の指摘のみを報告しますが、このリポジトリでは閾値を 50 に変更しています。
+Claude Code の `/code-review:code-review` コマンドは、デフォルトでスコア 80 以上の指摘のみを報告しますが、このリポジトリでは以下のカスタマイズを適用しています：
+
+1. **閾値の変更**: スコア 80 → 50 に変更（より多くの指摘を報告）
+2. **自動修正機能**: スコア 50 以上の指摘事項を自動的に修正
 
 ### 仕組み
 
-1. **パッチファイル**: `home/dot_claude/patches/code-review-threshold.patch` に閾値変更パッチを配置
-2. **自動適用**: `chezmoi apply` 時に `.chezmoiscripts/run_after_apply-code-review-patch.sh.tmpl` が毎回実行され、パッチを自動適用
+1. **パッチファイル**:
+   - `home/dot_claude/patches/code-review-threshold.patch`: 閾値変更（80 → 50）
+   - `home/dot_claude/patches/code-review-autofix.patch`: 自動修正機能の追加
+
+2. **自動適用スクリプト**: `chezmoi apply` 時に `.chezmoiscripts/run_after_apply-code-review-patch.sh.tmpl` が毎回実行され、以下のディレクトリにパッチを自動適用:
+   - **Marketplace**: `~/.claude/plugins/marketplaces/claude-plugins-official/plugins/code-review/`
+   - **Cache**: `~/.claude/plugins/cache/claude-plugins-official/code-review/*/`（すべてのハッシュディレクトリ）
+
 3. **キャッシュクリア**: パッチファイルが変更されると、`dot_claude/.chezmoiscripts/run_onchange_after_clear-plugin-cache.sh.tmpl` が自動実行され、プラグインキャッシュ (`~/.claude/plugins/cache/`) をクリア
+
 4. **冪等性**: 既にパッチが適用されている場合はスキップ（何度実行しても安全）
+
+### 適用先の詳細
+
+パッチは以下の両方に適用されます：
+
+- **Marketplace**: Claude Code がプラグインをインストールした際の元ファイル
+- **Cache**: Claude Code が実行時に使用するキャッシュファイル（ハッシュ値付きディレクトリ）
+
+Cache への適用により、キャッシュが再生成された場合でもパッチが確実に適用されます。
 
 ### 閾値の変更方法
 
@@ -200,9 +219,28 @@ Claude Code の `/code-review:code-review` コマンドは、デフォルトで�
 
 変更後、`chezmoi apply` を実行すると新しい閾値が適用されます（スクリプトは毎回実行され、冪等性があります）。
 
-### 注意事項
+### トラブルシューティング
 
-- code-review プラグインの構造が変更された場合、パッチの適用に失敗する可能性があります
-- その場合は、パッチファイルを手動で更新する必要があります
+#### パッチが適用されない
+
+1. **Marketplace が存在しない**: `~/.claude/plugins/marketplaces/claude-plugins-official/plugins/code-review/` が存在しない場合は、`/code-review:code-review` を一度実行してプラグインをインストールしてください
+
+2. **Cache が存在しない**: `~/.claude/plugins/cache/` が空の場合は、Claude Code を起動してキャッシュを生成してください
+
+3. **パッチ適用に失敗**: code-review プラグインの構造が変更された可能性があります。その場合は、パッチファイルを手動で更新する必要があります
+
+#### パッチ適用状況の確認
+
+```bash
+# Marketplace の確認
+grep "Filter out any issues with a score less than 50" ~/.claude/plugins/marketplaces/claude-plugins-official/plugins/code-review/commands/code-review.md
+
+# Cache の確認
+for f in ~/.claude/plugins/cache/claude-plugins-official/code-review/*/commands/code-review.md; do
+  echo "=== $f ==="
+  grep "Filter out any issues with a score less than 50" "$f"
+  grep "CHECK PR AUTHOR" "$f"
+done
+```
 
 <!-- CI verification test -->
