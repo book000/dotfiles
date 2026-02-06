@@ -16,6 +16,11 @@
 cd "$(dirname "$0")" || exit 1
 source ./.env
 
+# デバッグ用ログ
+DATA_DIR="$HOME/.claude/scripts/completion-notify/data"
+mkdir -p "$DATA_DIR"
+echo "$(date -Iseconds) notify-notification.sh called" >> "$DATA_DIR/hook-debug.log"
+
 # Windows パスをシェル互換パスに変換する関数
 # WSL: C:\Users\... → /mnt/c/Users/...
 # Git Bash/MSYS2: C:\Users\... → /c/Users/...
@@ -65,6 +70,9 @@ CWD_PATH=$(echo "$INPUT_JSON" | jq -r '.cwd // empty')
 MESSAGE=$(echo "$INPUT_JSON" | jq -r '.message // empty')
 TITLE=$(echo "$INPUT_JSON" | jq -r '.title // empty')
 NOTIFICATION_TYPE=$(echo "$INPUT_JSON" | jq -r '.notification_type // empty')
+
+# デバッグ用ログ: notification_type を記録
+echo "$(date -Iseconds) NOTIFICATION_TYPE=$NOTIFICATION_TYPE" >> "$DATA_DIR/hook-debug.log"
 
 # パスを変換
 if [[ -n "$TRANSCRIPT_PATH_RAW" ]]; then
