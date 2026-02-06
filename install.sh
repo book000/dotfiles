@@ -189,12 +189,12 @@ read_from_terminal() {
     # /dev/tty から入力を読む（パイプ実行時でも対話可能）
     # プロンプトを表示してから read する
     printf '%s' "$prompt" > /dev/tty
-    # set -e の影響を避けるため、|| true を使用
+    # set -e の影響を避けるため、if 文で戻り値を判定する
     # shellcheck disable=SC2034
     if IFS= read -r input_value < /dev/tty 2>&1; then
       # 読み込んだ値を指定された変数に代入
-      # shellcheck disable=SC2229
-      eval "$var_name=\"\$input_value\""
+      # eval を使用せず printf -v で安全に代入する
+      printf -v "$var_name" '%s' "$input_value"
       return 0
     else
       # read が失敗した場合（/dev/tty が読めない、またはユーザーが Ctrl+D を押した）
