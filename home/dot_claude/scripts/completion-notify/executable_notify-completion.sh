@@ -58,6 +58,12 @@ convert_path() {
 is_team_lead() {
   local session_id="$1"
 
+  # session_id が空の場合は判定不可
+  if [[ -z "$session_id" ]]; then
+    echo "unknown"
+    return
+  fi
+
   # ~/.claude/teams/ ディレクトリが存在しない場合は判定不可
   if [[ ! -d "${HOME}/.claude/teams" ]]; then
     echo "unknown"
@@ -103,6 +109,15 @@ INPUT_JSON=$(cat)
 SESSION_ID=$(echo "$INPUT_JSON" | jq -r '.session_id // empty')
 TRANSCRIPT_PATH_RAW=$(echo "$INPUT_JSON" | jq -r '.transcript_path // empty')
 CWD_PATH=$(echo "$INPUT_JSON" | jq -r '.cwd // empty')
+
+# リーダーエージェントかどうかを判定（早期チェック）
+AGENT_ROLE=$(is_team_lead "$SESSION_ID")
+
+# Discord 通知の条件分岐（早期 exit でパフォーマンス改善）
+if [[ "$AGENT_ROLE" == "false" ]]; then
+  echo "⏭️ Teammate agent detected. Skipping Discord notification." >&2
+  exit 0
+fi
 
 # パスを変換
 if [[ -n "$TRANSCRIPT_PATH_RAW" ]]; then
@@ -208,14 +223,8 @@ PAYLOAD=$(jq -n \
     }]
   }')
 
-# リーダーエージェントかどうかを判定
-AGENT_ROLE=$(is_team_lead "$SESSION_ID")
-
-# Discord 通知の条件分岐
-if [[ "$AGENT_ROLE" == "false" ]]; then
-  echo "⏭️ Teammate agent detected. Skipping Discord notification." >&2
-  exit 0
-elif [[ "$AGENT_ROLE" == "true" ]]; then
+# Discord 通知を送信（リーダーエージェントまたは判定不可の場合）
+if [[ "$AGENT_ROLE" == "true" ]]; then
   echo "✅ Lead agent detected. Sending Discord notification." >&2
 else
   echo "⚠️ Agent role undetermined. Sending Discord notification as fallback." >&2
