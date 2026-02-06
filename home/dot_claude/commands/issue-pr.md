@@ -10,26 +10,415 @@ args:
 
 # Issue から PR を作成
 
-以下の手順で GitHub の issue に対応して PR を作成してください：
+このコマンドは、Claude Code の動作モードに応じて異なる動作をします。
 
-## 前提条件の確認
+## プランモード対応について
+
+このコマンドは **プランモード** と **実行モード** の 2 つのモードで動作します。
+
+### プランモードとは
+
+プランモードでは、以下の作業を行います：
+
+1. **Issue 内容の分析**: Issue のタイトル、本文、コメントを取得して分析
+2. **ユーザーへの質問**: 不明点や仕様の確認を AskUserQuestion ツールで質問
+3. **エージェント相談**: Codex CLI / Gemini CLI に実装方針や外部依存について相談
+4. **要件定義書の作成**: 詳細な要件定義書を作成
+5. **Issue へのコメント投稿**: 要件定義書を Issue にコメントとして投稿
+6. **プランファイルへの記載**: 実装計画をプランファイルに記載
+7. **ExitPlanMode の実行**: プランモードを終了し、ユーザーの承認を待つ
+
+プランモードでは **実装やブランチ作成は行いません**。要件定義のみを行います。
+
+### 実行モードとは
+
+実行モードでは、以下の従来の手順を実行します：
+
+1. ブランチの作成
+2. Issue への対応（実装）
+3. PR の作成
+4. PR 作成後の対応（CI 確認、コードレビュー、レビュー対応など）
+
+### モード検出方法
+
+このコマンドは、system-reminder に "Plan mode is active" または "plan file" というテキストが含まれているかを確認してプランモードを検出します。
+
+**検出の詳細：**
+
+- 大文字小文字を区別しない部分一致で検出します
+- system-reminder は Claude Code のシステム機能として提供されるため、通常は安定しています
+- 検出に失敗した場合は、実行モードとして動作します（従来の動作を維持）
+
+**注意：**
+
+プランモードで実行したい場合は、必ず `/plan` コマンドでプランモードに入ってから `/issue-pr` を実行してください。
+
+---
+
+## プランモードワークフロー
+
+プランモードが検出された場合、以下のワークフローを実行してください。
+
+### Phase 1: Issue 内容の分析
+
+以下のコマンドで Issue の詳細情報を取得してください：
+
+```bash
+gh issue view {{issue_number}} --json title,state,body,comments,author
+```
+
+取得した情報から以下を分析してください：
+
+1. **Issue の種類判定**
+   - feat (新機能追加)
+   - fix (バグ修正)
+   - docs (ドキュメント更新)
+   - refactor (リファクタリング)
+   - その他
+
+2. **技術スタック・影響範囲の特定**
+   - 変更が必要なファイルやモジュールをリストアップ
+   - 使用する言語、ライブラリ、フレームワークを確認
+
+3. **不明点のリスト作成**
+   - Issue に記載されていない仕様や要件
+   - 実装方針に関する選択肢（複数の実装方法がある場合）
+   - ユーザーの意図が不明確な箇所
+
+### Phase 2: ユーザーへの質問
+
+Phase 1 で作成した不明点のリストを基に、AskUserQuestion ツールでユーザーに質問してください。
+
+**AskUserQuestion ツールの制限事項：**
+
+- **セッションごとの質問回数制限**: 約 4-6 回程度に制限されます
+- **タイムアウト制限**: 各質問は 60 秒でタイムアウトします
+- **サブエージェントからは使用不可**: Task ツールで起動したサブエージェントからは使用できません
+
+**質問の際の注意点：**
+
+- 推奨オプションがある場合は、最初のオプションに "(Recommended)" を付ける
+- 「このプランで良いですか？」という質問は **禁止** です（ExitPlanMode の役割）
+- 技術的な選択肢がある場合は、各オプションのメリット・デメリットを説明に含める
+- 質問回数の制限を考慮し、重要な質問に絞る
+
+**質問例：**
+
+```
+AskUserQuestion({
+  questions: [
+    {
+      question: "認証方式はどれを使用しますか？",
+      header: "Auth method",
+      multiSelect: false,
+      options: [
+        {
+          label: "JWT (Recommended)",
+          description: "ステートレスで拡張性が高い。モバイルアプリとの連携が容易。"
+        },
+        {
+          label: "Session",
+          description: "サーバー側でセッション管理。実装がシンプル。"
+        }
+      ]
+    }
+  ]
+})
+```
+
+### Phase 3: エージェント相談
+
+ExitPlanMode の前に、**必ず** Codex CLI / Gemini CLI に相談してください。
+
+#### Codex CLI への相談
+
+実装方針、アーキテクチャ、セキュリティ、パフォーマンスの観点から相談します。
+
+```bash
+/ask-codex:ask-codex Issue #{{issue_number}} の実装について相談です。
+
+【Issue 概要】
+- タイトル: [Issue のタイトル]
+- 種別: [feat/fix/docs/refactor]
+- 影響範囲: [変更が必要なファイル/モジュール]
+
+【提案する実装方針】
+[ユーザーからの回答や分析結果を基にした実装方針]
+
+【質問】
+1. この方針は既存のコードベースと整合性がありますか？
+2. セキュリティやパフォーマンスの懸念点はありますか？
+3. 改善提案があれば教えてください。
+```
+
+#### Gemini CLI への相談
+
+外部依存（ライブラリ、API、SaaS など）について最新情報を確認します。
+
+```bash
+/ask-gemini:ask-gemini Issue #{{issue_number}} の実装で使用する外部依存について確認したいです。
+
+【使用予定のライブラリ/API】
+[リスト]
+
+【質問】
+1. 最新の推奨バージョンや既知の問題はありますか？
+2. API 仕様の変更や非推奨化の予定はありますか？
+3. 料金体系や利用制限について注意すべき点はありますか？
+```
+
+#### 相談結果の記録
+
+エージェントからの指摘と対応を以下の形式で記録してください：
+
+```markdown
+### Codex CLI からの指摘
+
+#### 指摘 1: [指摘のタイトル]（重大度）
+- **内容**: [指摘の詳細]
+- **対応**: **採用** / **部分採用** / **不採用** - [対応内容と理由]
+
+### Gemini CLI からの指摘
+
+#### 指摘 1: [指摘のタイトル]
+- **内容**: [指摘の詳細]
+- **対応**: **採用** / **部分採用** / **不採用** - [対応内容と理由]
+```
+
+### Phase 4: 要件定義書の作成
+
+以下のフォーマットで要件定義書を作成してください：
+
+```markdown
+# Issue #{{issue_number}} 要件定義書
+
+## 概要
+
+- **Issue タイトル**: [タイトル]
+- **Issue 番号**: #{{issue_number}}
+- **Issue 種別**: feat/fix/docs/refactor
+- **影響範囲**: [ファイル/モジュール]
+
+## 要件詳細
+
+### 機能要件
+
+[詳細な機能要件を記載]
+
+1. [要件 1]
+2. [要件 2]
+...
+
+### 非機能要件
+
+[セキュリティ、パフォーマンス、保守性などの非機能要件を記載]
+
+- **セキュリティ**: [要件]
+- **パフォーマンス**: [要件]
+- **保守性**: [要件]
+
+## ユーザーからの回答
+
+[AskUserQuestion の結果を記載]
+
+## エージェント相談結果
+
+### Codex CLI
+
+[指摘と対応を記載]
+
+### Gemini CLI
+
+[指摘と対応を記載]
+
+## 実装方針
+
+### アーキテクチャ
+
+[全体的なアーキテクチャの説明]
+
+### 主要な実装ステップ
+
+#### ステップ 1: [ステップ名]
+
+[詳細]
+
+#### ステップ 2: [ステップ名]
+
+[詳細]
+
+...
+
+### 依存関係
+
+[必要なライブラリ、ツール、コマンドなど]
+
+### 想定される課題と対応策
+
+#### 課題 1: [課題名]
+- **内容**: [詳細]
+- **対応**: [対応策]
+
+## テスト方針
+
+[テスト方法、テストケース、期待される結果など]
+
+## ブランチ名
+
+`<type>/<description>`
+
+例: `feat/add-user-authentication`
+
+## 成功基準
+
+[実装が成功したと判断する基準]
+
+1. [基準 1]
+2. [基準 2]
+...
+
+## 実装上の注意点
+
+[実装時に注意すべき点]
+
+1. [注意点 1]
+2. [注意点 2]
+...
+
+## 参照ファイル
+
+[実装に関連するファイルのリスト]
+
+- `/path/to/file1` - [説明]
+- `/path/to/file2` - [説明]
+...
+
+## 判断記録
+
+### 判断内容の要約
+
+[判断の概要]
+
+### 検討した代替案
+
+[検討した代替案のリスト]
+
+### 採用しなかった案とその理由
+
+[不採用とした案とその理由]
+
+### 前提条件・仮定・不確実性
+
+**前提条件:**
+- [前提 1]
+- [前提 2]
+
+**仮定:**
+- [仮定 1]
+- [仮定 2]
+
+**不確実性:**
+- [不確実な点 1]
+- [不確実な点 2]
+
+### 他エージェントによるレビュー可否
+
+**レビュー済み:**
+- [エージェント名]: [レビュー内容]
+
+**追加レビュー推奨:**
+- [推奨事項]
+```
+
+### Phase 5: Issue へのコメント投稿
+
+要件定義書を Issue にコメントとして投稿してください。
+
+**機密情報のサニタイズ（重要）：**
+
+投稿前に、要件定義書に以下の機密情報が含まれていないことを **必ず** 確認してください：
+
+- API キー、トークン、パスワード
+- 内部 URL やホスト名
+- 個人情報（メールアドレス、氏名など）
+- その他のセンシティブな情報
+
+機密情報が含まれている場合は、`[REDACTED]` や `[機密情報のため省略]` などに置き換えてください。
+
+**コメント投稿コマンド：**
+
+```bash
+gh issue comment {{issue_number}} --body "$(cat <<'EOF'
+[要件定義書の内容]
+EOF
+)"
+```
+
+**注意：**
+
+- コメント投稿権限がない場合、エラーメッセージを表示して Phase 6 に進んでください
+- 要件定義書はプランファイルに記載されるため、コメント投稿に失敗しても問題ありません
+
+### Phase 6: プランファイルへの記載
+
+このコマンドを実行している Claude Code のプランファイルに、要件定義書の内容を記載してください。
+
+プランファイルのパスは、system-reminder に記載されています。通常は以下のような形式です：
+
+```
+~/.claude/plans/[session-id].md
+```
+
+**書き込み方法：**
+
+Write ツールを使用してプランファイルに要件定義書を記載してください：
+
+```
+Write({
+  file_path: "[system-reminder に記載されたプランファイルのパス]",
+  content: "[Phase 4 で作成した要件定義書の全文]"
+})
+```
+
+**注意：**
+
+- プランファイルは Git 管理外のディレクトリ（`~/.claude/plans/`）に保存されます
+- 判断記録はプランファイル内に記載してください（Git 管理下の Markdown ファイルには保存しない）
+
+### Phase 7: ExitPlanMode の実行
+
+プランファイルへの記載が完了したら、ExitPlanMode ツールを呼び出してプランモードを終了してください。
+
+```
+ExitPlanMode()
+```
+
+これにより、ユーザーに要件定義書の承認を求めます。ユーザーが承認した場合、次のセッションで実装を開始できます。
+
+---
+
+## 実行モードワークフロー
+
+プランモードが検出されなかった場合、以下の従来の手順を実行してください：
+
+### 前提条件の確認
 
 1. 必要なコマンド（gh, jq）が利用可能であることを確認
 2. Git リポジトリ内で実行されていることを確認
 3. issue 番号が数値であることを確認
 
-## Issue 情報の取得
+### Issue 情報の取得
 
 issue 番号 `{{issue_number}}` の情報を以下のコマンドなどで取得してください。この時、issue のコメントをも取得してください。
 
 ```bash
-gh issue view {{issue_number}} --json title,state,body
+gh issue view {{issue_number}} --json title,state,body,comments,author
 ```
 
 - issue が OPEN 状態でない場合は警告を表示
 - issue のタイトルと本文を取得
 
-## ブランチの作成
+### ブランチの作成
 
 1. リモートリポジトリから最新の情報を取得：
    ```bash
@@ -55,11 +444,11 @@ gh issue view {{issue_number}} --json title,state,body
    git checkout -b <branch_name> origin/<default_branch>
    ```
 
-## Issue への対応
+### Issue への対応
 
 issue の内容を確認し、適切な対応を行ってください。
 
-## PR の作成
+### PR の作成
 
 対応が完了したら、PR を作成してください：
 
@@ -73,7 +462,7 @@ PR 本文には以下を含めてください：
 - テスト結果
 - `- Closes #nn` での issue の関連付け
 
-## PR 作成後の対応
+### PR 作成後の対応
 
 PR を作成したら、以下の手順を **必ず** 実施してください：
 
@@ -172,29 +561,35 @@ INTERVAL=30   # 30 秒ごとにチェック
 ELAPSED=0
 
 # PR 作成時のレビュー数を取得
-INITIAL_REVIEW_COUNT=$(gh api graphql -f query="
-query {
-  repository(owner: \"$OWNER\", name: \"$REPO\") {
-    pullRequest(number: $PR_NUMBER) {
-      reviews {
-        totalCount
-      }
-    }
-  }
-}" --jq '.data.repository.pullRequest.reviews.totalCount')
-
-while [ $ELAPSED -lt $MAX_WAIT ]; do
-  # 現在のレビュー数を確認
-  CURRENT_REVIEW_COUNT=$(gh api graphql -f query="
-  query {
-    repository(owner: \"$OWNER\", name: \"$REPO\") {
-      pullRequest(number: $PR_NUMBER) {
+INITIAL_REVIEW_COUNT=$(gh api graphql \
+  -f owner="$OWNER" \
+  -f repo="$REPO" \
+  -F number="$PR_NUMBER" \
+  -f query='query($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $number) {
         reviews {
           totalCount
         }
       }
     }
-  }" --jq '.data.repository.pullRequest.reviews.totalCount')
+  }' --jq '.data.repository.pullRequest.reviews.totalCount')
+
+while [ $ELAPSED -lt $MAX_WAIT ]; do
+  # 現在のレビュー数を確認
+  CURRENT_REVIEW_COUNT=$(gh api graphql \
+    -f owner="$OWNER" \
+    -f repo="$REPO" \
+    -F number="$PR_NUMBER" \
+    -f query='query($owner: String!, $repo: String!, $number: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $number) {
+          reviews {
+            totalCount
+          }
+        }
+      }
+    }' --jq '.data.repository.pullRequest.reviews.totalCount')
 
   if [ "$CURRENT_REVIEW_COUNT" -gt "$INITIAL_REVIEW_COUNT" ]; then
     echo "新しいレビューが投稿されました。"
@@ -223,43 +618,47 @@ fi
 
 ```bash
 # レビュースレッド ID を取得
-gh api graphql -f query="
-query {
-  repository(owner: \"$OWNER\", name: \"$REPO\") {
-    pullRequest(number: $PR_NUMBER) {
-      reviewThreads(first: 10) {
-        nodes {
-          id
-          isResolved
-          comments(first: 1) {
-            nodes {
-              body
-              path
+gh api graphql \
+  -f owner="$OWNER" \
+  -f repo="$REPO" \
+  -F number="$PR_NUMBER" \
+  -f query='query($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $number) {
+        reviewThreads(first: 10) {
+          nodes {
+            id
+            isResolved
+            comments(first: 1) {
+              nodes {
+                body
+                path
+              }
             }
           }
         }
       }
     }
-  }
-}"
+  }'
 
 # スレッドを resolve
-gh api graphql -f query="
-mutation {
-  resolveReviewThread(input: {threadId: \"$THREAD_ID\"}) {
-    thread {
-      id
-      isResolved
+gh api graphql \
+  -f threadId="$THREAD_ID" \
+  -f query='mutation($threadId: ID!) {
+    resolveReviewThread(input: {threadId: $threadId}) {
+      thread {
+        id
+        isResolved
+      }
     }
-  }
-}"
+  }'
 ```
 
 ### 6. PR 本文の確認
 
 PR 本文が最新の状態を正しく反映していることを確認し、必要に応じて更新してください。
 
-## コミット前の注意事項
+### コミット前の注意事項
 
 - Conventional Commits に従ってコミットメッセージを作成
 - コミット内容にセンシティブな情報が含まれていないことを確認

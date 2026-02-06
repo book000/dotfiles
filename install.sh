@@ -318,7 +318,7 @@ install_chezmoi() {
 
   # PATH の確認と案内
   if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-    log_warn "~/.local/bin が PATH に含まれていません"
+    log_warn "$HOME/.local/bin が PATH に含まれていません"
     log_warn "シェル設定ファイルに以下の行を追加してください:"
     log_warn "  export PATH=\"\$HOME/.local/bin:\$PATH\""
 
@@ -465,7 +465,7 @@ install_ghq() {
   temp_dir=$(mktemp -d)
 
   # 一時ディレクトリのクリーンアップを設定
-  trap "rm -rf '$temp_dir'" RETURN
+  trap 'rm -rf "$temp_dir"' RETURN
 
   if [[ ! -d "$temp_dir" ]]; then
     log_error "Failed to create temporary directory"
@@ -593,6 +593,7 @@ setup_gitconfig_local() {
 
     local git_email
     read -r -p "Git メールアドレス: " git_email
+    # shellcheck disable=SC2129
     echo "    email = $git_email" >> "$gitconfig_local"
 
     # ghq.root 設定
@@ -688,6 +689,7 @@ setup_env() {
 EOF
 
   # Claude completion-notify
+  # shellcheck disable=SC2129
   echo "# -----------------------------------------" >> "$env_file"
   echo "# Discord Webhooks - Claude completion-notify" >> "$env_file"
   echo "# -----------------------------------------" >> "$env_file"
@@ -702,6 +704,7 @@ EOF
 
   local mention_user_id
   read -r -p "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id
+  # shellcheck disable=SC2129
   echo "DISCORD_CLAUDE_MENTION_USER_ID=\"$mention_user_id\"" >> "$env_file"
   echo "" >> "$env_file"
 
@@ -718,6 +721,7 @@ EOF
   fi
 
   read -r -p "メンションする Discord ユーザー ID (空欄でスキップ): " mention_user_id
+  # shellcheck disable=SC2129
   echo "DISCORD_CLAUDE_LIMIT_MENTION_USER_ID=\"$mention_user_id\"" >> "$env_file"
   echo "" >> "$env_file"
 

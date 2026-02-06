@@ -9,10 +9,11 @@ PAST_FILE="$HOME/.claude/scripts/limit-unlocked/data/past.txt"
 FUTURE_FILE="$HOME/.claude/scripts/limit-unlocked/data/future.txt"
 NOTIFIED_FILE="$HOME/.claude/scripts/limit-unlocked/data/notified.txt"
 
+# shellcheck source=/dev/null
 source ./.env
 
-> "$PAST_FILE"
-> "$FUTURE_FILE"
+: > "$PAST_FILE"
+: > "$FUTURE_FILE"
 
 find "$TARGET_DIR" -type f -name "*.jsonl" | while read -r file; do
     jq -c '

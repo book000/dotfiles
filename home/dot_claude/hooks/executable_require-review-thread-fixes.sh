@@ -65,6 +65,7 @@ fi
 
 # GraphQL API で未解決レビュースレッドを取得
 # セキュリティのため、変数をパラメータ化して使用
+# shellcheck disable=SC2016
 GRAPHQL_RESPONSE=$(gh api graphql \
   -f owner="$OWNER" \
   -f repo="$REPO" \
@@ -121,6 +122,7 @@ while IFS= read -r thread; do
     break
   fi
 
+  # shellcheck disable=SC2034
   THREAD_ID=$(echo "$thread" | jq -r '.id' 2>/dev/null)
   THREAD_PATH=$(echo "$thread" | jq -r '.path // "unknown"' 2>/dev/null)
   THREAD_LINE=$(echo "$thread" | jq -r '.line // "N/A"' 2>/dev/null)

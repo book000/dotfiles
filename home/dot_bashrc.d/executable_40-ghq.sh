@@ -9,7 +9,7 @@ gcd() {
   # fzfを使ってリポジトリを選択
   dir="$(ghq list -p | fzf)" || return 1
   # 選択されたディレクトリが存在すれば移動
-  [[ -n "$dir" ]] && cd "$dir"
+  [[ -n "$dir" ]] && { cd "$dir" || return; }
 }
 
 # リポジトリを ghq get し、必要に応じて移動や表示を行う関数

@@ -1,5 +1,6 @@
 # Load interactive settings.
 if [ -f "$HOME/.bashrc" ]; then
+  # shellcheck source=/dev/null
   . "$HOME/.bashrc"
 fi
 
@@ -8,6 +9,7 @@ if [ -d "$HOME/.bash_profile.d" ]; then
   shopt -s nullglob
   mapfile -t __bash_profile_files < <(LC_ALL=C printf '%s\n' "$HOME/.bash_profile.d/"*.sh | LC_ALL=C sort)
   for f in "${__bash_profile_files[@]}"; do
+    # shellcheck source=/dev/null
     [ -r "$f" ] && . "$f"
   done
   unset f __bash_profile_files

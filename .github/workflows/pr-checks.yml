@@ -80,5 +80,6 @@ jobs:
         run: |
           export HOME=$(mktemp -d)
           export XDG_CONFIG_HOME="$HOME/.config"
-          chezmoi init --source="$(pwd)"
-          chezmoi apply --dry-run
+          SOURCE_DIR="$(pwd)"
+          chezmoi init --source="$SOURCE_DIR"
+          chezmoi apply --dry-run --source="$SOURCE_DIR"
