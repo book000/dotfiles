@@ -16,6 +16,10 @@
 cd "$(dirname "$0")" || exit 1
 source ./.env
 
+# データディレクトリの作成
+DATA_DIR="$HOME/.claude/scripts/completion-notify/data"
+mkdir -p "$DATA_DIR"
+
 # Windows パスをシェル互換パスに変換する関数
 # WSL: C:\Users\... → /mnt/c/Users/...
 # Git Bash/MSYS2: C:\Users\... → /c/Users/...
@@ -139,6 +143,9 @@ PAYLOAD=$(
 
 if [[ -n "${webhook_url}" ]]; then
   SCRIPT_DIR="$(dirname "$0")"
+
+  # AskUserQuestion 表示中フラグを作成（idle_prompt 通知を抑制するため）
+  touch "$DATA_DIR/askuserquestion-active-${SESSION_ID}.flag"
 
   # バックグラウンドで通知処理を実行
   printf '%s\n' "${PAYLOAD}" | "$SCRIPT_DIR/send-discord-notification.sh" >/dev/null 2>&1 &

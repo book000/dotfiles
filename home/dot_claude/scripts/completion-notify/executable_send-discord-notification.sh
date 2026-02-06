@@ -52,11 +52,8 @@ while [[ $ELAPSED -lt $DELAY ]]; do
     if [[ -f "$LAST_PROMPT_TIME_FILE" ]]; then
         LAST_PROMPT_TIME=$(cat "$LAST_PROMPT_TIME_FILE" 2>/dev/null)
         if [[ "$LAST_PROMPT_TIME" =~ ^[0-9]+$ ]]; then
-            CURRENT_TIME=$(date +%s)
-
-            # START_TIME からの経過時間が 60 秒未満の場合は通知をスキップ
-            TIME_SINCE_START=$((CURRENT_TIME - START_TIME))
-            if [[ $TIME_SINCE_START -lt 60 ]]; then
+            # LAST_PROMPT_TIME が START_TIME よりも新しい（ユーザーがプロンプトを送信した）場合はキャンセル
+            if (( LAST_PROMPT_TIME > START_TIME )); then
                 exit 0
             fi
         fi

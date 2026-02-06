@@ -16,10 +16,9 @@
 cd "$(dirname "$0")" || exit 1
 source ./.env
 
-# デバッグ用ログ
+# データディレクトリの作成
 DATA_DIR="$HOME/.claude/scripts/completion-notify/data"
 mkdir -p "$DATA_DIR"
-echo "$(date -Iseconds) notify-notification.sh called" >> "$DATA_DIR/hook-debug.log"
 
 # Windows パスをシェル互換パスに変換する関数
 # WSL: C:\Users\... → /mnt/c/Users/...
@@ -70,9 +69,6 @@ CWD_PATH=$(echo "$INPUT_JSON" | jq -r '.cwd // empty')
 MESSAGE=$(echo "$INPUT_JSON" | jq -r '.message // empty')
 TITLE=$(echo "$INPUT_JSON" | jq -r '.title // empty')
 NOTIFICATION_TYPE=$(echo "$INPUT_JSON" | jq -r '.notification_type // empty')
-
-# デバッグ用ログ: notification_type を記録
-echo "$(date -Iseconds) NOTIFICATION_TYPE=$NOTIFICATION_TYPE" >> "$DATA_DIR/hook-debug.log"
 
 # パスを変換
 if [[ -n "$TRANSCRIPT_PATH_RAW" ]]; then
@@ -230,6 +226,11 @@ if [[ -n "${webhook_url}" ]]; then
 
   # idle_prompt の場合は待機時間を調整
   if [[ "$NOTIFICATION_TYPE" == "idle_prompt" ]]; then
+    # AskUserQuestion 表示中フラグが存在する場合は通知を送信しない
+    if [[ -f "$DATA_DIR/askuserquestion-active-${SESSION_ID}.flag" ]]; then
+      exit 0
+    fi
+
     # idle_prompt は既に 60 秒待機しているため、即座に通知
     # 環境変数で待機時間を 0 秒に設定
     export NOTIFICATION_DELAY=0
