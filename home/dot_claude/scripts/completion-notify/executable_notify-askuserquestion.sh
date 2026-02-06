@@ -91,12 +91,14 @@ if [[ "$SESSION_PATH" == *"*"* ]]; then
   SESSION_PATH_EXPANDED=($SESSION_PATH)
   shopt -u nullglob
   if [[ ${#SESSION_PATH_EXPANDED[@]} -eq 0 ]]; then
-    echo "Session file not found: $SESSION_PATH" >&2
+    echo "⚠️ Transcript file not found: $SESSION_PATH" >&2
+    echo "Notification will not be sent." >&2
     exit 0
   fi
   SESSION_PATH="${SESSION_PATH_EXPANDED[0]}"
 elif [[ ! -f "$SESSION_PATH" ]]; then
-  echo "Session file not found: $SESSION_PATH" >&2
+  echo "⚠️ Transcript file not found: $SESSION_PATH" >&2
+  echo "Notification will not be sent." >&2
   exit 0
 fi
 

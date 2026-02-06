@@ -20,7 +20,7 @@ START_TIME=$(date +%s)
 
 # 待機時間を環境変数から取得（デフォルト: 60 秒）
 DELAY="${NOTIFICATION_DELAY:-60}"
-if ! [[ "$DELAY" =~ ^[0-9]+$ ]] || [[ "$DELAY" -lt 0 ]]; then
+if ! [[ "$DELAY" =~ ^[0-9]+$ ]]; then
   # 無効な値の場合はデフォルトを使用
   DELAY=60
 fi
@@ -52,7 +52,7 @@ while [[ $ELAPSED -lt $DELAY ]]; do
     if [[ -f "$LAST_PROMPT_TIME_FILE" ]]; then
         LAST_PROMPT_TIME=$(cat "$LAST_PROMPT_TIME_FILE" 2>/dev/null)
         if [[ "$LAST_PROMPT_TIME" =~ ^[0-9]+$ ]]; then
-            # LAST_PROMPT_TIME が START_TIME よりも新しい（ユーザーがプロンプトを送信した）場合はキャンセル
+            # LAST_PROMPT_TIME が START_TIME よりも新しい（このプロセス開始後に新しいユーザーアクションがあった）場合はキャンセル
             if (( LAST_PROMPT_TIME > START_TIME )); then
                 exit 0
             fi
