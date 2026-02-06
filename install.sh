@@ -185,13 +185,18 @@ read_from_terminal() {
   fi
 
   # /dev/tty が利用可能かチェック
-  if [[ -r /dev/tty ]]; then
+  # -r だけでなく -w もチェックして、読み書き両方可能か確認
+  if [[ -r /dev/tty && -w /dev/tty ]]; then
     # /dev/tty から入力を読む（パイプ実行時でも対話可能）
     # プロンプトを表示してから read する
-    printf '%s' "$prompt" > /dev/tty
-    # set -e の影響を避けるため、if 文で戻り値を判定する
+    # set -e の影響を避けるため、if 文で成否を判定
+    if ! printf '%s' "$prompt" > /dev/tty 2>/dev/null; then
+      log_warn "/dev/tty へプロンプトを出力できません。非対話モードにフォールバックします"
+      return 1
+    fi
+
     # shellcheck disable=SC2034
-    if IFS= read -r input_value < /dev/tty 2>&1; then
+    if IFS= read -r input_value < /dev/tty 2>/dev/null; then
       # 読み込んだ値を指定された変数に代入
       # eval を使用せず printf -v で安全に代入する
       printf -v "$var_name" '%s' "$input_value"
