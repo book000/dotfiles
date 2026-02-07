@@ -55,6 +55,7 @@ INTERVAL=30    # 30 秒
 ELAPSED=0
 
 # GraphQL クエリ
+# shellcheck disable=SC2016
 GRAPHQL_QUERY='query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
