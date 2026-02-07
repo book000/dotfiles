@@ -25,6 +25,7 @@ LOG_FILE="$LOG_DIR/wait-copilot-review-${PR_NUMBER}.log"
 LOCK_FILE="$LOCK_DIR/wait-copilot-review-${PR_NUMBER}.lock"
 
 # ロックファイルのクリーンアップを設定
+# shellcheck disable=SC2317
 cleanup() {
   rm -f "$LOCK_FILE"
 }
