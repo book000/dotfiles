@@ -547,64 +547,30 @@ request-review-copilot https://github.com/<OWNER>/<REPO>/pull/<PR_NUMBER>
 
 #### 5.1. レビューコメントの待機
 
-レビューを待機します（最大 10 分、30 秒ごとにチェック）：
+バックグラウンドで GitHub Copilot レビューを待機します（最大 30 分、30 秒ごとにチェック）：
+
+**Claude で実行（推奨）:**
+
+```
+/wait-for-copilot-review <PR_NUMBER>
+```
+
+**または、シェルで直接実行:**
 
 ```bash
-# レビューの待機（最大 10 分）
-echo "レビューを待機しています（最大 10 分）..."
-
-OWNER="<OWNER>"
-REPO="<REPO>"
-PR_NUMBER=<PR_NUMBER>
-MAX_WAIT=600  # 10 分
-INTERVAL=30   # 30 秒ごとにチェック
-ELAPSED=0
-
-# PR 作成時のレビュー数を取得
-INITIAL_REVIEW_COUNT=$(gh api graphql \
-  -f owner="$OWNER" \
-  -f repo="$REPO" \
-  -F number="$PR_NUMBER" \
-  -f query='query($owner: String!, $repo: String!, $number: Int!) {
-    repository(owner: $owner, name: $repo) {
-      pullRequest(number: $number) {
-        reviews {
-          totalCount
-        }
-      }
-    }
-  }' --jq '.data.repository.pullRequest.reviews.totalCount')
-
-while [ $ELAPSED -lt $MAX_WAIT ]; do
-  # 現在のレビュー数を確認
-  CURRENT_REVIEW_COUNT=$(gh api graphql \
-    -f owner="$OWNER" \
-    -f repo="$REPO" \
-    -F number="$PR_NUMBER" \
-    -f query='query($owner: String!, $repo: String!, $number: Int!) {
-      repository(owner: $owner, name: $repo) {
-        pullRequest(number: $number) {
-          reviews {
-            totalCount
-          }
-        }
-      }
-    }' --jq '.data.repository.pullRequest.reviews.totalCount')
-
-  if [ "$CURRENT_REVIEW_COUNT" -gt "$INITIAL_REVIEW_COUNT" ]; then
-    echo "新しいレビューが投稿されました。"
-    break
-  fi
-
-  sleep $INTERVAL
-  ELAPSED=$((ELAPSED + INTERVAL))
-  echo "待機中... ($ELAPSED / $MAX_WAIT 秒)"
-done
-
-if [ $ELAPSED -ge $MAX_WAIT ]; then
-  echo "レビューが投稿されなかったため、スキップします。"
-fi
+~/.claude/skills/pr-workflow/scripts/wait-for-copilot-review.sh <PR_NUMBER> &
 ```
+
+**検出ロジック:**
+- **プライマリ判定**: GraphQL API の `author.__typename` が `Bot` かどうか
+- **セカンダリ判定**: `author.login` に `copilot` が含まれるか（補助的）
+- 完了したレビュー（`submittedAt` が null でない）のみを対象
+
+**注意事項:**
+- 待機は最大 30 分です
+- タイムアウトした場合でも、レビューは後で投稿される可能性があります
+- ログファイル: `~/.claude/logs/wait-copilot-review-<PR_NUMBER>.log`
+- 待機中に `/code-review:code-review` を実施しても良い
 
 #### 5.2. レビューコメントへの対応
 

@@ -143,7 +143,12 @@ Codex CLI や Gemini CLI の他エージェントに相談することができ�
 2. PR本文の内容は、ブランチの現在の状態を、今までのこのPRでの更新履歴を含むことなく、最新の状態のみ、漏れなく日本語で記載されていること。このPRを見たユーザーが、最終的にどのような変更を含むPRなのかをわかりやすく、細かく記載されていること
 3. `gh pr checks <PR ID> --watch` で GitHub Actions CI を待ち、その結果がエラーとなっていないこと。成功している場合でも、ログを確認し、誤って成功扱いになっていないこと。もし GitHub Actions が動作しない場合は、ローカルで CI と同等のテストを行い、CI が成功することを保証しなければなりません。
 4. `request-review-copilot` コマンドが存在する場合、`request-review-copilot https://github.com/$OWNER/$REPO/pull/$PR_NUMBER` で GitHub Copilot へレビューを依頼すること。レビュー依頼は自動で行われる場合もあるし、制約により `request-review-copilot` を実行しても GitHub Copilot がレビューしないケースがある
-5. GitHub Copilot からのレビューコメントを Agent を用いてバックグラウンドで待機する。待機している間に `/code-review:code-review` によるコードレビューを実施してもよい。
+5. **GitHub Copilot からのレビューコメントをバックグラウンドで待機する**
+   - `/wait-for-copilot-review <PR_NUMBER>` スキルを使用してバックグラウンドで待機
+   - 最大 30 分待機（30 秒ごとにチェック）
+   - 検出ロジック: `author.__typename == "Bot"` かつ `author.login` に `"copilot"` を含む
+   - ログファイル: `~/.claude/logs/wait-copilot-review-<PR_NUMBER>.log`
+   - 待機している間に `/code-review:code-review` によるコードレビューを実施してもよい
 6. レビューコメントへの対応を行うこと。**レビューコメント対応漏れを防ぐため、以下を必ず順序通りに実施すること:**
 
    **重要**: 各レビュースレッドに対して、必ず **返信を投稿** してから **resolve** してください。

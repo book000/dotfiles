@@ -17,7 +17,7 @@
 #     --skip-gh          gh CLI のインストールをスキップ
 #     --skip-ghq         ghq のインストールをスキップ
 #     --skip-mkwork      mkwork のインストールをスキップ
-#     --skip-interactive 対話的な確認をスキップ (CI 用、/dev/tty が利用できない場合も自動的に非対話モードになります)
+#     --skip-interactive 対話的な確認をスキップ (CI 用、 /dev/tty が利用できない場合も自動的に非対話モードになります)
 #     --help             ヘルプを表示
 # ==============================================================================
 
@@ -45,7 +45,7 @@ OPTIONS:
   --skip-gh          gh CLI のインストールをスキップ
   --skip-ghq         ghq のインストールをスキップ
   --skip-mkwork      mkwork のインストールをスキップ
-  --skip-interactive 対話的な確認をスキップ (CI 用、/dev/tty が利用できない場合も自動的に非対話モードになります)
+  --skip-interactive 対話的な確認をスキップ (CI 用、 /dev/tty が利用できない場合も自動的に非対話モードになります)
   --help             このヘルプを表示
 
 例:
@@ -195,7 +195,6 @@ read_from_terminal() {
       return 1
     fi
 
-    # shellcheck disable=SC2034
     if IFS= read -r input_value < /dev/tty 2>/dev/null; then
       # 読み込んだ値を指定された変数に代入
       # eval を使用せず printf -v で安全に代入する
@@ -212,7 +211,6 @@ read_from_terminal() {
     return 1
   fi
 }
-
 # 環境チェック
 check_environment() {
   log_info "環境をチェックしています..."

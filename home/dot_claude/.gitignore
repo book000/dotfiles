@@ -8,6 +8,7 @@
 !rules/
 !plugins/
 !commands/
+!skills/
 !patches/
 !hooks/
 !hookify.*.local.md
