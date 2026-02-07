@@ -211,7 +211,6 @@ read_from_terminal() {
     return 1
   fi
 }
-
 # 環境チェック
 check_environment() {
   log_info "環境をチェックしています..."

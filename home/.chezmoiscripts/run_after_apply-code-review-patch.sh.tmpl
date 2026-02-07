@@ -1,40 +1,99 @@
 #!/bin/bash
 
-# code-review プラグインの閾値変更パッチを適用するスクリプト
+# code-review プラグインのパッチを適用するスクリプト
+# marketplace と cache の両方に対して、threshold と autofix パッチを適用する
 # このスクリプトは chezmoi apply 時に毎回実行される（冪等性チェックあり）
 
 set -e
 
-PATCH_FILE="$HOME/.claude/patches/code-review-threshold.patch"
-TARGET_FILE="$HOME/.claude/plugins/marketplaces/claude-plugins-official/plugins/code-review/commands/code-review.md"
+THRESHOLD_PATCH_FILE="$HOME/.claude/patches/code-review-threshold.patch"
+AUTOFIX_PATCH_FILE="$HOME/.claude/patches/code-review-autofix.patch"
 
-echo "Applying code-review plugin threshold patch..."
+# パッチを適用する共通関数
+# 引数:
+#   $1: パッチファイルパス
+#   $2: ターゲットファイルパス
+#   $3: パッチの説明（例: "threshold: 80 → 50"）
+#   $4: 適用済みチェック用の文字列
+#   $5: コンテキスト（"marketplace" または "cache"）
+apply_patch_to_file() {
+    local patch_file="$1"
+    local target_file="$2"
+    local description="$3"
+    local check_string="$4"
+    local context="$5"
 
-# パッチファイルの存在確認
-if [[ ! -f "$PATCH_FILE" ]]; then
-    echo "⚠️  Patch file not found: $PATCH_FILE" >&2
-    exit 0
-fi
+    # パッチファイルの存在確認
+    if [[ ! -f "$patch_file" ]]; then
+        echo "⚠️  Patch file not found: $patch_file" >&2
+        return 1
+    fi
 
-# 対象ファイルの存在確認
-if [[ ! -f "$TARGET_FILE" ]]; then
-    echo "⚠️  Target file not found: $TARGET_FILE" >&2
-    echo "   code-review plugin may not be installed" >&2
-    exit 0
-fi
+    # ターゲットファイルの存在確認
+    if [[ ! -f "$target_file" ]]; then
+        echo "ℹ️  Target file not found: $target_file" >&2
+        echo "   Skipping $context patch" >&2
+        return 0
+    fi
 
-# パッチが既に適用されているか確認
-if grep -q "Filter out any issues with a score less than 50" "$TARGET_FILE"; then
-    echo "✓ Patch already applied"
-    exit 0
-fi
+    # パッチが既に適用されているか確認
+    if grep -q "$check_string" "$target_file"; then
+        echo "✓ Patch already applied to $context: $description"
+        return 0
+    fi
 
-# パッチを適用（プラグインルートディレクトリに移動してから実行）
-cd "$(dirname "$(dirname "$TARGET_FILE")")"
-if patch -p1 --batch --forward < "$PATCH_FILE"; then
-    echo "✓ Patch applied successfully (threshold: 80 → 50)"
+    # パッチを適用（プラグインルートディレクトリに移動してから実行）
+    local plugin_root
+    plugin_root="$(dirname "$(dirname "$target_file")")"
+
+    (
+        cd "$plugin_root" || return 1
+        if patch -p1 --batch --forward < "$patch_file" >/dev/null 2>&1; then
+            echo "✓ Patch applied successfully to $context: $description"
+            return 0
+        else
+            echo "❌ Failed to apply patch to $context: $description" >&2
+            echo "   Plugin structure may have changed" >&2
+            return 1
+        fi
+    )
+}
+
+echo "=== Applying code-review plugin patches ==="
+
+# marketplace への適用
+MARKETPLACE_TARGET="$HOME/.claude/plugins/marketplaces/claude-plugins-official/plugins/code-review/commands/code-review.md"
+
+if [[ -f "$MARKETPLACE_TARGET" ]]; then
+    echo ""
+    echo "--- Applying patches to marketplace ---"
+    apply_patch_to_file "$THRESHOLD_PATCH_FILE" "$MARKETPLACE_TARGET" "threshold: 80 → 50" "Filter out any issues with a score less than 50" "marketplace"
+    apply_patch_to_file "$AUTOFIX_PATCH_FILE" "$MARKETPLACE_TARGET" "auto-fix" "CHECK PR AUTHOR" "marketplace"
 else
-    echo "❌ Failed to apply patch" >&2
-    echo "   Plugin structure may have changed" >&2
-    exit 1
+    echo ""
+    echo "ℹ️  Marketplace not found, skipping marketplace patches"
 fi
+
+# cache への適用
+CACHE_ROOT="$HOME/.claude/plugins/cache/claude-plugins-official/code-review"
+shopt -s nullglob
+
+cache_files=("$CACHE_ROOT"/*/commands/code-review.md)
+
+if [[ ${#cache_files[@]} -gt 0 ]]; then
+    echo ""
+    echo "--- Applying patches to cache ---"
+    for cache_file in "${cache_files[@]}"; do
+        cache_hash="$(basename "$(dirname "$(dirname "$cache_file")")")"
+        echo ""
+        echo "Processing cache: $cache_hash"
+        apply_patch_to_file "$THRESHOLD_PATCH_FILE" "$cache_file" "threshold: 80 → 50" "Filter out any issues with a score less than 50" "cache ($cache_hash)"
+        apply_patch_to_file "$AUTOFIX_PATCH_FILE" "$cache_file" "auto-fix" "CHECK PR AUTHOR" "cache ($cache_hash)"
+    done
+else
+    echo ""
+    echo "ℹ️  Cache not found, skipping cache patches"
+fi
+
+echo ""
+echo "=== Patch application completed ==="
