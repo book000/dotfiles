@@ -26,5 +26,8 @@ network_access = true
 unified_exec = true
 shell_snapshot = true
 
+# モデル移行通知を無効化（自動実行時の対話回避のため）
 [notice.model_migrations]
-"gpt-5.2-codex" = "gpt-5.3-codex"
+# gpt-5-codex-mini モデルの移行通知を無効化
+# （自動実行で対話が発生しないようにするため、コメントアウト）
+# gpt-5-codex-mini = "gpt-5.3-codex"
