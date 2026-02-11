@@ -79,19 +79,19 @@ timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
 hostname_val=$(hostname)
 
 fields="[]"
-fields=$(echo "$fields" | jq --arg name "📁 実行ディレクトリ" --arg value "$CWD_PATH" --arg inline "true" \
-  '. + [{"name": $name, "value": ($value|if .=="" then "(unknown)" else . end), "inline": $inline}]')
-fields=$(echo "$fields" | jq --arg name "🆔 セッション ID" --arg value "$SESSION_ID" --arg inline "true" \
-  '. + [{"name": $name, "value": ($value|if .=="" then "(unknown)" else . end), "inline": $inline}]')
+fields=$(echo "$fields" | jq --arg name "📁 実行ディレクトリ" --arg value "$CWD_PATH" \
+  '. + [{"name": $name, "value": ($value|if .=="" then "(unknown)" else . end), "inline": true}]')
+fields=$(echo "$fields" | jq --arg name "🆔 セッション ID" --arg value "$SESSION_ID" \
+  '. + [{"name": $name, "value": ($value|if .=="" then "(unknown)" else . end), "inline": true}]')
 
 input_json_preview=$(truncate_field_value "$INPUT_JSON" 1000)
-fields=$(echo "$fields" | jq --arg name "📝 入力 JSON" --arg value "$input_json_preview" --arg inline "false" \
-  '. + [{"name": $name, "value": ($value|if .=="" then "(empty)" else . end), "inline": $inline}]')
-fields=$(echo "$fields" | jq --arg name "​" --arg value "------------------------------" --arg inline "false" \
-  '. + [{"name": $name, "value": $value, "inline": $inline}]')
+fields=$(echo "$fields" | jq --arg name "📝 入力 JSON" --arg value "$input_json_preview" \
+  '. + [{"name": $name, "value": ($value|if .=="" then "(empty)" else . end), "inline": false}]')
+fields=$(echo "$fields" | jq --arg name "​" --arg value "------------------------------" \
+  '. + [{"name": $name, "value": $value, "inline": false}]')
 
 if [[ -n "$TRANSCRIPT_PATH" ]] && [[ -f "$TRANSCRIPT_PATH" ]]; then
-  last_messages=$(jq -r '
+  if last_messages=$(jq -r '
     .messages[]?
     | select(.type == "user" or .type == "gemini")
     | [
@@ -117,27 +117,29 @@ if [[ -n "$TRANSCRIPT_PATH" ]] && [[ -f "$TRANSCRIPT_PATH" ]]; then
       ]
     | select(.[1] != "")
     | @tsv
-  ' "$TRANSCRIPT_PATH" | tail -n 5)
+  ' "$TRANSCRIPT_PATH" 2>/dev/null | tail -n 5); then
 
-  if [[ -n "$last_messages" ]]; then
-    while IFS=$'\t' read -r message_type message_text; do
-      [[ -z "$message_type" ]] && continue
+    if [[ -n "$last_messages" ]]; then
+      while IFS=$'\t' read -r message_type message_text; do
+        [[ -z "$message_type" ]] && continue
 
-      message_text=$(echo -e "${message_text//\\n/$'\n'}")
-      message_text=$(truncate_field_value "$message_text" 1000)
+        message_text=$(echo -e "${message_text//\\n/$'\n'}")
+        message_text=$(truncate_field_value "$message_text" 1000)
 
-      if [[ "$message_type" == "user" ]]; then
-        message_emoji="👤"
-      else
-        message_emoji="🤖"
-      fi
+        if [[ "$message_type" == "user" ]]; then
+          message_emoji="👤"
+        else
+          message_emoji="🤖"
+        fi
 
-      fields=$(echo "$fields" | jq \
-        --arg name "${message_emoji} 会話: ${message_type}" \
-        --arg value "$message_text" \
-        --arg inline "false" \
-        '. + [{"name": $name, "value": ($value|if .=="" then "(empty)" else . end), "inline": $inline}]')
-    done <<< "$last_messages"
+        fields=$(echo "$fields" | jq \
+          --arg name "${message_emoji} 会話: ${message_type}" \
+          --arg value "$message_text" \
+          '. + [{"name": $name, "value": ($value|if .=="" then "(empty)" else . end), "inline": false}]')
+      done <<< "$last_messages"
+    fi
+  else
+    echo "Failed to parse transcript JSON: $TRANSCRIPT_PATH" >&2
   fi
 elif [[ -n "$TRANSCRIPT_PATH" ]]; then
   echo "Transcript file not found: $TRANSCRIPT_PATH" >&2
