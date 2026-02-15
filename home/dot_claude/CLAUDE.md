@@ -32,6 +32,7 @@
 - CLAUDE.md の内容は適宜更新しなければなりません。
 - このプロジェクトでは Serena が使用できます。
 - Renovate が作成した既存のプルリクエストに対して、追加コミットや更新を行ってはなりません。
+- バックグラウンドでの監視を行う際、監視終了時や異常時に、Claude Code が動作している tmux セッションに send-keys でメッセージを送り、Claude Code が自動的に動作できるようにしてください。セッション名は tmux display-message -p '#{session_name}' で取得でき、コマンド例は tmux send-keys -t "$SESSION" "メッセージ" && sleep 3 && tmux send-keys -t "$SESSION" Enter です。メッセージと Enter の間に sleep 3 を入れないと、Claude Code が入力を認識する前に Enter が送られ、改行として処理されてしまいます。
 
 ## Agent Teams
 
@@ -70,21 +71,12 @@ feature/
   x/                # feature/x ブランチの worktree
 ```
 
-## Claude in Chrome について
-
-- Claude in Chrome を操作する際は、座標ではなくセレクターによって要素を特定すること
-- プロジェクトの実装と比較し、ページに更新が入っていたりする場合は正しい操作を確認したうえで、実装を改善すること
-
 ## コード改修時のルール
 
 - 日本語と英数字の間には、半角スペースを挿入しなければなりません
 - 既存のエラーメッセージで、先頭に絵文字がある場合は、全体でエラーメッセージに絵文字を設定してください。絵文字はエラーメッセージに即した一文字の絵文字である必要があります。
 - TypeScript プロジェクトにおいて、skipLibCheckを有効にして回避することは絶対にしてはなりません
 - 関数やインターフェースには、docstring (jsdoc など) を記載・更新してください。日本語で記載する必要があります。
-
-## External AI Agent Integration
-
-外部 AI エージェント（Codex、Gemini、Copilot）を使用する際は、必ず Claude スキル（`/ask-codex`、`/ask-gemini`、`/ask-copilot`）経由で呼び出すこと。**bash コマンドや stdin パイプで直接呼び出してはならない**。
 
 ## 相談ルール
 
