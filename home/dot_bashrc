@@ -4,6 +4,15 @@ case $- in
   *) return ;;
 esac
 
+# エスケープシーケンスをフィルタリング
+# DA2（Device Attributes 2）などのターミナル問い合わせ応答を破棄
+# これにより、シェルプロンプトにエスケープシーケンスが表示される問題を回避
+if [ -t 0 ] && [ -t 1 ]; then
+  # 標準入力から不要なエスケープシーケンスを読み捨てる
+  # タイムアウト 0.1 秒で読み取り可能なデータをクリア
+  read -r -t 0.1 -n 10000 _discard 2>/dev/null || true
+fi
+
 # Load extra config fragments.
 if [ -d "$HOME/.bashrc.d" ]; then
   shopt -s nullglob

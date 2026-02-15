@@ -112,5 +112,6 @@
         "repo": "wakatime/claude-code-wakatime"
       }
     }
-  }
+  },
+  "skipDangerousModePermissionPrompt": true
 }
