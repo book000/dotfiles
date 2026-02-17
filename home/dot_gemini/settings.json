@@ -20,5 +20,23 @@
     "auth": {
       "selectedType": "oauth-personal"
     }
+  },
+  "general": {
+    "previewFeatures": true,
+    "sessionRetention": {
+      "enabled": true
+    }
+  },
+  "ui": {
+    "hideTips": true
+  },
+  "model": {
+    "skipNextSpeakerCheck": true,
+    "disableLoopDetection": true
+  },
+  "context": {
+    "fileFiltering": {
+      "respectGitIgnore": false
+    }
   }
 }
