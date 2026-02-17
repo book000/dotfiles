@@ -22,7 +22,6 @@
     }
   },
   "general": {
-    "previewFeatures": true,
     "sessionRetention": {
       "enabled": true
     }
