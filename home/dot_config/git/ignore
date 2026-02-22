@@ -19,3 +19,5 @@ venv/
 Thumbs.db
 __pycache__/
 *.pyc
+
+**/.claude/settings.local.json
