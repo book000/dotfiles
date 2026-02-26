@@ -24,7 +24,9 @@
   "general": {
     "previewFeatures": true,
     "sessionRetention": {
-      "enabled": true
+      "enabled": true,
+      "maxAge": "30d",
+      "warningAcknowledged": true
     }
   },
   "ui": {
