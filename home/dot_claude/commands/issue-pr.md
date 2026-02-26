@@ -448,6 +448,11 @@ gh issue view {{issue_number}} --json title,state,body,comments,author
 
 issue の内容を確認し、適切な対応を行ってください。
 
+### 対応内容の確認
+
+Explorer エージェントを使用し、issue の対応について、対応漏れや不適切な改修を行っていないか確認してください。  
+もし該当するものが見つかったら修正し、問題がなくなるまで繰り返します。
+
 ### PR の作成
 
 対応が完了したら、PR を作成してください：
