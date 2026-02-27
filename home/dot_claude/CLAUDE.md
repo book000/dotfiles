@@ -33,6 +33,7 @@
 - このプロジェクトでは Serena が使用できます。
 - Renovate が作成した既存のプルリクエストに対して、追加コミットや更新を行ってはなりません。
 - バックグラウンドでの監視を行う際、監視終了時や異常時に、Claude Code が動作している tmux セッションに send-keys でメッセージを送り、Claude Code が自動的に動作できるようにしてください。セッション名は tmux display-message -p '#{session_name}' で取得でき、コマンド例は tmux send-keys -t "$SESSION" "メッセージ" && sleep 3 && tmux send-keys -t "$SESSION" Enter です。メッセージと Enter の間に sleep 3 を入れないと、Claude Code が入力を認識する前に Enter が送られ、改行として処理されてしまいます。
+- `<<'EOF'` ヒアドキュメント（シングルクォートデリミタ）内では `\` はエスケープ文字として機能しないため、バックティック (`` ` ``) は `\`` とせずそのまま `` ` `` と記述する。`\`` と書くと 2 文字がそのまま出力され、GitHub Markdown でバックスラッシュ付きで表示されてしまう。
 
 ## Agent Teams
 
