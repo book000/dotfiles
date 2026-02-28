@@ -77,13 +77,53 @@ GRAPHQL_QUERY='query($owner: String!, $repo: String!, $number: Int!) {
 # jq フィルタ（Copilot レビューを抽出）
 JQ_FILTER='[.data.repository.pullRequest.reviews.nodes[] | select(.author.__typename == "Bot" and (.author.login | contains("copilot")) and (.state == "COMMENTED" or .state == "APPROVED") and .submittedAt != null)] | length'
 
-# PR 作成時のレビュー数を取得
-if ! INITIAL_REVIEWS=$(gh api graphql \
-  -f owner="$OWNER" \
-  -f repo="$REPO" \
-  -F number="$PR_NUMBER" \
-  -f query="$GRAPHQL_QUERY" \
-  --jq "$JQ_FILTER" 2>> "$LOG_FILE"); then
+# tmux セッションに通知を送る関数
+notify_tmux() {
+  local message="$1"
+  local session
+  # tmux セッションが存在するか確認
+  if ! session=$(tmux display-message -p '#{session_name}' 2>/dev/null); then
+    return 0
+  fi
+  tmux send-keys -t "$session" "$message" && sleep 3 && tmux send-keys -t "$session" Enter
+}
+
+# Discord 通知を送る関数
+notify_discord() {
+  local title="$1"
+  local desc="$2"
+  local SCRIPT_DIR="$HOME/.claude/scripts/completion-notify"
+  if [[ -x "$SCRIPT_DIR/send-discord-notification.sh" ]]; then
+    local payload
+    payload=$(jq -n \
+      --arg title "$title" \
+      --arg desc "$desc" \
+      --arg url "https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}" \
+      '{
+        embeds: [{
+          title: $title,
+          description: $desc,
+          url: $url,
+          color: 3447003
+        }]
+      }')
+    printf '%s\n' "${payload}" | "$SCRIPT_DIR/send-discord-notification.sh" >> "$LOG_FILE" 2>&1 &
+    echo "Discord notification sent" >> "$LOG_FILE"
+  fi
+}
+
+# レビュー数を取得する関数
+get_review_count() {
+  gh api graphql \
+    -f owner="$OWNER" \
+    -f repo="$REPO" \
+    -F number="$PR_NUMBER" \
+    -f query="$GRAPHQL_QUERY" \
+    --jq "$JQ_FILTER" 2>> "$LOG_FILE"
+}
+
+# 初回レビュー数を取得
+if ! INITIAL_REVIEWS=$(get_review_count); then
   echo "Error: Failed to get initial review count" >> "$LOG_FILE"
   echo "Error: Failed to get initial review count" >&2
   exit 1
@@ -97,18 +137,24 @@ fi
 
 echo "Initial Copilot reviews: ${INITIAL_REVIEWS}" >> "$LOG_FILE"
 
+# スクリプト起動前に既に Copilot レビューが存在する場合は即座に通知
+if [ "$INITIAL_REVIEWS" -gt 0 ]; then
+  echo "Copilot review already exists (${INITIAL_REVIEWS} reviews)" >> "$LOG_FILE"
+  MSG="PR #${PR_NUMBER} に Copilot レビューが既に投稿されています（${INITIAL_REVIEWS} 件）。対応してください。"
+  echo "✅ ${MSG}"
+  echo "📝 ログ: ${LOG_FILE}"
+  notify_discord "GitHub Copilot Review Already Posted" "${MSG}"
+  notify_tmux "${MSG}"
+  exit 0
+fi
+
 # ポーリングループ
 while [ $ELAPSED -lt $MAX_WAIT ]; do
   sleep $INTERVAL
   ELAPSED=$((ELAPSED + INTERVAL))
 
   # 現在のレビュー数を確認
-  if ! CURRENT_REVIEWS=$(gh api graphql \
-    -f owner="$OWNER" \
-    -f repo="$REPO" \
-    -F number="$PR_NUMBER" \
-    -f query="$GRAPHQL_QUERY" \
-    --jq "$JQ_FILTER" 2>> "$LOG_FILE"); then
+  if ! CURRENT_REVIEWS=$(get_review_count); then
     echo "[$ELAPSED s] Warning: Failed to get current review count" >> "$LOG_FILE"
     continue
   fi
@@ -124,35 +170,19 @@ while [ $ELAPSED -lt $MAX_WAIT ]; do
     NEW_REVIEWS=$((CURRENT_REVIEWS - INITIAL_REVIEWS))
     echo "Detected ${NEW_REVIEWS} new Copilot review(s)!" >> "$LOG_FILE"
 
-    # Discord 通知（completion-notify スクリプトを参考）
-    SCRIPT_DIR="$HOME/.claude/scripts/completion-notify"
-    if [[ -x "$SCRIPT_DIR/send-discord-notification.sh" ]]; then
-      PAYLOAD=$(jq -n \
-        --arg title "GitHub Copilot Review Detected" \
-        --arg desc "PR #${PR_NUMBER} に ${NEW_REVIEWS} 件の Copilot レビューが投稿されました" \
-        --arg url "https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}" \
-        '{
-          embeds: [{
-            title: $title,
-            description: $desc,
-            url: $url,
-            color: 3447003
-          }]
-        }')
-
-      printf '%s\n' "${PAYLOAD}" | "$SCRIPT_DIR/send-discord-notification.sh" >> "$LOG_FILE" 2>&1 &
-      echo "Discord notification sent" >> "$LOG_FILE"
-    else
-      echo "Discord notification script not found, skipping" >> "$LOG_FILE"
-    fi
-
-    echo "✅ GitHub Copilot から ${NEW_REVIEWS} 件のレビューが投稿されました"
+    MSG="PR #${PR_NUMBER} に Copilot レビューが ${NEW_REVIEWS} 件投稿されました。対応してください。"
+    echo "✅ ${MSG}"
     echo "📝 ログ: ${LOG_FILE}"
+    notify_discord "GitHub Copilot Review Detected" "${MSG}"
+    notify_tmux "${MSG}"
     exit 0
   fi
 done
 
+# タイムアウト
+TIMEOUT_MSG="PR #${PR_NUMBER}: ${MAX_WAIT} 秒以内に Copilot レビューが投稿されませんでした。手動で確認してください。"
 echo "Timeout: No new Copilot reviews detected within ${MAX_WAIT}s" >> "$LOG_FILE"
-echo "⏱️ タイムアウト: ${MAX_WAIT}秒以内に Copilot レビューが投稿されませんでした"
+echo "⏱️ タイムアウト: ${TIMEOUT_MSG}"
 echo "📝 ログ: ${LOG_FILE}"
+notify_tmux "${TIMEOUT_MSG}"
 exit 0
