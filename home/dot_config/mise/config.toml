@@ -1,0 +1,10 @@
+[tools]
+go = "1.26"
+java = "25"
+node = "24"
+python = "3.14"
+pnpm = "latest"
+
+[settings]
+idiomatic_version_file_enable_tools = ["node"]
+auto_install = true
