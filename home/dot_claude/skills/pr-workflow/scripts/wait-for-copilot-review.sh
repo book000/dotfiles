@@ -140,11 +140,13 @@ echo "Initial Copilot reviews: ${INITIAL_REVIEWS}" >> "$LOG_FILE"
 # スクリプト起動前に既に Copilot レビューが存在する場合は即座に通知
 if [ "$INITIAL_REVIEWS" -gt 0 ]; then
   echo "Copilot review already exists (${INITIAL_REVIEWS} reviews)" >> "$LOG_FILE"
-  MSG="PR #${PR_NUMBER} に Copilot レビューが既に投稿されています（${INITIAL_REVIEWS} 件）。対応してください。"
-  echo "✅ ${MSG}"
+  DISCORD_MSG="PR #${PR_NUMBER} に Copilot レビューが既に投稿されています（${INITIAL_REVIEWS} 件）。"
+  # tmux には /handle-pr-reviews コマンドを送信し Claude Code が自動で対応できるようにする
+  TMUX_CMD="/handle-pr-reviews https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}"
+  echo "✅ ${DISCORD_MSG}"
   echo "📝 ログ: ${LOG_FILE}"
-  notify_discord "GitHub Copilot Review Already Posted" "${MSG}"
-  notify_tmux "${MSG}"
+  notify_discord "GitHub Copilot Review Already Posted" "${DISCORD_MSG}"
+  notify_tmux "${TMUX_CMD}"
   exit 0
 fi
 
@@ -170,11 +172,13 @@ while [ $ELAPSED -lt $MAX_WAIT ]; do
     NEW_REVIEWS=$((CURRENT_REVIEWS - INITIAL_REVIEWS))
     echo "Detected ${NEW_REVIEWS} new Copilot review(s)!" >> "$LOG_FILE"
 
-    MSG="PR #${PR_NUMBER} に Copilot レビューが ${NEW_REVIEWS} 件投稿されました。対応してください。"
-    echo "✅ ${MSG}"
+    DISCORD_MSG="PR #${PR_NUMBER} に Copilot レビューが ${NEW_REVIEWS} 件投稿されました。"
+    # tmux には /handle-pr-reviews コマンドを送信し Claude Code が自動で対応できるようにする
+    TMUX_CMD="/handle-pr-reviews https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}"
+    echo "✅ ${DISCORD_MSG}"
     echo "📝 ログ: ${LOG_FILE}"
-    notify_discord "GitHub Copilot Review Detected" "${MSG}"
-    notify_tmux "${MSG}"
+    notify_discord "GitHub Copilot Review Detected" "${DISCORD_MSG}"
+    notify_tmux "${TMUX_CMD}"
     exit 0
   fi
 done
