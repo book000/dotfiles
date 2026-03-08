@@ -1,6 +1,6 @@
 ---
 name: pr-health-monitor
-description: PR作成後の監視・対応フローを自動化する。CI確認・Copilotレビュー待機・コードレビュー・コンフリクト確認・PR本文更新を並列実行する。
+description: PR 作成後の監視・対応フローを自動化する。CI 確認・Copilot レビュー待機・コードレビュー・コンフリクト確認・PR 本文更新を並列実行する。
 trigger: Use /pr-health-monitor <PR_NUMBER_OR_URL> immediately after creating a PR to automate the full post-PR checklist
 ---
 
@@ -11,7 +11,7 @@ PR 作成後のチェックリスト全体を自動化します。
 ## 使用方法
 
 ```
-/pr-health-monitor <PR番号またはURL>
+/pr-health-monitor <PR 番号または URL>
 ```
 
 **例:**
@@ -25,14 +25,19 @@ PR 作成後のチェックリスト全体を自動化します。
 引数から OWNER・REPO・PR 番号を解決する。
 
 ```bash
-# URL 形式の場合
-echo "https://github.com/owner/repo/pull/123" | grep -oP 'github\.com/([^/]+)/([^/]+)/pull/(\d+)'
-# → OWNER=owner, REPO=repo, PR_NUMBER=123
-
-# 番号のみの場合（現在のリポジトリから取得）
-OWNER=$(gh repo view --json owner --jq '.owner.login')
-REPO=$(gh repo view --json name --jq '.name')
-PR_NUMBER=<引数>
+# URL 形式の場合: grep -oP でキャプチャグループは使えないため、
+# 各フィールドを個別に抽出する
+PR_ARG="https://github.com/owner/repo/pull/123"
+if echo "$PR_ARG" | grep -q 'github\.com'; then
+  OWNER=$(echo "$PR_ARG" | grep -oP 'github\.com/\K[^/]+')
+  REPO=$(echo "$PR_ARG" | grep -oP 'github\.com/[^/]+/\K[^/]+(?=/pull)')
+  PR_NUMBER=$(echo "$PR_ARG" | grep -oP '/pull/\K\d+')
+else
+  # 番号のみの場合（現在のリポジトリから取得）
+  OWNER=$(gh repo view --json owner --jq '.owner.login')
+  REPO=$(gh repo view --json name --jq '.name')
+  PR_NUMBER="$PR_ARG"
+fi
 ```
 
 PR の URL を確認:

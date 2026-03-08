@@ -1,6 +1,6 @@
 ---
 name: handle-pr-reviews
-description: PR のレビュースレッドを一括処理する。全未解決スレッドを取得し、コード修正・返信・resolve・CI確認を体系的に実施する。Copilot レビュー検出時にバックグラウンドスクリプトから自動実行される。
+description: PR のレビュースレッドを一括処理する。全未解決スレッドを取得し、コード修正・返信・resolve・CI 確認を体系的に実施する。Copilot レビュー検出時にバックグラウンドスクリプトから自動実行される。
 args:
   - name: pr_url_or_number
     description: GitHub PR の URL（https://github.com/OWNER/REPO/pull/NUMBER）または PR 番号
@@ -83,6 +83,8 @@ query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       reviewThreads(first: 100) {
+        # 注意: 最大 100 件まで取得。100 件を超える場合は pageInfo.hasNextPage と
+        # pageInfo.endCursor を使ったカーソルページネーションが必要
         nodes {
           id
           isResolved
@@ -129,8 +131,10 @@ echo "未解決スレッド数: $COUNT"
 THREAD_ID=$(echo "$thread" | jq -r '.id')
 THREAD_PATH=$(echo "$thread" | jq -r '.path // ""')
 THREAD_LINE=$(echo "$thread" | jq -r '.line // 0')
-AUTHOR=$(echo "$thread" | jq -r '.comments.nodes[0].author.login')
-COMMENT=$(echo "$thread" | jq -r '.comments.nodes[0].body')
+# 最新コメント（最後の要素）を参照する。nodes[0] は最初のコメントであり、
+# 後から追加された返信を見落とす可能性があるため last を使う
+AUTHOR=$(echo "$thread" | jq -r '.comments.nodes | last | .author.login')
+COMMENT=$(echo "$thread" | jq -r '.comments.nodes | last | .body')
 echo "スレッド: $THREAD_ID | $AUTHOR | $THREAD_PATH:$THREAD_LINE"
 echo "コメント: $COMMENT"
 ```
@@ -218,6 +222,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       reviewThreads(first: 100) {
+        # 注意: 最大 100 件まで取得。ステップ 2 と同様に 100 件超の場合はページネーションが必要
         nodes { id isResolved }
       }
     }
