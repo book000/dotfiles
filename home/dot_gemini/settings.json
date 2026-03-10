@@ -29,7 +29,9 @@
     }
   },
   "ui": {
-    "hideTips": true
+    "hideTips": true,
+    "loadingPhrases": "off",
+    "showShortcutsHint": false
   },
   "model": {
     "skipNextSpeakerCheck": true,
