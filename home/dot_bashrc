@@ -22,11 +22,13 @@ export COLORFGBG="${COLORFGBG:-15;0}"
 # DA1/DA2・OSC 10/11（背景色クエリ）などのターミナル問い合わせ応答を破棄し、
 # プロンプトへの混入を防ぐ
 #
-# 【以前の起動時ドレインを PROMPT_COMMAND に移行した理由】
-# 以前は起動時に read -t 0.1 を実行していたが、一部のツールは bashrc の
-# 読み込み後にターミナルクエリを送信するため、応答が捕捉できていなかった。
-# PROMPT_COMMAND に登録することで、プロンプト表示前に毎回実行されるため、
-# あらゆるタイミングで発生する応答を確実に捕捉できる。
+# 【二層防衛: PROMPT_COMMAND ドレイン + 起動時ドレインの役割分担】
+# - PROMPT_COMMAND: コマンド実行後・プロンプト表示前に毎回実行。
+#   あらゆるタイミングで発生する応答を継続的に捕捉する主要手段。
+# - 起動時ドレイン（.bashrc.d/ ロード後）: デフォルト無効・opt-in。
+#   BASH_DRAIN_ESC_ON_STARTUP=1 が設定されている場合のみ実行。
+#   初期化中のツールが送信したクエリ応答を安全網として捕捉するが、
+#   ユーザーの先行入力を誤って破棄しないよう非ブロッキングで動作する。
 if [ -t 0 ] && [ -t 1 ]; then
   _drain_esc_responses() {
     local _discard
@@ -55,11 +57,10 @@ if [ -d "$HOME/.bashrc.d" ]; then
   shopt -u nullglob
 fi
 
-# 起動時ドレイン（.bashrc.d/ 全ロード後）
-# 初期化中のツールが送信したターミナルクエリへの応答を破棄する
-# 最大100ms 待機してから非ブロッキングで全てのデータを読み捨てる
-if [ -t 0 ] && [ -t 1 ]; then
-  IFS= read -r -t 0.1 -n 10000 __drain_discard 2>/dev/null || true
-  while IFS= read -r -t 0 -n 10000 __drain_discard 2>/dev/null; do :; done
+# 起動時ドレイン（.bashrc.d/ 全ロード後）- opt-in（デフォルト無効）
+# BASH_DRAIN_ESC_ON_STARTUP=1 を設定した場合のみ実行される。
+# ユーザーの先行入力を誤って破棄しないよう -t 0（非ブロッキング）で動作する。
+if [ -t 0 ] && [ -t 1 ] && [ "${BASH_DRAIN_ESC_ON_STARTUP:-}" = "1" ]; then
+  IFS= read -r -t 0 -n 10000 __drain_discard 2>/dev/null || true
   unset __drain_discard
 fi
