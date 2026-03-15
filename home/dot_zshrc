@@ -32,12 +32,28 @@ typeset -g POWERLEVEL9K_TERM_BACKGROUND="${POWERLEVEL9K_TERM_BACKGROUND:-0}"
 # 【二層防衛: precmd ドレイン + 起動時ドレインの役割分担】
 # - precmd: すべての初期化完了後かつプロンプト表示前に毎回実行。
 #   p10k 等の末尾ロードされるツールのクエリ応答も含め、継続的に捕捉する主要手段。
+#   ただし初回呼び出し（シェル起動時の最初のプロンプト表示前）はスキップする。
+#   これは tmux send-keys などで先行入力されたコマンドを保護するためである。
 # - 起動時ドレイン（.zshrc.d/ ロード後）: デフォルト無効・opt-in。
 #   ZSH_STARTUP_ESC_DRAIN が設定されている場合のみ実行。
 #   初期化中のツールが送信したクエリ応答を安全網として捕捉するが、
 #   ユーザーの先行入力を誤って破棄しないよう非ブロッキングで動作する。
+#
+# 【初回スキップが必要な理由】
+# Agent Teams など、tmux セッションの起動直後に tmux send-keys でコマンドを
+# 送信するケースがある。シェルの初期化（.zshrc ロード）中にコマンドが PTY
+# バッファに蓄積され、最初の precmd 実行時にドレインが誤ってコマンドを
+# 消費してしまう問題を防ぐ。
 if [[ -t 0 && -t 1 ]]; then
+  # 初回呼び出しスキップ用フラグ（1=スキップ待機中、0=通常動作）
+  typeset -g _drain_first_call=1
   function _drain_esc_responses() {
+    # 初回呼び出し（シェル起動時の最初のプロンプト表示前）はスキップ
+    # tmux send-keys などで先行入力されたコマンドを保護するため
+    if [[ "${_drain_first_call:-0}" -eq 1 ]]; then
+      _drain_first_call=0
+      return 0
+    fi
     local _discard
     # フェーズ1: 非ブロッキングで即座にチェック
     # データがなければ即座にリターンし、プロンプト表示の遅延を防ぐ
