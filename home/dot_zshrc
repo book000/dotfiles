@@ -55,10 +55,10 @@ if [[ -t 0 && -t 1 ]]; then
       return 0
     fi
     local _discard
-    # フェーズ1: 非ブロッキングで即座にチェック
+    # フェーズ 1: 非ブロッキングで即座にチェック
     # データがなければ即座にリターンし、プロンプト表示の遅延を防ぐ
     IFS= read -t 0 -k 10000 _discard 2>/dev/null || return 0
-    # フェーズ2: データがあった場合、続けて届く応答も全て読み捨て
+    # フェーズ 2: データがあった場合、続けて届く応答も全て読み捨て
     # -t 0.02（20ms）: 少し待ってバッファに残った応答を取り逃がさない
     while IFS= read -t 0.02 -k 10000 _discard 2>/dev/null; do :; done
   }
@@ -81,9 +81,9 @@ if [ -d "$HOME/.zshrc.d" ]; then
 fi
 
 # 起動時ドレイン（.zshrc.d/ 全ロード後）- opt-in（デフォルト無効）
-# ZSH_STARTUP_ESC_DRAIN が設定されている場合のみ実行される。
+# ZSH_STARTUP_ESC_DRAIN=1 を設定した場合のみ実行される。
 # ユーザーの先行入力を誤って破棄しないよう -t 0（非ブロッキング）で動作する。
-if [[ -t 0 && -t 1 && -n "${ZSH_STARTUP_ESC_DRAIN:-}" ]]; then
+if [[ -t 0 && -t 1 && "${ZSH_STARTUP_ESC_DRAIN:-}" == "1" ]]; then
   IFS= read -t 0 -k 10000 __drain_discard 2>/dev/null || true
   unset __drain_discard
 fi
