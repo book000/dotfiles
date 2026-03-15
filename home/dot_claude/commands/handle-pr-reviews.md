@@ -1,6 +1,6 @@
 ---
 name: handle-pr-reviews
-description: PR のレビュースレッドを一括処理する。全未解決スレッドを取得し、コード修正・返信・resolve・CI確認を体系的に実施する。Copilot レビュー検出時にバックグラウンドスクリプトから自動実行される。
+description: PR のレビュースレッドを一括処理する。全未解決スレッドを取得し、コード修正・返信・resolve・CI 確認を体系的に実施する。Copilot レビュー検出時にバックグラウンドスクリプトから自動実行される。
 args:
   - name: pr_url_or_number
     description: GitHub PR の URL（https://github.com/OWNER/REPO/pull/NUMBER）または PR 番号
@@ -42,35 +42,26 @@ echo "対象: https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}"
 コード修正が必要な場合に備え、ローカルクローンのパスを特定する。
 
 ```bash
-# 標準パスを優先して確認
 LOCAL_REPO_PATH=""
 
-# 1. 標準パス: /mnt/hdd/repos/github.com/OWNER/REPO
-CANDIDATE="/mnt/hdd/repos/github.com/${OWNER}/${REPO}"
-if [[ -d "$CANDIDATE/.git" ]] || [[ -f "$CANDIDATE/.git" ]]; then
-  LOCAL_REPO_PATH="$CANDIDATE"
+# 1. 現在のディレクトリが対象リポジトリか確認
+CURRENT_REMOTE=$(git remote get-url origin 2>/dev/null || true)
+if echo "$CURRENT_REMOTE" | grep -q "${OWNER}/${REPO}"; then
+  LOCAL_REPO_PATH=$(git rev-parse --show-toplevel 2>/dev/null)
 fi
 
-# 2. Worktree 対応: /mnt/hdd/repos-worktree/OWNER/REPO-BRANCH
+# 2. git で管理されている既知ディレクトリを remote URL で検索
+#    検索対象ディレクトリは find コマンドで取得できる git リポジトリのトップレベルを使う
+#    検索元は $HOME 配下および CLAUDE.md に記載された既知パスを使う
 if [[ -z "$LOCAL_REPO_PATH" ]]; then
-  WORKTREE_PARENT="/mnt/hdd/repos-worktree/${OWNER}"
-  if [[ -d "$WORKTREE_PARENT" ]]; then
-    MATCH=$(find "$WORKTREE_PARENT" -maxdepth 2 -name "HEAD" -path "*/${REPO}-*" 2>/dev/null | head -1)
-    if [[ -n "$MATCH" ]]; then
-      LOCAL_REPO_PATH=$(dirname "$MATCH")
+  while IFS= read -r -d '' gitdir; do
+    dir=$(dirname "$gitdir")
+    remote=$(git -C "$dir" remote get-url origin 2>/dev/null || true)
+    if echo "$remote" | grep -q "${OWNER}/${REPO}"; then
+      LOCAL_REPO_PATH="$dir"
+      break
     fi
-  fi
-fi
-
-# 3. 汎用検索（最終手段）
-if [[ -z "$LOCAL_REPO_PATH" ]]; then
-  MATCH=$(find /mnt/hdd -maxdepth 10 -name ".git" -type f -o -name ".git" -type d 2>/dev/null \
-    | while read g; do
-        dir=$(dirname "$g")
-        remote=$(git -C "$dir" remote get-url origin 2>/dev/null)
-        echo "$remote" | grep -q "${OWNER}/${REPO}" && echo "$dir" && break
-      done | head -1)
-  LOCAL_REPO_PATH="$MATCH"
+  done < <(find "$HOME" -maxdepth 8 \( -name ".git" -type f -o -name ".git" -type d \) -print0 2>/dev/null)
 fi
 
 echo "ローカルパス: ${LOCAL_REPO_PATH:-（見つからない、gh API のみで対応）}"
@@ -92,6 +83,8 @@ query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       reviewThreads(first: 100) {
+        # 注意: 最大 100 件まで取得。100 件を超える場合は pageInfo.hasNextPage と
+        # pageInfo.endCursor を使ったカーソルページネーションが必要
         nodes {
           id
           isResolved
@@ -138,8 +131,10 @@ echo "未解決スレッド数: $COUNT"
 THREAD_ID=$(echo "$thread" | jq -r '.id')
 THREAD_PATH=$(echo "$thread" | jq -r '.path // ""')
 THREAD_LINE=$(echo "$thread" | jq -r '.line // 0')
-AUTHOR=$(echo "$thread" | jq -r '.comments.nodes[0].author.login')
-COMMENT=$(echo "$thread" | jq -r '.comments.nodes[0].body')
+# 最新コメント（最後の要素）を参照する。nodes[0] は最初のコメントであり、
+# 後から追加された返信を見落とす可能性があるため last を使う
+AUTHOR=$(echo "$thread" | jq -r '.comments.nodes | last | .author.login')
+COMMENT=$(echo "$thread" | jq -r '.comments.nodes | last | .body')
 echo "スレッド: $THREAD_ID | $AUTHOR | $THREAD_PATH:$THREAD_LINE"
 echo "コメント: $COMMENT"
 ```
@@ -162,15 +157,19 @@ echo "コメント: $COMMENT"
 
 ```bash
 REPLY_BODY="対応内容を記載"
-gh api graphql -f query="
-mutation {
+# -f を使うことで特殊文字・改行を含む本文も安全に渡せる
+gh api graphql \
+  -f threadId="${THREAD_ID}" \
+  -f body="${REPLY_BODY}" \
+  -f query='
+mutation($threadId: ID!, $body: String!) {
   addPullRequestReviewThreadReply(input: {
-    pullRequestReviewThreadId: \"${THREAD_ID}\"
-    body: \"${REPLY_BODY}\"
+    pullRequestReviewThreadId: $threadId
+    body: $body
   }) {
     comment { id }
   }
-}"
+}'
 ```
 
 返信内容の例:
@@ -201,7 +200,8 @@ mutation {
 git -C "$LOCAL_REPO_PATH" status
 
 # Conventional Commits に従いコミット（説明は日本語）
-git -C "$LOCAL_REPO_PATH" add -p  # 対話的に変更を確認
+# add -p は対話的なため使わず、編集したファイルを明示的にステージする
+git -C "$LOCAL_REPO_PATH" add <編集したファイルのパスを列挙>
 git -C "$LOCAL_REPO_PATH" commit -m "fix: レビューコメントに基づく修正"
 
 # SSH でプッシュ
@@ -222,6 +222,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       reviewThreads(first: 100) {
+        # 注意: 最大 100 件まで取得。ステップ 2 と同様に 100 件超の場合はページネーションが必要
         nodes { id isResolved }
       }
     }

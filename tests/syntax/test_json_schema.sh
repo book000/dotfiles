@@ -33,13 +33,23 @@ if [ -f "home/dot_gemini/settings.json" ]; then
   echo "Validating Gemini CLI settings.json..."
   GEMINI_SCHEMA_URL="https://raw.githubusercontent.com/google-gemini/gemini-cli/main/schemas/settings.schema.json"
   GEMINI_SCHEMA_TMP="$(mktemp /tmp/gemini-settings-schema.XXXXXX.json)"
-  # スキーマをダウンロードし、general セクションの additionalProperties 制約を除去
-  # （Gemini CLI 自身が出力するフィールドを許容するため）
+  # スキーマをダウンロードし、general セクション以下の additionalProperties 制約を再帰的に除去
+  # （Gemini CLI 自身が書き出すフィールドをネストした階層も含めて許容するため）
   curl -s "$GEMINI_SCHEMA_URL" | python3 -c "
 import json, sys
+
+def relax_additional_properties(obj):
+    if isinstance(obj, dict):
+        obj.pop('additionalProperties', None)
+        for v in obj.values():
+            relax_additional_properties(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            relax_additional_properties(v)
+
 schema = json.load(sys.stdin)
 general = schema.get('properties', {}).get('general', {})
-general.pop('additionalProperties', None)
+relax_additional_properties(general)
 json.dump(schema, sys.stdout)
 " > "$GEMINI_SCHEMA_TMP"
   if ! check-jsonschema --schemafile "$GEMINI_SCHEMA_TMP" home/dot_gemini/settings.json; then
