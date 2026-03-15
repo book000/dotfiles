@@ -35,7 +35,7 @@ typeset -g POWERLEVEL9K_TERM_BACKGROUND="${POWERLEVEL9K_TERM_BACKGROUND:-0}"
 #   ただし初回呼び出し（シェル起動時の最初のプロンプト表示前）はスキップする。
 #   これは tmux send-keys などで先行入力されたコマンドを保護するためである。
 # - 起動時ドレイン（.zshrc.d/ ロード後）: デフォルト無効・opt-in。
-#   ZSH_STARTUP_ESC_DRAIN が設定されている場合のみ実行。
+#   ZSH_STARTUP_ESC_DRAIN=1 の場合のみ実行。
 #   初期化中のツールが送信したクエリ応答を安全網として捕捉するが、
 #   ユーザーの先行入力を誤って破棄しないよう非ブロッキングで動作する。
 #
