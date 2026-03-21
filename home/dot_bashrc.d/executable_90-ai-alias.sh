@@ -4,6 +4,11 @@
 alias claude='[ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick; ~/.local/share/chezmoi/update.sh; claude --dangerously-skip-permissions'
 alias codex='[ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick; ~/.local/share/chezmoi/update.sh; codex --yolo'
 alias gemini='[ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick; ~/.local/share/chezmoi/update.sh; gemini --yolo'
+# copilot コマンドのラッパー関数。
+# AI エージェント・chezmoi の更新を行い、カレントディレクトリに .copilot/mcp-config.json が
+# 存在する場合は --additional-mcp-config オプションを付与して実行する。
+# 既存セッションで旧エイリアスが残存している場合に備えて、関数定義前に unalias する。
+unalias copilot 2>/dev/null
 copilot() {
   # AI エージェントの更新と chezmoi の更新を実行
   [ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick
