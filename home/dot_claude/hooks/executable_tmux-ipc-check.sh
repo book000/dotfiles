@@ -52,7 +52,7 @@ if [[ ! -d "$IPC_DIR/$SESSION_ID" ]]; then
 elif [[ -f "$REGISTRY" ]]; then
   # 登録済みの場合は updated タイムスタンプのみ更新
   (
-    flock -w 2 200 2>/dev/null || true
+    flock -w 2 200 2>/dev/null || exit 0  # ロック取得失敗時は更新をスキップ
     jq --arg id "$SESSION_ID" --argjson now "$CURRENT_TIME" \
       '(.sessions[] | select(.id == $id) | .updated) = $now' \
       "$REGISTRY" > "${REGISTRY}.tmp" 2>/dev/null \
