@@ -20,7 +20,7 @@ fi
 
 # セッション ID を取得
 TMUX_SESSION=$(tmux display-message -p '#S' 2>/dev/null || echo "")
-TMUX_PANE=$(tmux display-message -p '#P' 2>/dev/null || echo "")
+TMUX_PANE=$(tmux display-message -p '#{pane_id}' 2>/dev/null || echo "")
 
 if [[ -z "$TMUX_SESSION" || -z "$TMUX_PANE" ]]; then
   echo "Error: Failed to get tmux session/pane info" >&2

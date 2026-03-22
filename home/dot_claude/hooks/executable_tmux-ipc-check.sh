@@ -4,14 +4,17 @@
 # ユーザープロンプト送信時に inbox をスキャンし、受信メッセージをプロンプトに注入する。
 # あわせてセッション登録を更新することで、レジストリの alive 状態を維持する。
 #
-# Hook 入力 (stdin):
+# フック入力 (stdin):
 #   {"session_id": "...", "hook_event_name": "UserPromptSubmit", "prompt": "..."}
 #
-# Hook 出力:
+# フック出力:
 #   {"block": false, "prompt": "<元のプロンプト + IPC メッセージ>"}
 #   メッセージがない場合は {"block": false}
 
 IPC_DIR="/tmp/tmux-ipc"
+
+# stdin から入力 JSON を読み取る（早期 exit の前に必ず消費する）
+INPUT_JSON=$(cat)
 
 # tmux セッション外の場合はスキップ
 if [[ -z "${TMUX:-}" ]]; then
@@ -25,7 +28,7 @@ if [[ -n "${TMUX_IPC_SESSION_ID:-}" ]]; then
   SESSION_ID="$TMUX_IPC_SESSION_ID"
 else
   TMUX_SESSION=$(tmux display-message -p '#S' 2>/dev/null || echo "")
-  TMUX_PANE=$(tmux display-message -p '#P' 2>/dev/null || echo "")
+  TMUX_PANE=$(tmux display-message -p '#{pane_id}' 2>/dev/null || echo "")
 
   if [[ -z "$TMUX_SESSION" || -z "$TMUX_PANE" ]]; then
     echo '{"block":false}'
@@ -65,12 +68,8 @@ fi
 
 mkdir -p "$PROCESSED_DIR"
 
-CURRENT_TIME=$(date +%s)
 MSG_COUNT=0
 IPC_SECTION=""
-
-# stdin から入力 JSON を読み取る
-INPUT_JSON=$(cat)
 
 # inbox 内のメッセージを処理
 shopt -s nullglob

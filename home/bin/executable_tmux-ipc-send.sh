@@ -26,7 +26,7 @@ TTL="${3:-300}"
 # 送信元セッション ID を取得
 if [[ -n "${TMUX:-}" ]]; then
   TMUX_SESSION=$(tmux display-message -p '#S' 2>/dev/null || echo "")
-  TMUX_PANE=$(tmux display-message -p '#P' 2>/dev/null || echo "")
+  TMUX_PANE=$(tmux display-message -p '#{pane_id}' 2>/dev/null || echo "")
   FROM="${TMUX_SESSION}.${TMUX_PANE}"
 else
   FROM="external"
@@ -75,7 +75,7 @@ if [[ -f "$REGISTRY" ]]; then
     "$REGISTRY" 2>/dev/null || echo "unknown")
 fi
 
-# tmux ターゲットを構築（session_id = "session.pane" 形式）
+# tmux ターゲットを構築 (session_id = "session.pane" 形式)
 TMUX_TARGET_SESSION="${TO%.*}"
 TMUX_TARGET_PANE="${TO##*.}"
 
@@ -83,16 +83,15 @@ if tmux has-session -t "$TMUX_TARGET_SESSION" 2>/dev/null; then
   case "$DEST_AGENT" in
     claude)
       # Claude Code: UserPromptSubmit フックが inbox をスキャンするため追加通知は不要。
-      # ただし、アイドル状態のときに気付けるよう空文字を送信してプロンプトを促す。
       : # 何もしない（フックに委ねる）
       ;;
     gemini | codex | copilot | unknown)
       # 非 Claude エージェント: 受信スクリプトを実行するよう通知
       NOTIFY_MSG="[tmux-ipc] New message from ${FROM}. Run: tmux-ipc-receive.sh"
-      tmux send-keys -t "${TMUX_TARGET_SESSION}:${TMUX_TARGET_PANE}" \
+      tmux send-keys -t "$TMUX_TARGET_PANE" \
         "$NOTIFY_MSG" 2>/dev/null || true
-      sleep 1
-      tmux send-keys -t "${TMUX_TARGET_SESSION}:${TMUX_TARGET_PANE}" \
+      sleep 3
+      tmux send-keys -t "$TMUX_TARGET_PANE" \
         Enter 2>/dev/null || true
       ;;
   esac
