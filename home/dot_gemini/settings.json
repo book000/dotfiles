@@ -3,6 +3,18 @@
     "enabled": true
   },
   "hooks": {
+    "BeforeAgent": [
+      {
+        "hooks": [
+          {
+            "name": "tmux-ipc-check",
+            "type": "command",
+            "command": "~/.gemini/hooks/tmux-ipc-check.sh",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "*",

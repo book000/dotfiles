@@ -79,6 +79,31 @@ feature/
 - TypeScript プロジェクトにおいて、skipLibCheckを有効にして回避することは絶対にしてはなりません
 - 関数やインターフェースには、docstring (jsdoc など) を記載・更新してください。日本語で記載する必要があります。
 
+## tmux IPC (エージェント間通信)
+
+tmux セッション内で動作する AI エージェント間でファイルベース IPC を使って通信できる。
+
+### 仕組み
+
+- メッセージは `/tmp/tmux-ipc/{session_id}/inbox/` に JSON ファイルとして保存される
+- `UserPromptSubmit` フックが毎回 inbox をスキャンし、受信メッセージをプロンプトに自動注入する
+- セッション ID は `{tmux_session_name}.{pane_id}` 形式 (例: `main.%0`)
+
+### 主なコマンド
+
+| コマンド | 説明 |
+|---|---|
+| `ipc-register [agent_type]` | 現在のセッションを登録する |
+| `ipc-send <to_session_id> <body> [ttl]` | 指定セッションにメッセージを送信する |
+| `ipc-receive` | inbox のメッセージを手動で受信する |
+| `ipc-list` | 登録済みセッション一覧を表示する |
+| `ipc-cleanup` | 期限切れメッセージをクリーンアップする |
+
+### IPC メッセージを受信したら
+
+プロンプトの末尾に `[tmux IPC]` セクションが付加されていたら、内容を確認して必要に応じて対応すること。
+送信元エージェントへの返信が必要な場合は `ipc-send` を使用する。
+
 ## 相談ルール
 
 Codex CLI や Gemini CLI の他エージェントに相談することができます。以下の観点で使い分けてください。
