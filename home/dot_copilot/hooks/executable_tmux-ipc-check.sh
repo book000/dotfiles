@@ -13,8 +13,8 @@
 #   stdout: 無視される（Copilot CLI の仕様）
 #   stderr: モデルへのコンテキストとして渡される
 
-# stdin から入力 JSON を読み取る（早期 exit の前に必ず消費する）
-INPUT_JSON=$(cat)
+# stdin を消費する（早期 exit の前に必ず実施する）
+cat > /dev/null
 
 IPC_DIR="/tmp/tmux-ipc"
 
