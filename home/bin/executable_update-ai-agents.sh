@@ -233,11 +233,36 @@ update_gemini() {
 
 # メイン処理
 main() {
+    # オプション解析
+    local quick=0
+    local only_agent=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --quick) quick=1 ;;
+            --only)
+                if [[ -z "${2:-}" ]]; then
+                    echo "❌ --only requires an agent name (claude|copilot|codex|gemini)" >&2
+                    exit 1
+                fi
+                only_agent="$2"
+                shift
+                ;;
+            *) ;;
+        esac
+        shift
+    done
+
+    # エージェントが指定された場合はタイムスタンプ・ロックファイルを個別に設定
+    if [[ -n "$only_agent" ]]; then
+        TIMESTAMP_FILE="$CACHE_DIR/last-update-${only_agent}"
+        LOCK_FILE="$CACHE_DIR/update-${only_agent}.lock"
+    fi
+
     # ログローテーション
     rotate_log
 
     # --quick オプションの処理
-    if [[ "${1:-}" == "--quick" ]]; then
+    if [[ $quick -eq 1 ]]; then
         check_timestamp
     fi
 
@@ -245,7 +270,7 @@ main() {
     acquire_lock
 
     log "================================================"
-    log "🚀 Starting AI agents update check"
+    log "🚀 Starting AI agents update check${only_agent:+ (only: ${only_agent})}"
     log "================================================"
 
     # 環境チェック
@@ -255,11 +280,22 @@ main() {
 
     local exit_code=0
 
-    # 各エージェントを個別に更新 (1 つ失敗しても続行)
-    update_claude || exit_code=1
-    update_copilot || exit_code=1
-    update_codex || exit_code=1
-    update_gemini || exit_code=1
+    # 更新対象の選択 (--only 指定時は対象エージェントのみ更新)
+    if [[ -n "$only_agent" ]]; then
+        case "$only_agent" in
+            claude)  update_claude  || exit_code=1 ;;
+            copilot) update_copilot || exit_code=1 ;;
+            codex)   update_codex   || exit_code=1 ;;
+            gemini)  update_gemini  || exit_code=1 ;;
+            *) log "⏭️  No update function for: ${only_agent}" ;;
+        esac
+    else
+        # 各エージェントを個別に更新 (1 つ失敗しても続行)
+        update_claude   || exit_code=1
+        update_copilot  || exit_code=1
+        update_codex    || exit_code=1
+        update_gemini   || exit_code=1
+    fi
 
     # タイムスタンプ更新 (成功時のみ)
     if [[ $exit_code -eq 0 ]]; then
@@ -267,7 +303,7 @@ main() {
     fi
 
     log "================================================"
-    log "✅ Update check completed (exit code: $exit_code)"
+    log "✅ Update check completed (exit code: ${exit_code})"
     log "================================================"
 
     exit "$exit_code"
