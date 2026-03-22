@@ -20,15 +20,20 @@ if [[ -z "${TMUX:-}" ]]; then
 fi
 
 # セッション ID を取得
-TMUX_SESSION=$(tmux display-message -p '#S' 2>/dev/null || echo "")
-TMUX_PANE=$(tmux display-message -p '#P' 2>/dev/null || echo "")
+# TMUX_IPC_SESSION_ID が設定されている場合はその値を使用する（テスト・デバッグ用）
+if [[ -n "${TMUX_IPC_SESSION_ID:-}" ]]; then
+  SESSION_ID="$TMUX_IPC_SESSION_ID"
+else
+  TMUX_SESSION=$(tmux display-message -p '#S' 2>/dev/null || echo "")
+  TMUX_PANE=$(tmux display-message -p '#P' 2>/dev/null || echo "")
 
-if [[ -z "$TMUX_SESSION" || -z "$TMUX_PANE" ]]; then
-  echo '{"block":false}'
-  exit 0
+  if [[ -z "$TMUX_SESSION" || -z "$TMUX_PANE" ]]; then
+    echo '{"block":false}'
+    exit 0
+  fi
+
+  SESSION_ID="${TMUX_SESSION}.${TMUX_PANE}"
 fi
-
-SESSION_ID="${TMUX_SESSION}.${TMUX_PANE}"
 INBOX_DIR="$IPC_DIR/$SESSION_ID/inbox"
 PROCESSED_DIR="$IPC_DIR/$SESSION_ID/processed"
 REGISTRY="$IPC_DIR/registry.json"
