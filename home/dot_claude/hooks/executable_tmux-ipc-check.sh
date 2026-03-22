@@ -1,15 +1,16 @@
 #!/bin/bash
-# tmux IPC 受信フック (Claude Code UserPromptSubmit)
+# tmux IPC 受信フック (Claude Code PostToolUse)
 #
-# ユーザープロンプト送信時に inbox をスキャンし、受信メッセージをプロンプトに注入する。
+# ツール実行後に inbox をスキャンし、受信メッセージをツール出力に追記する。
+# ツールの出力にメッセージが付加され、モデルがツール応答と一緒に受信する。
 # あわせてセッション登録を更新することで、レジストリの alive 状態を維持する。
 #
 # フック入力 (stdin):
-#   {"session_id": "...", "hook_event_name": "UserPromptSubmit", "prompt": "..."}
+#   {"tool_name": "...", "tool_input": {...}, "tool_response": {"output": "..."}, ...}
 #
 # フック出力:
-#   {"block": false, "prompt": "<元のプロンプト + IPC メッセージ>"}
-#   メッセージがない場合は {"block": false}
+#   {"output": "<元のツール出力 + IPC メッセージ>"}
+#   メッセージがない場合は空出力（ツール出力を変更しない）
 
 IPC_DIR="/tmp/tmux-ipc"
 
@@ -18,7 +19,6 @@ INPUT_JSON=$(cat)
 
 # tmux セッション外の場合はスキップ
 if [[ -z "${TMUX:-}" ]]; then
-  echo '{"block":false}'
   exit 0
 fi
 
@@ -31,7 +31,6 @@ else
   TMUX_PANE=$(tmux display-message -p '#{pane_id}' 2>/dev/null || echo "")
 
   if [[ -z "$TMUX_SESSION" || -z "$TMUX_PANE" ]]; then
-    echo '{"block":false}'
     exit 0
   fi
 
@@ -62,7 +61,6 @@ fi
 
 # inbox が存在しない場合はスキップ
 if [[ ! -d "$INBOX_DIR" ]]; then
-  echo '{"block":false}'
   exit 0
 fi
 
@@ -104,11 +102,11 @@ done
 shopt -u nullglob
 
 if [[ "$MSG_COUNT" -gt 0 ]]; then
-  # 元のプロンプトを取得
-  ORIGINAL_PROMPT=$(echo "$INPUT_JSON" | jq -r '.prompt // ""')
+  # 元のツール出力を取得
+  ORIGINAL_OUTPUT=$(echo "$INPUT_JSON" | jq -r '.tool_response.output // ""')
 
-  # IPC セクションをプロンプトに追記
-  APPENDED="
+  # IPC セクションをツール出力に追記
+  IPC_NOTICE="
 
 
 ---
@@ -117,9 +115,7 @@ ${IPC_SECTION}
 ---
 上記は他のエージェントから受信した IPC メッセージです。必要に応じて内容を確認・対応してください。"
 
-  NEW_PROMPT="${ORIGINAL_PROMPT}${APPENDED}"
+  NEW_OUTPUT="${ORIGINAL_OUTPUT}${IPC_NOTICE}"
 
-  jq -n --arg prompt "$NEW_PROMPT" '{"block": false, "prompt": $prompt}'
-else
-  echo '{"block":false}'
+  jq -n --arg output "$NEW_OUTPUT" '{"output": $output}'
 fi

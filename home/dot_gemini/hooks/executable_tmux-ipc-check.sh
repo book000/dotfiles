@@ -1,12 +1,12 @@
 #!/bin/bash
-# tmux IPC 受信フック (Gemini CLI BeforeAgent)
+# tmux IPC 受信フック (Gemini CLI AfterTool)
 #
-# ユーザープロンプト送信後、エージェントが計画を開始する前に inbox をスキャンし、
-# 受信メッセージを additionalContext としてプロンプトに注入する。
+# ツール実行後に inbox をスキャンし、受信メッセージを
+# additionalContext としてモデルに注入する。
 # あわせてセッション登録を更新することで、レジストリの alive 状態を維持する。
 #
 # フック入力 (stdin):
-#   {"session_id": "...", "hook_event_name": "BeforeAgent", "prompt": "...", ...}
+#   {"session_id": "...", "hook_event_name": "AfterTool", "tool_name": "...", ...}
 #
 # フック出力:
 #   {"hookSpecificOutput": {"additionalContext": "<IPC メッセージ>"}}

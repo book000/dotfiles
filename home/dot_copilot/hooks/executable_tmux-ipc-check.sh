@@ -1,17 +1,16 @@
 #!/bin/bash
-# tmux IPC 受信フック (GitHub Copilot CLI userPromptSubmitted)
+# tmux IPC 受信フック (GitHub Copilot CLI postToolUse)
 #
-# ユーザープロンプト送信時に inbox をスキャンし、受信メッセージを
-# stderr に出力する。Copilot CLI はフックの stderr をモデルへのコンテキストとして
-# 渡すため、IPC メッセージが自動的にモデルに伝わる。
+# ツール実行後に inbox をスキャンし、受信メッセージを
+# systemMessage としてモデルに通知する。
 # あわせてセッション登録を更新することで、レジストリの alive 状態を維持する。
 #
 # フック入力 (stdin):
-#   {"timestamp": ..., "cwd": "...", "prompt": "..."}
+#   {"hook_event_name": "postToolUse", "tool_name": "...", ...}
 #
 # フック出力:
-#   stdout: 無視される（Copilot CLI の仕様）
-#   stderr: モデルへのコンテキストとして渡される
+#   {"continue": true, "systemMessage": "<IPC メッセージ>"}
+#   メッセージがない場合は空出力
 
 # stdin を消費する（早期 exit の前に必ず実施する）
 cat > /dev/null
@@ -103,12 +102,13 @@ done
 shopt -u nullglob
 
 if [[ "$MSG_COUNT" -gt 0 ]]; then
-  # stderr にメッセージを書き込む（Copilot CLI はフックの stderr をモデルへのコンテキストとして渡す）
-  cat >&2 <<EOF
----
+  # systemMessage として IPC セクションを通知
+  SYSTEM_MESSAGE="---
 **[tmux IPC] ${MSG_COUNT} 件のメッセージを受信しました:**
 ${IPC_SECTION}
 ---
-上記は他のエージェントから受信した IPC メッセージです。必要に応じて内容を確認・対応してください。
-EOF
+上記は他のエージェントから受信した IPC メッセージです。必要に応じて内容を確認・対応してください。"
+
+  jq -n --arg msg "$SYSTEM_MESSAGE" \
+    '{"continue": true, "systemMessage": $msg}'
 fi

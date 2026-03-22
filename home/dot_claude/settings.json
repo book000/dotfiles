@@ -46,6 +46,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash ~/.claude/hooks/executable_tmux-ipc-check.sh"
+          },
+          {
+            "type": "command",
             "command": "bash ~/.claude/hooks/executable_code-review-immediate-fix.sh"
           },
           {
@@ -81,10 +85,6 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/executable_tmux-ipc-check.sh"
-          },
           {
             "type": "command",
             "command": "~/.claude/scripts/completion-notify/notify-user-prompt-submit.sh"

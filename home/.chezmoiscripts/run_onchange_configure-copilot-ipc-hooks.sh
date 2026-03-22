@@ -25,14 +25,14 @@ if ! command -v jq &>/dev/null; then
 fi
 
 # すでに設定済みかチェック
-if jq -e '.hooks.userPromptSubmitted // empty' "$CONFIG" > /dev/null 2>&1; then
-  echo "[copilot-ipc-hooks] userPromptSubmitted フックは既に設定済みです"
+if jq -e '.hooks.postToolUse // empty' "$CONFIG" > /dev/null 2>&1; then
+  echo "[copilot-ipc-hooks] postToolUse フックは既に設定済みです"
   exit 0
 fi
 
-# hooks.userPromptSubmitted を追加（既存の設定を保持）
+# hooks.postToolUse を追加（既存の設定を保持）
 UPDATED=$(jq --arg script "$HOOK_SCRIPT" '
-  .hooks.userPromptSubmitted = [
+  .hooks.postToolUse = [
     {
       "type": "command",
       "bash": $script
@@ -41,4 +41,4 @@ UPDATED=$(jq --arg script "$HOOK_SCRIPT" '
 ' "$CONFIG") || { echo "[copilot-ipc-hooks] jq によるフック追加に失敗しました" >&2; exit 1; }
 
 echo "$UPDATED" > "$CONFIG"
-echo "[copilot-ipc-hooks] userPromptSubmitted フックを ~/.copilot/config.json に追加しました"
+echo "[copilot-ipc-hooks] postToolUse フックを ~/.copilot/config.json に追加しました"
