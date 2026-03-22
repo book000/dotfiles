@@ -15,18 +15,18 @@ CONFIG="$HOME/.copilot/config.json"
 HOOK_SCRIPT="$HOME/.copilot/hooks/tmux-ipc-check.sh"
 
 if [[ ! -f "$CONFIG" ]]; then
-  echo "[copilot-ipc-hooks] ~/.copilot/config.json が存在しないためスキップします"
+  echo "[copilot-ipc-hooks] Skipping: ~/.copilot/config.json not found"
   exit 0
 fi
 
 if ! command -v jq &>/dev/null; then
-  echo "[copilot-ipc-hooks] jq が見つからないためスキップします" >&2
+  echo "[copilot-ipc-hooks] Skipping: jq not found" >&2
   exit 0
 fi
 
 # すでに設定済みかチェック
 if jq -e '.hooks.postToolUse // empty' "$CONFIG" > /dev/null 2>&1; then
-  echo "[copilot-ipc-hooks] postToolUse フックは既に設定済みです"
+  echo "[copilot-ipc-hooks] postToolUse hook already configured"
   exit 0
 fi
 
@@ -38,7 +38,8 @@ UPDATED=$(jq --arg script "$HOOK_SCRIPT" '
       "bash": $script
     }
   ]
-' "$CONFIG") || { echo "[copilot-ipc-hooks] jq によるフック追加に失敗しました" >&2; exit 1; }
+' "$CONFIG") || { echo "[copilot-ipc-hooks] Error: failed to add hook via jq" >&2; exit 1; }
 
-echo "$UPDATED" > "$CONFIG"
-echo "[copilot-ipc-hooks] postToolUse フックを ~/.copilot/config.json に追加しました"
+# アトミックな書き込みで設定ファイルの破損を防ぐ
+echo "$UPDATED" > "${CONFIG}.tmp" && mv "${CONFIG}.tmp" "$CONFIG"
+echo "[copilot-ipc-hooks] postToolUse hook added to ~/.copilot/config.json"

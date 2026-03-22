@@ -82,7 +82,7 @@ TMUX_TARGET_PANE="${TO##*.}"
 if tmux has-session -t "$TMUX_TARGET_SESSION" 2>/dev/null; then
   case "$DEST_AGENT" in
     claude)
-      # Claude Code: UserPromptSubmit フックが inbox をスキャンするため追加通知は不要。
+      # Claude Code: PostToolUse フックがツール実行後に inbox をスキャンするため追加通知は不要。
       : # 何もしない（フックに委ねる）
       ;;
     gemini | codex | copilot | unknown)

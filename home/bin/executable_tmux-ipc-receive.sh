@@ -18,7 +18,7 @@ if [[ -n "${1:-}" ]]; then
   SESSION_ID="$1"
 elif [[ -n "${TMUX:-}" ]]; then
   TMUX_SESSION=$(tmux display-message -p '#S' 2>/dev/null || echo "")
-  TMUX_PANE=$(tmux display-message -p '#P' 2>/dev/null || echo "")
+  TMUX_PANE=$(tmux display-message -p '#{pane_id}' 2>/dev/null || echo "")
   SESSION_ID="${TMUX_SESSION}.${TMUX_PANE}"
 else
   echo "Error: No session ID provided and not in a tmux session" >&2
