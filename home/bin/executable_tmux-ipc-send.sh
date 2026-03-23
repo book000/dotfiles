@@ -1,8 +1,9 @@
 #!/bin/bash
 # tmux IPC メッセージ送信スクリプト
 #
-# 指定した宛先セッションの inbox にメッセージを書き込み、必要に応じて
-# tmux send-keys で受信側エージェントに通知する。
+# 指定した宛先セッションの inbox にメッセージを書き込む。
+# 受信側エージェントは各自のフックで inbox を自動スキャンするため、
+# tmux send-keys による能動的通知は行わない。
 #
 # Usage: tmux-ipc-send.sh <to_session_id> <body> [ttl_seconds]
 #   to_session_id : 宛先セッション ID (例: main.%2)
@@ -12,7 +13,6 @@
 set -euo pipefail
 
 IPC_DIR="/tmp/tmux-ipc"
-REGISTRY="$IPC_DIR/registry.json"
 
 if [[ $# -lt 2 ]]; then
   echo "Usage: $0 <to_session_id> <body> [ttl_seconds]" >&2
@@ -65,34 +65,3 @@ jq -n \
   > "$MSG_FILE"
 
 echo "Sent: $MSG_ID -> $TO"
-
-# 受信側への通知 (tmux send-keys)
-# 宛先セッションのエージェント種別を確認
-DEST_AGENT="unknown"
-if [[ -f "$REGISTRY" ]]; then
-  DEST_AGENT=$(jq -r --arg id "$TO" \
-    '.sessions[] | select(.id == $id) | .agent // "unknown"' \
-    "$REGISTRY" 2>/dev/null || echo "unknown")
-fi
-
-# tmux ターゲットを構築 (session_id = "session.pane" 形式)
-TMUX_TARGET_SESSION="${TO%.*}"
-TMUX_TARGET_PANE="${TO##*.}"
-
-if tmux has-session -t "$TMUX_TARGET_SESSION" 2>/dev/null; then
-  case "$DEST_AGENT" in
-    claude)
-      # Claude Code: PostToolUse フックがツール実行後に inbox をスキャンするため追加通知は不要。
-      : # 何もしない（フックに委ねる）
-      ;;
-    gemini | codex | copilot | unknown)
-      # 非 Claude エージェント: 受信スクリプトを実行するよう通知
-      NOTIFY_MSG="[tmux-ipc] New message from ${FROM}. Run: tmux-ipc-receive.sh"
-      tmux send-keys -t "$TMUX_TARGET_PANE" \
-        "$NOTIFY_MSG" 2>/dev/null || true
-      sleep 3
-      tmux send-keys -t "$TMUX_TARGET_PANE" \
-        Enter 2>/dev/null || true
-      ;;
-  esac
-fi
