@@ -1,1 +1,0 @@
-tmux-ipc-check.sh
