@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.codex/hooks/tmux-ipc-check.sh",
+            "statusMessage": "tmux IPC メッセージを確認中...",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
