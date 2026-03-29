@@ -7,7 +7,7 @@
     "DISABLE_ERROR_REPORTING": "1",
     "DISABLE_TELEMETRY": "1"
   },
-  "model": "sonnet",
+  "model": "opusplan",
   "autoMemoryEnabled": false,
   "hooks": {
     "Stop": [
