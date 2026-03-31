@@ -1,7 +1,23 @@
 # AI CLI ツールのエイリアス設定
 # --dangerously-skip-permissions や --yolo は、確認プロンプトをスキップして実行するためのオプションです。
 # AI エージェントの自動更新 (update-ai-agents.sh --quick --only <agent>) を各 CLI 実行前に実行します。
-alias claude='[ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick --only claude; ~/.local/share/chezmoi/update.sh; claude --dangerously-skip-permissions'
+# claude コマンドのラッパー関数。
+# AI エージェント・chezmoi の更新を行い、--dangerously-skip-permissions を付与して実行する。
+# ただし remote-control サブコマンドはフラグを付与しない。
+# （--dangerously-skip-permissions が前置されると process.argv[2] が "remote-control" でなくなり、
+#   コマンドディスパッチが失敗して "Unknown argument: remote-control" エラーが発生するため）
+# 既存セッションで旧エイリアスが残存している場合に備えて、関数定義前に unalias する。
+unalias claude 2>/dev/null
+claude() {
+  [ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick --only claude
+  ~/.local/share/chezmoi/update.sh
+  case "$1" in
+    remote-control|rc)
+      command claude "$@" ;;
+    *)
+      command claude --dangerously-skip-permissions "$@" ;;
+  esac
+}
 alias codex='[ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick --only codex; ~/.local/share/chezmoi/update.sh; codex --yolo'
 alias gemini='[ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick --only gemini; ~/.local/share/chezmoi/update.sh; gemini --yolo'
 # copilot コマンドのラッパー関数。
