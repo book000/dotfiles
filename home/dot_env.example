@@ -37,3 +37,12 @@ DISCORD_GEMINI_WEBHOOK="https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WE
 
 # Discord でメンションするユーザー ID（オプション）
 DISCORD_GEMINI_MENTION_USER_ID=""
+
+# -----------------------------------------
+# Discord Webhooks - Codex CLI
+# -----------------------------------------
+# Codex CLI の Stop hook で通知を送信する Webhook URL
+DISCORD_CODEX_WEBHOOK="https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+
+# Discord でメンションするユーザー ID（オプション）
+DISCORD_CODEX_MENTION_USER_ID=""

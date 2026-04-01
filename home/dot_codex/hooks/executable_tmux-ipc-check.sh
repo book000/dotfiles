@@ -1,22 +1,31 @@
 #!/bin/bash
-# tmux IPC 受信フック (Codex CLI UserPromptSubmit)
+# tmux IPC 受信フック (Codex CLI SessionStart / UserPromptSubmit / PostToolUse)
 #
-# ユーザープロンプト送信時に inbox をスキャンし、受信メッセージを
-# additionalContext としてプロンプトに注入する。
+# Codex のフック実行時に inbox をスキャンし、受信メッセージを
+# additionalContext として注入する。
 # あわせてセッション登録を更新することで、レジストリの alive 状態を維持する。
 #
 # フック入力 (stdin):
-#   {"hookEventName": "UserPromptSubmit", "prompt": "...", ...}
+#   {"hook_event_name": "UserPromptSubmit", ...}
 #
 # フック出力:
-#   {"hookSpecificOutput": {"additionalContext": "<IPC メッセージ>"}}
+#   {"hookSpecificOutput": {"hookEventName": "<event>", "additionalContext": "<IPC メッセージ>"}}
 #   メッセージがない場合は空出力
 #   ブロックする場合: exit 2 + stderr にブロック理由を書き込む
 
-# stdin を消費する（早期 exit の前に必ず実施する）
-cat > /dev/null
+INPUT_JSON=$(cat 2>/dev/null || true)
+HOOK_EVENT_NAME="UserPromptSubmit"
+if [[ -n "$INPUT_JSON" ]]; then
+  PARSED_HOOK_EVENT_NAME=$(
+    printf '%s' "$INPUT_JSON" \
+      | jq -re '.hook_event_name // .hookEventName' 2>/dev/null || true
+  )
+  if [[ -n "$PARSED_HOOK_EVENT_NAME" && "$PARSED_HOOK_EVENT_NAME" != "null" ]]; then
+    HOOK_EVENT_NAME="$PARSED_HOOK_EVENT_NAME"
+  fi
+fi
 
-IPC_DIR="/tmp/tmux-ipc"
+IPC_DIR="${TMUX_IPC_DIR:-/tmp/tmux-ipc}"
 
 # tmux セッション外の場合はスキップ
 if [[ -z "${TMUX:-}" ]]; then
@@ -76,12 +85,16 @@ for msg_file in "$INBOX_DIR"/*.json; do
   [[ -f "$msg_file" ]] || continue
 
   MSG_JSON=$(cat "$msg_file" 2>/dev/null) || continue
+  if ! printf '%s' "$MSG_JSON" | jq -e . >/dev/null 2>&1; then
+    mv "$msg_file" "$PROCESSED_DIR/" 2>/dev/null || rm -f "$msg_file"
+    continue
+  fi
 
-  MSG_ID=$(echo "$MSG_JSON"        | jq -r '.id        // "unknown"')
-  MSG_FROM=$(echo "$MSG_JSON"      | jq -r '.from     // "unknown"')
-  MSG_TIMESTAMP=$(echo "$MSG_JSON" | jq -r '.timestamp // 0')
-  MSG_TTL=$(echo "$MSG_JSON"       | jq -r '.ttl       // 300')
-  MSG_BODY=$(echo "$MSG_JSON"      | jq -r '.body     // ""')
+  MSG_ID=$(printf '%s' "$MSG_JSON" | jq -r '.id        // "unknown"')
+  MSG_FROM=$(printf '%s' "$MSG_JSON" | jq -r '.from     // "unknown"')
+  MSG_TIMESTAMP=$(printf '%s' "$MSG_JSON" | jq -r '.timestamp // 0')
+  MSG_TTL=$(printf '%s' "$MSG_JSON" | jq -r '.ttl       // 300')
+  MSG_BODY=$(printf '%s' "$MSG_JSON" | jq -r '.body     // ""')
 
   # TTL チェック
   EXPIRY=$((MSG_TIMESTAMP + MSG_TTL))
@@ -110,6 +123,6 @@ ${IPC_SECTION}
 ---
 上記は他のエージェントから受信した IPC メッセージです。必要に応じて内容を確認・対応してください。"
 
-  jq -n --arg ctx "$ADDITIONAL_CONTEXT" \
-    '{"hookSpecificOutput": {"additionalContext": $ctx}}'
+  jq -n --arg event "$HOOK_EVENT_NAME" --arg ctx "$ADDITIONAL_CONTEXT" \
+    '{"hookSpecificOutput": {"hookEventName": $event, "additionalContext": $ctx}}'
 fi

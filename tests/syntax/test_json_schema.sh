@@ -26,6 +26,44 @@ if [ -f "home/dot_claude/settings.json" ]; then
   FILES_CHECKED=$((FILES_CHECKED + 1))
 fi
 
+# Codex CLI hooks.json
+if [ -f "home/dot_codex/hooks.json" ]; then
+  echo "Validating Codex CLI hooks.json..."
+  if ! jq empty home/dot_codex/hooks.json; then
+    echo "❌ Codex CLI hooks.json validation failed"
+    FAILED=1
+  else
+    echo "✅ Codex CLI hooks.json validation passed"
+  fi
+  FILES_CHECKED=$((FILES_CHECKED + 1))
+fi
+
+# Codex CLI config.toml
+if [ -f "home/dot_codex/config.toml" ]; then
+  echo "Validating Codex CLI config.toml..."
+  if ! python3 - <<'PY'
+import pathlib
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    try:
+        import tomli as tomllib
+    except ModuleNotFoundError:
+        raise SystemExit("tomllib or tomli is required to validate TOML but is not installed.")
+
+with pathlib.Path("home/dot_codex/config.toml").open("rb") as fh:
+    tomllib.load(fh)
+PY
+  then
+    echo "❌ Codex CLI config.toml validation failed"
+    FAILED=1
+  else
+    echo "✅ Codex CLI config.toml validation passed"
+  fi
+  FILES_CHECKED=$((FILES_CHECKED + 1))
+fi
+
 # Gemini CLI settings.json (公式スキーマを使用)
 # 注意: Gemini CLI が書き出すフィールド（previewFeatures など）が公式スキーマに
 #       未定義の場合があるため、general セクションの additionalProperties 制約を緩和する

@@ -59,6 +59,38 @@ fi
 
 echo "✅ Basic files generated successfully"
 
+if [ ! -f "$HOME/.codex/hooks.json" ]; then
+  echo "❌ Codex hooks.json not generated"
+  exit 1
+fi
+
+if [ ! -x "$HOME/.codex/hooks/tmux-ipc-check.sh" ]; then
+  echo "❌ Codex tmux IPC hook not generated"
+  exit 1
+fi
+
+if [ ! -x "$HOME/.codex/scripts/completion-notify/notify-completion.sh" ]; then
+  echo "❌ Codex completion notification script not generated"
+  exit 1
+fi
+
+if [ ! -f "$HOME/.agents/skills/issue-pr/SKILL.md" ]; then
+  echo "❌ Codex issue-pr skill not generated"
+  exit 1
+fi
+
+if [ ! -x "$HOME/bin/gh-pr-target-repo.sh" ]; then
+  echo "❌ gh-pr-target-repo helper not generated"
+  exit 1
+fi
+
+if [ ! -x "$HOME/.agents/skills/pr-health-monitor/scripts/wait-for-copilot-review.sh" ]; then
+  echo "❌ Codex Copilot review watcher script not generated"
+  exit 1
+fi
+
+echo "✅ Codex files generated successfully"
+
 # Idempotency テスト: 2 回目の apply で差分がないことを確認
 echo "Testing idempotency..."
 # .chezmoiscripts/ ディレクトリの変更は無視 (chezmoi の内部管理ファイル)

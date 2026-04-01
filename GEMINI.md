@@ -37,8 +37,8 @@
 1. コンフリクトがないことを確認する
 2. PR 本文が最新状態のみを網羅していることを確認する
 3. `gh pr checks <PR ID> --watch` で CI を確認する
-4. Copilot レビューに対応し、コメントに返信し、対応したレビュースレッドのみ resolve する（詳細は `home/dot_claude/CLAUDE.md` を参照）
-5. Codex のコードレビューを実施し、指摘対応を行う
+4. Copilot レビューに対応し、コメントに返信し、対応したレビュースレッドのみ resolve する
+5. 必要に応じて追加のコードレビューを実施し、指摘対応を行う
 6. PR 本文の崩れがないことを確認する
 
 ## 注意事項
@@ -50,3 +50,5 @@
 
 - `home/` 配下が chezmoi のソース。
 - エージェント用プロンプトは `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.github/copilot-instructions.md` に配置する。
+- エージェント固有の指示やワークフローは、それぞれの prompt ファイルにのみ記載する。
+- `upstream` remote がある場合、PR 作成先は upstream を既定とし、`gh-pr-target-repo.sh` で解決する。
