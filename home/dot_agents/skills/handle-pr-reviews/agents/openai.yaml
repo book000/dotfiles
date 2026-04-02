@@ -1,0 +1,6 @@
+interface:
+  display_name: "Handle PR Reviews"
+  short_description: "未解決レビュースレッドを修正、返信、resolve まで処理する"
+  default_prompt: "$handle-pr-reviews <pr-number-or-url>"
+policy:
+  allow_implicit_invocation: false

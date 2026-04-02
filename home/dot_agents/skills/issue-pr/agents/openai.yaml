@@ -1,0 +1,6 @@
+interface:
+  display_name: "Issue To PR"
+  short_description: "Issue から PR 作成と PR 後フロー開始までを進める"
+  default_prompt: "$issue-pr <issue-number-or-url>"
+policy:
+  allow_implicit_invocation: false
