@@ -43,13 +43,15 @@ tmux_session_selector() {
   }
 
   _tmux_collect_extra_actions() {
-    # fzf入力（4カラム）:
-    # DISPLAY<TAB>TYPE<TAB>KEY<TAB>PREVIEW_TARGET
-    # ACTION は PREVIEW_TARGET を空にする
+    # fzf 入力（4 カラム）:
+    # DISPLAY<TAB>TYPE<TAB>KEY<TAB>PANE_ID
+    # ACTION は PANE_ID を空にする
     if declare -F tmux_extra_actions >/dev/null 2>&1; then
       tmux_extra_actions 2>/dev/null | while IFS=$'\t' read -r action_id label cmd; do
         [[ -n "$action_id" && -n "$label" && -n "$cmd" ]] || continue
-        printf "%s\tACTION\t%s\t\n" "$label" "$action_id"
+        # タブ文字が含まれると TSV の区切りが崩れるため、スペースに置換する
+        local safe_label="${label//$'\t'/ }"
+        printf "%s\tACTION\t%s\t\n" "$safe_label" "$action_id"
       done
     fi
   }
@@ -79,7 +81,7 @@ tmux_session_selector() {
   local sessions
   sessions="$(tmux list-sessions -F '#{session_name}|#{session_attached}|#{session_windows}|#{session_created}' 2>/dev/null || true)"
 
-  # fzf入力（タブ区切り 4カラム）: DISPLAY<TAB>TYPE<TAB>KEY<TAB>PREVIEW_TARGET
+  # fzf 入力（タブ区切り 4 カラム）: DISPLAY<TAB>TYPE<TAB>KEY<TAB>PANE_ID
   # DISPLAY を先頭カラムにすることで --with-nth=1 を使え、fzf の古いバージョンでの
   # フィールド番号の曖昧さ（--with-nth=3 の誤動作）を回避できる
   local detailed_options=""
@@ -121,7 +123,9 @@ tmux_session_selector() {
       fi
 
       display="$sname: [$cmd] ($cwd) ${swindows}w (created $created_fmt)$attach_status"
-      # KEY は session_name（ただし attach は必ず =name を使う）
+      # タブ文字が含まれると TSV の区切りが崩れるため、スペースに置換する
+      display="${display//$'\t'/ }"
+      # KEY は session_name。tmux のターゲット指定は "${session_name}:" で厳密に扱う
       # フィールド順: DISPLAY<TAB>TYPE<TAB>KEY<TAB>PANE_ID
       detailed_options+="$display"$'\t'"SESSION"$'\t'"$sname"$'\t'"$pane_id"$'\n'
     done <<< "$sessions"
