@@ -43,13 +43,15 @@ tmux_session_selector() {
   }
 
   _tmux_collect_extra_actions() {
-    # fzf入力（4カラム）:
-    # TYPE<TAB>KEY<TAB>DISPLAY<TAB>PREVIEW_TARGET
-    # ACTION は PREVIEW_TARGET を空にする
+    # fzf 入力（4 カラム）:
+    # DISPLAY<TAB>TYPE<TAB>KEY<TAB>PANE_ID
+    # ACTION は PANE_ID を空にする
     if declare -F tmux_extra_actions >/dev/null 2>&1; then
       tmux_extra_actions 2>/dev/null | while IFS=$'\t' read -r action_id label cmd; do
         [[ -n "$action_id" && -n "$label" && -n "$cmd" ]] || continue
-        printf "ACTION\t%s\t%s\t\n" "$action_id" "$label"
+        # タブ文字が含まれると TSV の区切りが崩れるため、スペースに置換する
+        local safe_label="${label//$'\t'/ }"
+        printf "%s\tACTION\t%s\t\n" "$safe_label" "$action_id"
       done
     fi
   }
@@ -79,7 +81,9 @@ tmux_session_selector() {
   local sessions
   sessions="$(tmux list-sessions -F '#{session_name}|#{session_attached}|#{session_windows}|#{session_created}' 2>/dev/null || true)"
 
-  # fzf入力（タブ区切り 4カラム）
+  # fzf 入力（タブ区切り 4 カラム）: DISPLAY<TAB>TYPE<TAB>KEY<TAB>PANE_ID
+  # DISPLAY を先頭カラムにすることで --with-nth=1 を使え、fzf の古いバージョンでの
+  # フィールド番号の曖昧さ（--with-nth=3 の誤動作）を回避できる
   local detailed_options=""
   if [[ -n "$sessions" ]]; then
     local sname sattached swindows screated
@@ -119,13 +123,17 @@ tmux_session_selector() {
       fi
 
       display="$sname: [$cmd] ($cwd) ${swindows}w (created $created_fmt)$attach_status"
-      # KEY は session_name（ただし attach は必ず =name を使う）
-      detailed_options+="SESSION"$'\t'"$sname"$'\t'"$display"$'\t'"$pane_id"$'\n'
+      # タブ文字が含まれると TSV の区切りが崩れるため、スペースに置換する
+      display="${display//$'\t'/ }"
+      # KEY は session_name。tmux のターゲット指定は "${session_name}:" で厳密に扱う
+      # フィールド順: DISPLAY<TAB>TYPE<TAB>KEY<TAB>PANE_ID
+      detailed_options+="$display"$'\t'"SESSION"$'\t'"$sname"$'\t'"$pane_id"$'\n'
     done <<< "$sessions"
   fi
 
   # セッション0件でも必ず NEW を出す（即 new-session はしない）
-  detailed_options+="NEW"$'\t'"__new__"$'\t'"Create New Session: [new] Create a new tmux session"$'\t'
+  # フィールド順: DISPLAY<TAB>TYPE<TAB>KEY<TAB>PANE_ID（PANE_IDは空）
+  detailed_options+="Create New Session: [new] Create a new tmux session"$'\t'"NEW"$'\t'"__new__"$'\t'
 
   # ACTION（任意）
   local extra_actions
@@ -135,9 +143,11 @@ tmux_session_selector() {
   fi
 
   # --- fzf preview ---
-  # クォート崩壊を避けるため、bash -c に {1}{2}{4} を引数で渡す
+  # クォート崩壊を避けるため、bash -c に {2}{3}{4} を引数で渡す
   local preview_cmd
   # shellcheck disable=SC2016
+  # フィールド順: DISPLAY{1}<TAB>TYPE{2}<TAB>KEY{3}<TAB>PANE_ID{4}
+  # bash -c の引数: _ TYPE KEY PANE_ID（DISPLAYはプレビューに不要のためスキップ）
   preview_cmd='bash -c '\''
   t="$1"; key="$2"; pane="$3";
   lines="${TMUX_FZF_PREVIEW_LINES:-15}"
@@ -161,7 +171,7 @@ tmux_session_selector() {
   else
     echo "preview: unknown type=$t"
   fi
-  '\'' _ {1} {2} {4}'
+  '\'' _ {2} {3} {4}'
 
   # --- fzf ---
   local selected
@@ -171,8 +181,9 @@ tmux_session_selector() {
         --height="$TMUX_FZF_HEIGHT" \
         --reverse \
         --border \
+        --no-sort \
         --delimiter=$'\t' \
-        --with-nth=3 \
+        --with-nth=1 \
         --prompt='Select session/action: ' \
         --preview-window=up:"$TMUX_PREVIEW_HEIGHT":follow:wrap \
         --preview "$preview_cmd"
@@ -184,17 +195,19 @@ tmux_session_selector() {
         --height="$TMUX_FZF_HEIGHT" \
         --reverse \
         --border \
+        --no-sort \
         --delimiter=$'\t' \
-        --with-nth=3 \
+        --with-nth=1 \
         --prompt='Select session/action: '
     )" || return 1
   fi
 
   [[ -z "$selected" ]] && return 1
 
+  # フィールド順: DISPLAY{1}<TAB>TYPE{2}<TAB>KEY{3}<TAB>PANE_ID{4}
   local sel_type sel_key
-  sel_type="$(printf "%s" "$selected" | cut -f1)"
-  sel_key="$(printf "%s" "$selected" | cut -f2)"
+  sel_type="$(printf "%s" "$selected" | cut -f2)"
+  sel_key="$(printf "%s" "$selected" | cut -f3)"
 
   case "$sel_type" in
     NEW)
