@@ -46,6 +46,8 @@ fi
 # プログレスバーを生成する（合計 20 文字分）
 BAR_WIDTH=20
 FILLED=$(( USED_INT * BAR_WIDTH / 100 ))
+# 使用率が 100% を超えた場合はバー幅を上限にクランプする
+if [ "$FILLED" -gt "$BAR_WIDTH" ]; then FILLED=$BAR_WIDTH; fi
 EMPTY=$(( BAR_WIDTH - FILLED ))
 
 BAR_FILLED=""
@@ -58,7 +60,7 @@ for ((i = 0; i < EMPTY; i++)); do
   BAR_EMPTY="${BAR_EMPTY}░"
 done
 
-# トークン数を K 単位で整形する（bc の代わりに awk を使用）
+# トークン数を K 単位の文字列に変換する（1000 未満はそのまま整数表示）
 format_tokens() {
   local n="$1"
   if [ "$n" -ge 1000 ]; then
