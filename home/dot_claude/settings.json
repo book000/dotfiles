@@ -121,5 +121,9 @@
     }
   },
   "skipDangerousModePermissionPrompt": true,
-  "showThinkingSummaries": true
+  "showThinkingSummaries": true,
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/hooks/statusline.sh"
+  }
 }
