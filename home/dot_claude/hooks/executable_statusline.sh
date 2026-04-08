@@ -5,27 +5,38 @@
 # stdin から JSON を読み込む
 INPUT=$(cat)
 
-# コンテキストウィンドウの使用率を取得する（事前計算済みフィールドを優先）
-USED_PCT=$(echo "$INPUT" | jq -r '.context_window.used_percentage // empty')
-
-# used_percentage が存在しない場合は percent_used にフォールバックする
-if [ -z "$USED_PCT" ]; then
-  USED_PCT=$(echo "$INPUT" | jq -r '.context_window.percent_used // empty')
-fi
+# jq を 1 回だけ呼び出して必要なフィールドをまとめて取得する（オーバーヘッド削減）
+read -r USED_PCT TOKENS_USED CTX_MAX <<< "$(
+  echo "$INPUT" | jq -r '
+    [
+      (.context_window.used_percentage // .context_window.percent_used // ""),
+      (.context_window.tokens_used // 0 | tostring),
+      (.context_window.context_window_size // .context_window.current_model_max // 0 | tostring)
+    ] | join("\t")
+  ' 2>/dev/null
+)"
 
 # 使用率が取得できない場合は何も表示せず終了する
 if [ -z "$USED_PCT" ]; then
   exit 0
 fi
 
-# 使用率を整数に丸める
-USED_INT=$(printf "%.0f" "$USED_PCT")
+# 使用率を整数に丸める（非数値入力時は 0 にフォールバック）
+USED_INT=$(printf "%.0f" "$USED_PCT" 2>/dev/null || printf "0")
 
-# 使用中のトークン数を取得する
-TOKENS_USED=$(echo "$INPUT" | jq -r '.context_window.tokens_used // 0')
+# 丸め結果が不正な値の場合は 0 に補正する
+case "$USED_INT" in
+  ''|*[!0-9-]*)
+    USED_INT=0
+    ;;
+esac
 
-# コンテキストウィンドウの最大サイズを取得する
-CTX_MAX=$(echo "$INPUT" | jq -r '.context_window.context_window_size // .context_window.current_model_max // 0')
+# プログレスバー算出前に 0〜100 にクランプする
+if [ "$USED_INT" -lt 0 ]; then
+  USED_INT=0
+elif [ "$USED_INT" -gt 100 ]; then
+  USED_INT=100
+fi
 
 # ANSI カラーコードの定義
 COLOR_RESET="\033[0m"
@@ -46,8 +57,6 @@ fi
 # プログレスバーを生成する（合計 20 文字分）
 BAR_WIDTH=20
 FILLED=$(( USED_INT * BAR_WIDTH / 100 ))
-# 使用率が 100% を超えた場合はバー幅を上限にクランプする
-if [ "$FILLED" -gt "$BAR_WIDTH" ]; then FILLED=$BAR_WIDTH; fi
 EMPTY=$(( BAR_WIDTH - FILLED ))
 
 BAR_FILLED=""
@@ -63,10 +72,17 @@ done
 # トークン数を K 単位の文字列に変換する（1000 未満はそのまま整数表示）
 format_tokens() {
   local n="$1"
-  if [ "$n" -ge 1000 ]; then
-    awk "BEGIN { printf \"%.1fK\", $n / 1000 }"
+  # 数値以外は 0 として扱う
+  case "$n" in
+    ''|*[!0-9.]*|*.*.*)
+      n=0
+      ;;
+  esac
+  if [ "${n%.*}" -ge 1000 ] 2>/dev/null; then
+    # -v で値を渡してシェル展開によるコード注入を防ぐ
+    awk -v n="$n" 'BEGIN { printf "%.1fK", n / 1000 }'
   else
-    printf "%d" "$n"
+    printf "%d" "${n%.*}"
   fi
 }
 
