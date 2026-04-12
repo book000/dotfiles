@@ -1,0 +1,23 @@
+# RTK (Rust Token Killer) 設定ファイル
+# https://github.com/rtk-ai/rtk
+
+[tracking]
+# トークン節約統計データベースのパス
+# デフォルト: ~/.local/share/rtk/history.db (Linux)
+#           ~/Library/Application Support/rtk/history.db (macOS)
+database_path = "{{ .chezmoi.homeDir }}/.local/share/rtk/history.db"
+
+[hooks]
+# フック適用を除外するコマンド
+exclude_commands = []
+
+[tee]
+# 失敗時の完全な出力を保存
+enabled = true
+mode = "failures"  # "failures", "always", "never"
+max_files = 20     # ローテーション上限
+
+[telemetry]
+# 匿名使用統計の送信 (無効化する場合は false に設定)
+# 環境変数 RTK_TELEMETRY_DISABLED=1 でも無効化可能
+enabled = true

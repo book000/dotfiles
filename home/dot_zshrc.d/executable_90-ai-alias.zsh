@@ -34,3 +34,11 @@ copilot() {
     command copilot --yolo "$@"
   fi
 }
+# rtk コマンドのラッパー関数。
+# AI エージェントの更新を行い、rtk コマンドを実行する。
+# 既存セッションで旧エイリアスが残存している場合に備えて、関数定義前に unalias する。
+unalias rtk 2>/dev/null
+rtk() {
+  [ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick
+  command rtk "$@"
+}

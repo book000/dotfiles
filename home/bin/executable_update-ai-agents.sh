@@ -6,6 +6,7 @@
 # - GitHub Copilot CLI
 # - OpenAI Codex CLI (npm)
 # - Google Gemini CLI (npm)
+# - RTK (Rust Token Killer) (Homebrew / cargo)
 
 set -euo pipefail
 
@@ -231,6 +232,43 @@ update_gemini() {
     fi
 }
 
+# RTK の更新
+update_rtk() {
+    if ! command -v rtk >/dev/null 2>&1; then
+        log "⏭️  RTK not installed, skipping"
+        return 0
+    fi
+
+    log "🔄 Updating RTK..."
+
+    # Homebrew でインストールされているか確認
+    if command -v brew >/dev/null 2>&1 && brew list rtk &>/dev/null; then
+        log "🍺 Updating RTK via Homebrew..."
+        if brew upgrade rtk 2>&1 | tee -a "$LOG_FILE"; then
+            log "✅ RTK updated via Homebrew"
+            return 0
+        else
+            log "⚠️  RTK Homebrew update failed or already up-to-date"
+            return 0
+        fi
+    fi
+
+    # cargo でインストールされている場合
+    if command -v cargo >/dev/null 2>&1; then
+        log "🦀 Updating RTK via cargo..."
+        if cargo install --git https://github.com/rtk-ai/rtk --force 2>&1 | tee -a "$LOG_FILE"; then
+            log "✅ RTK updated via cargo"
+            return 0
+        else
+            log "❌ RTK cargo update failed"
+            return 1
+        fi
+    fi
+
+    log "⚠️  RTK is installed but no known update method (Homebrew/cargo) available"
+    return 0
+}
+
 # メイン処理
 main() {
     # オプション解析
@@ -241,7 +279,7 @@ main() {
             --quick) quick=1 ;;
             --only)
                 if [[ -z "${2:-}" ]]; then
-                    echo "❌ --only requires an agent name (claude|copilot|codex|gemini)" >&2
+                    echo "❌ --only requires an agent name (claude|copilot|codex|gemini|rtk)" >&2
                     exit 1
                 fi
                 only_agent="$2"
@@ -287,6 +325,7 @@ main() {
             copilot) update_copilot || exit_code=1 ;;
             codex)   update_codex   || exit_code=1 ;;
             gemini)  update_gemini  || exit_code=1 ;;
+            rtk)     update_rtk     || exit_code=1 ;;
             *) log "⏭️  No update function for: ${only_agent}" ;;
         esac
     else
@@ -295,6 +334,7 @@ main() {
         update_copilot  || exit_code=1
         update_codex    || exit_code=1
         update_gemini   || exit_code=1
+        update_rtk      || exit_code=1
     fi
 
     # タイムスタンプ更新 (成功時のみ)

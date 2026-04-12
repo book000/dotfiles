@@ -37,3 +37,12 @@ copilot() {
   fi
 }
 alias happy='~/.local/share/chezmoi/update.sh; happy --dangerously-skip-permissions'
+# rtk コマンドのラッパー関数。
+# AI エージェント・chezmoi の更新を行い、rtk コマンドを実行する。
+# 既存セッションで旧エイリアスが残存している場合に備えて、関数定義前に unalias する。
+unalias rtk 2>/dev/null
+rtk() {
+  [ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick --only rtk
+  ~/.local/share/chezmoi/update.sh
+  command rtk "$@"
+}
