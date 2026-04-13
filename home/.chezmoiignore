@@ -1,0 +1,35 @@
+# Claude Code の machine-specific な実行状態
+.claude/RTK.md
+.claude/.git/
+.claude/.gitignore
+.claude/.credentials.json
+.claude/history.jsonl
+.claude/backups/
+.claude/cache/
+.claude/debug/
+.claude/downloads/
+.claude/mcp-needs-auth-cache.json
+.claude/paste-cache/
+.claude/private_sessions/
+.claude/projects/
+.claude/session-env/
+.claude/settings.json.bak
+.claude/shell-snapshots/
+.claude/statsig/
+.claude/tasks/
+.claude/telemetry/
+.claude/todos/
+
+# Claude plugins のローカル生成物
+.claude/plugins/cache/
+.claude/plugins/config.json
+.claude/plugins/data/
+.claude/plugins/installed_plugins.json
+.claude/plugins/known_marketplaces.json
+.claude/plugins/private_blocklist.json
+.claude/plugins/repos/
+.claude/plugins/marketplaces/wakatime/dist/
+
+# Claude 関連スクリプトのローカル data
+.claude/scripts/completion-notify/data/
+.claude/scripts/limit-unlocked/data/
