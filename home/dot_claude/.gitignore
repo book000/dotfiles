@@ -14,6 +14,16 @@
 !hookify.*.local.md
 !.chezmoiscripts/
 
+# ランタイム生成物は Git 管理しない
+plugins/cache/
+plugins/config.json
+plugins/data/
+plugins/installed_plugins.json
+plugins/known_marketplaces.json
+plugins/marketplaces/
+plugins/private_blocklist.json
+plugins/repos/
+
 !.gitignore
 !README.md
 !CLAUDE.md
