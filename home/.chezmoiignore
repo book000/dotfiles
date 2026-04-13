@@ -1,5 +1,4 @@
 # Claude Code の machine-specific な実行状態
-.claude/RTK.md
 .claude/.git/
 .claude/.gitignore
 .claude/.credentials.json

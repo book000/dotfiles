@@ -17,4 +17,5 @@
 !.gitignore
 !README.md
 !CLAUDE.md
-!settings.json
+!RTK.md
+!private_settings.json

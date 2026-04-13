@@ -36,6 +36,15 @@
             "command": "~/.claude/scripts/completion-notify/notify-askuserquestion.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/tomachi/.claude/hooks/rtk-rewrite.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [
