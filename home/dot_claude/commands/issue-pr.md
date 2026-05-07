@@ -32,7 +32,7 @@ args:
 
 ### 実行モードとは
 
-実行モードでは、以下の従来の手順を実行します：
+実行モードでは、以下の手順を実行します：
 
 1. ブランチの作成
 2. Issue への対応（実装）
@@ -539,7 +539,8 @@ request-review-copilot https://github.com/<OWNER>/<REPO>/pull/<PR_NUMBER>
 **検出ロジック:**
 - **プライマリ判定**: GraphQL API の `author.__typename` が `Bot` かどうか
 - **セカンダリ判定**: `author.login` に `copilot` が含まれるか（補助的）
-- 完了したレビュー（`submittedAt` が null でない）のみを対象
+- **レビュー状態**: `state` が `COMMENTED` または `APPROVED` であること
+- **完了条件**: `submittedAt` が null でないこと
 
 **注意事項:**
 - 待機は最大 30 分です
@@ -594,7 +595,7 @@ gh api graphql \
   }'
 ```
 
-### 6. PR 本文の確認
+### 5. PR 本文の確認
 
 PR 本文が最新の状態を正しく反映していることを確認し、必要に応じて更新してください。
 

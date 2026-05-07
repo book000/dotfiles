@@ -187,7 +187,11 @@ Gemini CLI などの他エージェントに相談することができます。
 5. **GitHub Copilot からのレビューコメントをバックグラウンドで待機する**
    - `/wait-for-copilot-review <PR_NUMBER>` スキルを使用してバックグラウンドで待機
    - 最大 30 分待機（30 秒ごとにチェック）
-   - 検出ロジック: `author.__typename == "Bot"` かつ `author.login` に `"copilot"` を含む
+   - 検出ロジック:
+     - `author.__typename == "Bot"`
+     - `author.login` に `"copilot"` を含む
+     - `state` が `"COMMENTED"` または `"APPROVED"`
+     - `submittedAt != null`（完了したレビューのみ）
    - ログファイル: `~/.claude/logs/wait-copilot-review-<PR_NUMBER>.log`
 6. レビューコメントへの対応を行うこと。**レビューコメント対応漏れを防ぐため、以下を必ず順序通りに実施すること:**
 
