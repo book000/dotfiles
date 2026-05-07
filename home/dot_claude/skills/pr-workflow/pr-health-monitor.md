@@ -1,6 +1,6 @@
 ---
 name: pr-health-monitor
-description: PR 作成後の監視・対応フローを自動化する。CI 確認・Copilot レビュー待機・コードレビュー・コンフリクト確認・PR 本文更新を並列実行する。
+description: PR 作成後の監視・対応フローを自動化する。CI 確認・Copilot レビュー待機・コンフリクト確認・PR 本文更新を並列実行する。
 trigger: Use /pr-health-monitor <PR_NUMBER_OR_URL> immediately after creating a PR to automate the full post-PR checklist
 ---
 
@@ -103,14 +103,6 @@ BODY
 )"
 ```
 
-### Task E: コードレビュー
-
-`/code-review:code-review` を実行してコードレビューを行う。
-
-スコア 50 以上の指摘事項がある場合は **即座に修正**すること（CLAUDE.md ルール）。
-
----
-
 ## ステップ 2: 完了報告
 
 各タスクの結果をまとめて報告する。以下のフォーマットで:
@@ -119,7 +111,6 @@ BODY
 ✅ CI: 全チェック通過
 ✅ コンフリクト: なし
 ✅ PR 本文: 更新済み
-✅ コードレビュー: スコア X（指摘 N 件対応済み）
 ⏳ Copilot レビュー待機: バックグラウンドで継続中
    → 検出時は自動的に /handle-pr-reviews が実行されます
    → ログ: ~/.claude/logs/wait-copilot-review-<PR_NUMBER>.log
@@ -143,4 +134,4 @@ BODY
 
 - `request-review-copilot` コマンドが存在しない場合はスキップしてよい
 - Copilot レビューが 30 分以内に来ない場合はタイムアウトし、tmux に通知が届く
-- コードレビューと CI は長時間かかる場合があるため、Task ツールで並列実行すること
+- CI は長時間かかる場合があるため、Task ツールで並列実行すること
