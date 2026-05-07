@@ -35,6 +35,7 @@ convert_path() {
       local drive_letter="${path:0:1}"
       local rest="${path:2}"
       # バックスラッシュをスラッシュに変換
+      # 置換パターン: "\" を "/" に置換する
       rest="${rest//\\//}"
       # ドライブレターを小文字に変換
       drive_letter=$(echo "$drive_letter" | tr '[:upper:]' '[:lower:]')
