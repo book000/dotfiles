@@ -34,6 +34,6 @@
 .claude/scripts/limit-unlocked/data/
 
 # マシン固有の設定（ローカル設定で excludeCodexConfig = true のマシンのみ除外）
-{{- if .excludeCodexConfig }}
+{{- if index . "excludeCodexConfig" }}
 .codex/config.toml
 {{- end }}
