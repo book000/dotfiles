@@ -1,12 +1,20 @@
 {
   "env": {
-    "IS_DEMO": "1",
+    "CLAUDE_CODE_DISABLE_1M_CONTEXT": "1",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "ENABLE_TOOL_SEARCH": "1",
-    "DISABLE_ERROR_REPORTING": "1"
+    "CLAUDE_CODE_SIMPLE_SYSTEM_PROMPT": "1",
+    "DISABLE_ERROR_REPORTING": "1",
+    "DISABLE_EXTRA_USAGE_COMMAND": "1",
+    "ENABLE_TOOL_SEARCH": "auto",
+    "IS_DEMO": "1"
   },
   "model": "opusplan",
   "autoMemoryEnabled": false,
+  "feedbackSurveyRate": 0,
+  "showClearContextOnPlanAccept": true,
+  "awaySummaryEnabled": false,
   "hooks": {
     "Stop": [
       {
@@ -105,18 +113,9 @@
     "code-review@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "commit-commands@claude-plugins-official": true,
-    "pr-review-toolkit@claude-plugins-official": true,  
-    "ask-codex@hiropon-plugins": true,
-    "ask-gemini@hiropon-plugins": true,
-    "ask-copilot@hiropon-plugins": true
+    "pr-review-toolkit@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
-    "hiropon-plugins": {
-      "source": {
-        "source": "github",
-        "repo": "hiroro-work/claude-plugins"
-      }
-    },
     "wakatime": {
       "source": {
         "source": "github",
