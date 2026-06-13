@@ -8,15 +8,15 @@ paths:
   - "**/*.cjs"
 ---
 
-# TypeScript / JavaScript コーディングルール
+# TypeScript / JavaScript Coding Rules
 
-## 禁止事項
+## Prohibited
 
-- `skipLibCheck: true` を tsconfig に追加して型エラーを回避することは禁止
+- Adding `skipLibCheck: true` to tsconfig to suppress type errors is forbidden
 
-## ドキュメント
+## Documentation
 
-- 関数・インターフェース・クラスには JSDoc（docstring）を日本語で記載・更新する
+- Write and maintain JSDoc (docstring) in Japanese for all functions, interfaces, and classes
 
   ```typescript
   /**
@@ -29,45 +29,45 @@ paths:
 
 ## Lint / Format
 
-- Lint 設定は `eslint.config.mjs` に flat config で記述する（レガシー `.eslintrc.*` は使わない）
-  - 標準構成: `export { default } from '@book000/eslint-config'`
-- Prettier 設定（`.prettierrc.yml` の事実）:
-  - セミコロンなし（`semi: false`）
-  - シングルクォート（`singleQuote: true`）
-  - 末尾カンマ es5（`trailingComma: 'es5'`）
-  - 行幅 80（`printWidth: 80`）
-  - インデント半角スペース 2（`tabWidth: 2`）
-  - アロー関数の引数は常に括弧（`arrowParens: 'always'`）
-  - 改行 LF（`endOfLine: 'lf'`）
+- Write lint config in `eslint.config.mjs` using flat config (no legacy `.eslintrc.*`)
+  - Standard setup: `export { default } from '@book000/eslint-config'`
+- Prettier config (`.prettierrc.yml` facts):
+  - No semicolons (`semi: false`)
+  - Single quotes (`singleQuote: true`)
+  - Trailing commas es5 (`trailingComma: 'es5'`)
+  - Print width 80 (`printWidth: 80`)
+  - Indent 2 spaces (`tabWidth: 2`)
+  - Arrow function arguments always parenthesized (`arrowParens: 'always'`)
+  - LF line endings (`endOfLine: 'lf'`)
 
-## ESLint ルール（自動修正不可のもの）
+## ESLint Rules (not auto-fixable)
 
-- **Promise の放置禁止**（`no-floating-promises`）: `await` しない Promise は `void` を付ける
+- **No floating promises** (`no-floating-promises`): add `void` to Promises that are not awaited
 
   ```typescript
-  // 悪い例
+  // bad
   fetchData()
 
-  // 良い例
+  // good
   void fetchData()
   await fetchData()
   ```
 
-- **catch 変数名**（`unicorn/catch-error-name`）: `error` に統一する（`err` も可）
+- **catch variable name** (`unicorn/catch-error-name`): use `error` (or `err`)
 
   ```typescript
   try { ... } catch (error) { ... }
   ```
 
-- **冗長条件の禁止**（`no-unnecessary-condition`）: 型上必ず真偽が決まる条件を書かない
-- **使用前定義の禁止**（`no-use-before-define`）: 関数・変数は使用前に定義する
-- **`any` の扱い**: `any` は許容されているが、型を付けられる箇所では型を付ける
-- **`null`**: 使用可。`unicorn/no-null` は off
-- **省略形（`dev`・`prod` 等）**: 展開不要。`prevent-abbreviations` は off
+- **No redundant conditions** (`no-unnecessary-condition`): do not write conditions whose truthiness is always determined by the type
+- **No use before define** (`no-use-before-define`): define functions and variables before use
+- **`any`**: permitted, but add types where they can be added
+- **`null`**: permitted (`unicorn/no-null` is off)
+- **Abbreviations** (`dev`, `prod`, etc.): no need to expand (`prevent-abbreviations` is off)
 
 ## tsconfig
 
-以下の strict 系オプションを維持する:
+Maintain the following strict options:
 
 - `strict`
 - `noUnusedLocals`
@@ -75,10 +75,10 @@ paths:
 - `noImplicitReturns`
 - `noFallthroughCasesInSwitch`
 - `esModuleInterop`
-- 改行コード: LF（`newLine: 'lf'`）
+- Line endings: LF (`newLine: 'lf'`)
 
-## ツールチェーン
+## Toolchain
 
-- パッケージマネージャ: **pnpm**（`only-allow pnpm` ガード）
-- テスト: **jest**
-- Node バージョン: `.node-version` ファイルで固定
+- Package manager: **pnpm** (`only-allow pnpm` guard)
+- Test runner: **jest**
+- Node version: pinned in `.node-version`

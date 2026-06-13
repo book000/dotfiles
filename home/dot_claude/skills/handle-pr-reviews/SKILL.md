@@ -1,54 +1,52 @@
 ---
 name: handle-pr-reviews
-description: PR のレビュースレッドを一括処理する。全未解決スレッドを取得し、コード修正・返信・resolve・CI 確認を体系的に実施する。Copilot レビュー検出時にバックグラウンドスクリプトから自動実行される。
-argument-hint: "[PR URL または PR番号]"
+description: Process all PR review threads in bulk. Fetches all unresolved threads and systematically applies code fixes, replies, and resolves. Auto-triggered by background script on Copilot review detection.
+argument-hint: "[PR URL or PR number]"
 ---
 
-# PR レビュー一括処理
+# PR Review Bulk Processing
 
-PR の全レビュースレッドを体系的に処理します。
+Systematically process all review threads in a PR.
 
 ---
 
-## ステップ 0: PR 情報の解決
+## Step 0: Resolve PR Info
 
-引数から OWNER・REPO・PR 番号を解決する。
+Resolve OWNER, REPO, and PR number from the argument.
 
 ```bash
-# URL 形式の場合
+# When URL format
 PR_ARG="$ARGUMENTS"
 if echo "$PR_ARG" | grep -q 'github\.com'; then
   OWNER=$(echo "$PR_ARG" | grep -oP 'github\.com/\K[^/]+')
   REPO=$(echo "$PR_ARG" | grep -oP 'github\.com/[^/]+/\K[^/]+(?=/pull)')
   PR_NUMBER=$(echo "$PR_ARG" | grep -oP '/pull/\K\d+')
 else
-  # 番号のみの場合: 現在のリポジトリから取得
+  # Number only: get from current repository
   OWNER=$(gh repo view --json owner --jq '.owner.login')
   REPO=$(gh repo view --json name --jq '.name')
   PR_NUMBER="$PR_ARG"
 fi
 
-echo "対象: https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}"
+echo "Target: https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}"
 ```
 
 ---
 
-## ステップ 1: ローカルリポジトリの特定と移動
+## Step 1: Locate Local Repository
 
-コード修正が必要な場合に備え、ローカルクローンのパスを特定する。
+Locate the local clone path in case code fixes are needed.
 
 ```bash
 LOCAL_REPO_PATH=""
 
-# 1. 現在のディレクトリが対象リポジトリか確認
+# 1. Check if the current directory is the target repository
 CURRENT_REMOTE=$(git remote get-url origin 2>/dev/null || true)
 if echo "$CURRENT_REMOTE" | grep -q "${OWNER}/${REPO}"; then
   LOCAL_REPO_PATH=$(git rev-parse --show-toplevel 2>/dev/null)
 fi
 
-# 2. git で管理されている既知ディレクトリを remote URL で検索
-#    検索対象ディレクトリは find コマンドで取得できる git リポジトリのトップレベルを使う
-#    検索元は $HOME 配下および CLAUDE.md に記載された既知パスを使う
+# 2. Search known directories by remote URL
 if [[ -z "$LOCAL_REPO_PATH" ]]; then
   while IFS= read -r -d '' gitdir; do
     dir=$(dirname "$gitdir")
@@ -60,14 +58,14 @@ if [[ -z "$LOCAL_REPO_PATH" ]]; then
   done < <(find "$HOME" -maxdepth 8 \( -name ".git" -type f -o -name ".git" -type d \) -print0 2>/dev/null)
 fi
 
-echo "ローカルパス: ${LOCAL_REPO_PATH:-（見つからない、gh API のみで対応）}"
+echo "Local path: ${LOCAL_REPO_PATH:-(not found, using gh API only)}"
 ```
 
 ---
 
-## ステップ 2: 全未解決レビュースレッドの取得
+## Step 2: Fetch All Unresolved Review Threads
 
-**注意: このステップで取得した全スレッドを処理する。取得漏れを防ぐため、必ず GraphQL で取得すること。**
+**Important: process every thread fetched here. Always use GraphQL to avoid missing any.**
 
 ```bash
 GRAPHQL_RESPONSE=$(gh api graphql \
@@ -79,8 +77,8 @@ query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       reviewThreads(first: 100) {
-        # 注意: 最大 100 件まで取得。100 件を超える場合は pageInfo.hasNextPage と
-        # pageInfo.endCursor を使ったカーソルページネーションが必要
+        # Note: fetches up to 100 threads. For > 100, use cursor pagination
+        # with pageInfo.hasNextPage and pageInfo.endCursor
         nodes {
           id
           isResolved
@@ -105,55 +103,53 @@ query($owner: String!, $repo: String!, $number: Int!) {
   }
 }')
 
-# 未解決スレッドのみ抽出
+# Extract only unresolved threads
 UNRESOLVED=$(echo "$GRAPHQL_RESPONSE" | jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)]')
 COUNT=$(echo "$UNRESOLVED" | jq 'length')
-echo "未解決スレッド数: $COUNT"
+echo "Unresolved threads: $COUNT"
 ```
 
-スレッドが 0 件の場合は「未解決スレッドなし」を報告して終了。
+If count is 0, report "no unresolved threads" and exit.
 
 ---
 
-## ステップ 3: 各スレッドへの対応
+## Step 3: Handle Each Thread
 
-**全スレッドを 1 件ずつ、以下の手順で処理すること。スキップ禁止。**
+**Process every thread one by one in the following order. Skipping is not allowed.**
 
-各スレッドについて:
-
-### 3a. コメント内容の確認
+### 3a. Read Thread Content
 
 ```bash
 THREAD_ID=$(echo "$thread" | jq -r '.id')
 THREAD_PATH=$(echo "$thread" | jq -r '.path // ""')
 THREAD_LINE=$(echo "$thread" | jq -r '.line // 0')
-# 最新コメント（最後の要素）を参照する。nodes[0] は最初のコメントであり、
-# 後から追加された返信を見落とす可能性があるため last を使う
+# Reference the last comment (most recent reply); nodes[0] is the first comment
+# and may miss later replies
 AUTHOR=$(echo "$thread" | jq -r '.comments.nodes | last | .author.login')
 COMMENT=$(echo "$thread" | jq -r '.comments.nodes | last | .body')
-echo "スレッド: $THREAD_ID | $AUTHOR | $THREAD_PATH:$THREAD_LINE"
-echo "コメント: $COMMENT"
+echo "Thread: $THREAD_ID | $AUTHOR | $THREAD_PATH:$THREAD_LINE"
+echo "Comment: $COMMENT"
 ```
 
-### 3b. 対象コードの確認（パスがある場合）
+### 3b. Read Target Code (if path present)
 
-`THREAD_PATH` が空でない場合、対象ファイルを Read ツールで読み込み、該当行周辺を確認する。
+If `THREAD_PATH` is not empty, read the target file with the Read tool and check the relevant lines.
 
-### 3c. 対応判断と実施
+### 3c. Decide and Act
 
-| 判断 | 対応 |
+| Decision | Action |
 |------|------|
-| コード修正が必要 | 修正を実施（Edit ツール使用）。`CHANGES_MADE=true` を記録 |
-| 修正不要・現状維持 | その理由を明確にまとめる |
-| 質問への回答 | 回答内容をまとめる |
+| Code fix needed | Apply fix (use Edit tool). Record `CHANGES_MADE=true` |
+| No fix needed | Clearly document the reason |
+| Answer to a question | Summarize the answer |
 
-### 3d. スレッドへの返信投稿
+### 3d. Post Reply to Thread
 
-**必ず `addPullRequestReviewThreadReply` mutation を使うこと。issue コメントとして投稿してはいけない。**
+**Always use the `addPullRequestReviewThreadReply` mutation. Do not post as an issue comment.**
 
 ```bash
-REPLY_BODY="対応内容を記載"
-# -f を使うことで特殊文字・改行を含む本文も安全に渡せる
+REPLY_BODY="describe the action taken"
+# Using -f safely passes body text containing special characters and newlines
 gh api graphql \
   -f threadId="${THREAD_ID}" \
   -f body="${REPLY_BODY}" \
@@ -168,13 +164,13 @@ mutation($threadId: ID!, $body: String!) {
 }'
 ```
 
-返信内容の例:
-- コード修正した場合: 「ご指摘ありがとうございます。〇〇の問題を修正しました。△△の理由により〜〜に変更しました。」
-- 現状維持の場合: 「ご指摘の点を確認しました。〇〇の理由により現状維持とします。」
+Reply examples:
+- When code was fixed: "Thank you for the feedback. Fixed the issue with ○○. Changed to △△ because of ~~."
+- When keeping as-is: "Reviewed the point raised. Keeping the current implementation because of ○○."
 
-### 3e. スレッドの resolve
+### 3e. Resolve the Thread
 
-**返信後、必ず resolve すること。**
+**Always resolve after replying.**
 
 ```bash
 gh api graphql -f query="
@@ -187,28 +183,28 @@ mutation {
 
 ---
 
-## ステップ 4: コード変更のコミット・プッシュ
+## Step 4: Commit and Push Code Changes
 
-`CHANGES_MADE=true` の場合のみ実施:
+Only when `CHANGES_MADE=true`:
 
 ```bash
-# 変更ファイルを確認
+# Check changed files
 git -C "$LOCAL_REPO_PATH" status
 
-# Conventional Commits に従いコミット（説明は日本語）
-# add -p は対話的なため使わず、編集したファイルを明示的にステージする
-git -C "$LOCAL_REPO_PATH" add <編集したファイルのパスを列挙>
+# Commit following Conventional Commits (description in Japanese)
+# Explicitly stage edited files instead of using interactive add
+git -C "$LOCAL_REPO_PATH" add <list edited file paths>
 git -C "$LOCAL_REPO_PATH" commit -m "fix: レビューコメントに基づく修正"
 
-# SSH でプッシュ
+# Push via SSH
 git -C "$LOCAL_REPO_PATH" push
 ```
 
 ---
 
-## ステップ 5: 全未解決スレッドの再確認
+## Step 5: Re-verify All Unresolved Threads
 
-**対応漏れがないことを確認するため、必ず GraphQL で再取得する。**
+**Always re-fetch via GraphQL to confirm nothing was missed.**
 
 ```bash
 RECHECK=$(gh api graphql \
@@ -218,7 +214,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       reviewThreads(first: 100) {
-        # 注意: 最大 100 件まで取得。ステップ 2 と同様に 100 件超の場合はページネーションが必要
+        # Note: up to 100 threads. Paginate if > 100 (same as Step 2)
         nodes { id isResolved }
       }
     }
@@ -226,41 +222,41 @@ query($owner: String!, $repo: String!, $number: Int!) {
 }' | jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length')
 
 if [[ "$RECHECK" -gt 0 ]]; then
-  echo "⚠️ 未解決スレッドが $RECHECK 件残っています。ステップ 3 に戻って対応する。"
+  echo "⚠️ $RECHECK unresolved thread(s) remain. Return to Step 3."
 else
-  echo "✅ 全スレッド resolve 完了"
+  echo "✅ All threads resolved"
 fi
 ```
 
 ---
 
-## ステップ 6: CI 最終確認
+## Step 6: Final CI Check
 
 ```bash
 gh pr checks "$PR_NUMBER" --watch
 ```
 
-CI が失敗した場合: ログを確認して修正し、再プッシュ・再確認する。
+If CI fails: check logs, fix the issue, re-push, and re-verify.
 
 ---
 
-## ステップ 7: 完了報告
+## Step 7: Completion Report
 
-以下のフォーマットで報告する:
+Report in the following format:
 
 ```
-✅ PR #<番号> レビュー処理完了
-   対応スレッド: N 件
-   コード修正: あり / なし
-   CI: 全チェック通過
-   残り未解決スレッド: 0 件
+✅ PR #<number> review processing complete
+   Threads handled: N
+   Code changes: yes / no
+   CI: all checks passed
+   Remaining unresolved threads: 0
 ```
 
 ---
 
-## 注意事項
+## Notes
 
-- **`addPullRequestReviewThreadReply`** を使うこと（issue コメントは不可）
-- 返信してから必ず resolve すること（返信だけで resolve しないのは違反）
-- Copilot・book000 含む全レビュアーのコメントを処理すること
-- resolve 後に新しいコメントが追加されていないか最後に確認すること
+- Always use **`addPullRequestReviewThreadReply`** (issue comments are not allowed)
+- Always resolve after replying (replying without resolving is a violation)
+- Process comments from all reviewers including Copilot and book000
+- After resolving, check that no new comments were added

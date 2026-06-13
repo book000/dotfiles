@@ -22,12 +22,12 @@ paths:
   - "**/*.zsh"
 ---
 
-# コーディング共通ルール
+# Common Coding Rules
 
-言語に依らず適用されるルール。
+Rules that apply regardless of language.
 
-## 全言語共通
+## All Languages
 
-- 日本語と英数字の間には半角スペースを挿入する
-- 既存のエラーメッセージに絵文字がある場合、そのファイルのエラーメッセージ全体で絵文字を統一する
-  - 絵文字はエラーメッセージの内容に即した 1 文字を使う
+- Insert a half-width space between Japanese and alphanumeric characters in comments and text
+- If existing error messages in a file have emoji prefixes, unify emoji usage across all error messages in that file
+  - Use a single emoji that matches the content of the error message

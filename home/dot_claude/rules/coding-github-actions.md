@@ -4,11 +4,11 @@ paths:
   - ".github/workflows/*.yaml"
 ---
 
-# GitHub Actions コーディングルール
+# GitHub Actions Coding Rules
 
-## 共通 CI の再利用
+## Reusable Workflows
 
-- 共通 CI は自前で複製せず、`book000/templates` の reusable workflow を `@master` 参照で呼ぶ
+- Do not duplicate common CI — call reusable workflows from `book000/templates` with `@master`
 
   ```yaml
   uses: book000/templates/.github/workflows/reusable-nodejs-ci-pnpm.yml@master
@@ -16,23 +16,23 @@ paths:
   uses: book000/templates/.github/workflows/reusable-hadolint-ci.yml@master
   ```
 
-## Action のバージョン参照
+## Action Version References
 
-- Action はメジャーバージョンタグで参照する
+- Reference Actions by major version tag
 
   ```yaml
-  # 良い例
+  # good
   uses: actions/checkout@v6
   uses: actions/setup-node@v6
   uses: actions/cache@v5
 
-  # 悪い例（バージョン未指定）
+  # bad (no pinned version)
   uses: actions/checkout@main
   ```
 
-## Node.js バージョン
+## Node.js Version
 
-- Node セットアップは `node-version-file: .node-version` を使う（バージョンの直書き禁止）
+- Use `node-version-file: .node-version` for Node setup (do not hard-code the version)
 
   ```yaml
   - uses: actions/setup-node@v6
@@ -40,9 +40,9 @@ paths:
       node-version-file: .node-version
   ```
 
-## ステップ名
+## Step Names
 
-- ステップ名には内容に即した絵文字プレフィックスを付ける
+- Prefix step names with an emoji matching the step's content
 
   ```yaml
   - name: 🛎 Checkout

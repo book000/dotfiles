@@ -5,20 +5,20 @@ paths:
   - "**/*.zsh"
 ---
 
-# シェルスクリプト コーディングルール
+# Shell Script Coding Rules
 
-## ドキュメント
+## Documentation
 
-- 関数には説明コメントを日本語で記載する
+- Write function description comments in Japanese
 
-## エラーメッセージ
+## Error Messages
 
-- エラーメッセージは英語で記載する
+- Write error messages in English
 
-## フォーマット
+## Formatting
 
-- インデントは半角スペース 4 つ
+- Indent with 4 spaces
 
-## shebang
+## Shebang
 
-- `#!/bin/bash` を使う（POSIX sh で十分な場合は `#!/bin/sh`）
+- Use `#!/bin/bash` (use `#!/bin/sh` only when POSIX sh is sufficient)

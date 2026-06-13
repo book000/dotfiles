@@ -1,58 +1,56 @@
 ---
 name: wait-for-copilot-review
-description: PR 作成後に GitHub Copilot のレビューをバックグラウンドで待機し、検出時に /handle-pr-reviews を自動実行する。
-argument-hint: "[PR番号]"
+description: Waits in the background for a GitHub Copilot review after PR creation and automatically triggers /handle-pr-reviews on detection.
+argument-hint: "[PR number]"
 ---
 
-# GitHub Copilot レビュー待機
+# Wait for GitHub Copilot Review
 
-PR 作成後、GitHub Copilot からのレビューコメントを自動的に検出して通知します。
+Automatically detects and notifies when GitHub Copilot posts a review after PR creation.
 
-## 使用方法
+## Usage
 
 ```bash
 /wait-for-copilot-review <PR_NUMBER>
 ```
 
-または、直接スクリプトを実行：
+Or run the script directly:
 
 ```bash
 ~/.claude/skills/wait-for-copilot-review/scripts/wait-for-copilot-review.sh <PR_NUMBER> &
 ```
 
-## 機能
+## Features
 
-### 検出ロジック
+### Detection Logic
 
-- **プライマリ判定**: GraphQL API の `author.__typename` が `Bot` かどうか
-- **セカンダリ判定**: `author.login` に `copilot` が含まれるか（補助的）
-- **チェック間隔**: 30 秒
-- **最大待機時間**: 30 分（60 回チェック）
+- **Primary**: checks whether `author.__typename` is `Bot` via GraphQL API
+- **Secondary**: checks whether `author.login` contains `copilot` (supplementary)
+- **Check interval**: 30 seconds
+- **Max wait time**: 30 minutes (60 checks)
 
-### 検出条件
+### Detection Conditions
 
-以下の条件を**すべて**満たすレビューを Copilot レビューとして検出：
+A review is detected as a Copilot review when **all** of the following are true:
 
-1. `author.__typename` が `"Bot"` である
-2. `author.login` に `"copilot"` が含まれる（部分一致）
-3. `state` が `"COMMENTED"` または `"APPROVED"` である
-4. `submittedAt` が null でない（完了したレビューのみ）
+1. `author.__typename` is `"Bot"`
+2. `author.login` contains `"copilot"` (partial match)
+3. `state` is `"COMMENTED"` or `"APPROVED"`
+4. `submittedAt` is not null (completed reviews only)
 
-### バックグラウンド実行
+### Background Execution
 
-- **ログファイル**: `~/.claude/logs/wait-copilot-review-<PR_NUMBER>.log`
-- **ロックファイル**: `~/.claude/locks/wait-copilot-review-<PR_NUMBER>.lock`
-- **排他制御**: flock による複数起動の防止
+- **Log file**: `~/.claude/logs/wait-copilot-review-<PR_NUMBER>.log`
+- **Lock file**: `~/.claude/locks/wait-copilot-review-<PR_NUMBER>.lock`
+- **Mutual exclusion**: flock prevents multiple concurrent instances
 
-### 検出後の処理
+### On Detection
 
-1. ユーザーに通知（Discord 通知スクリプト利用）
-2. レビューコメント数を表示
-3. ログに検出結果を記録
+1. Notify the user (via Discord notification script)
+2. Display the review comment count
+3. Record detection result to log
 
-## GraphQL クエリ
-
-使用する GraphQL クエリ：
+## GraphQL Query
 
 ```graphql
 query($owner: String!, $repo: String!, $number: Int!) {
@@ -73,28 +71,28 @@ query($owner: String!, $repo: String!, $number: Int!) {
 }
 ```
 
-## 注意事項
+## Notes
 
-- 待機は最大 30 分です
-- タイムアウトした場合でも、レビューは後で投稿される可能性があります
-- 複数起動は flock により自動的に防止されます
-- 実行状況はログファイルで確認できます
+- Maximum wait time is 30 minutes
+- If timed out, the review may still be posted later
+- Multiple instances are automatically prevented by flock
+- Check the log file for execution status
 
-## トラブルシューティング
+## Troubleshooting
 
-### ログの確認
+### Check Logs
 
 ```bash
 tail -f ~/.claude/logs/wait-copilot-review-<PR_NUMBER>.log
 ```
 
-### ロックファイルの削除（緊急時のみ）
+### Remove Lock File (emergency only)
 
 ```bash
 rm ~/.claude/locks/wait-copilot-review-<PR_NUMBER>.lock
 ```
 
-### 手動でのレビュー確認
+### Manually Check Review
 
 ```bash
 gh api graphql -f owner="$OWNER" -f repo="$REPO" -F number=<PR_NUMBER> -f query='

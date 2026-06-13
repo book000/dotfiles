@@ -5,10 +5,10 @@ paths:
   - "**/*.Dockerfile"
 ---
 
-# Dockerfile コーディングルール
+# Dockerfile Coding Rules
 
 ## Lint
 
-- hadolint のデフォルトルールを通すこと
-  - CI は `book000/templates` の `reusable-hadolint-ci.yml` で検査している
-  - 専用設定ファイル（`.hadolint.yaml` 等）は置かない
+- Code must pass hadolint default rules
+  - CI uses `reusable-hadolint-ci.yml` from `book000/templates`
+  - Do not add a dedicated config file (e.g. `.hadolint.yaml`)

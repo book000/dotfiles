@@ -1,97 +1,97 @@
 ---
 name: issue-pr
-description: GitHub の Issue を調査・実装し PR を作成するまでを一貫して進めるときに使う。明示的な /issue-pr 呼び出し専用。
-argument-hint: "[Issue番号またはURL]"
+description: Investigate a GitHub Issue, implement a fix, and create a PR end-to-end. For explicit /issue-pr invocations only.
+argument-hint: "[Issue number or URL]"
 disable-model-invocation: true
 ---
 
-# Issue から PR を作成
+# Create PR from Issue
 
-このスキルは **プランモード** と **実行モード** の 2 つのモードで動作します。
+This skill operates in two modes: **plan mode** and **execution mode**.
 
-## モード検出
+## Mode Detection
 
-system-reminder に "Plan mode is active" または "plan file" を含むかで検出。
-含む場合はプランモード、含まない場合は実行モード。
+Detected by checking if the system-reminder contains "Plan mode is active" or "plan file".
+If present: plan mode. Otherwise: execution mode.
 
 ---
 
-## プランモードワークフロー
+## Plan Mode Workflow
 
-### Phase 1: Issue 内容の分析
+### Phase 1: Analyze the Issue
 
 ```bash
 gh issue view $ARGUMENTS --json title,state,body,comments,author
 ```
 
-以下を分析:
-1. Issue の種類（feat/fix/docs/refactor）
-2. 変更対象ファイル・影響範囲
-3. 不明点のリスト
+Analyze:
+1. Issue type (feat/fix/docs/refactor)
+2. Files to change and impact scope
+3. List of unknowns
 
-### Phase 2: ユーザーへの質問
+### Phase 2: Ask the User
 
-AskUserQuestion ツールで不明点を確認。
-「このプランで良いですか？」は ExitPlanMode の役割なので質問しない。
+Use the AskUserQuestion tool to clarify unknowns.
+Do not ask "Is this plan okay?" — that is ExitPlanMode's role.
 
-### Phase 3: 外部仕様の確認
+### Phase 3: Check External Specs
 
-外部依存・最新仕様が必要な場合は WebSearch や公式ドキュメント（Context7 等）で確認する。
-（他エージェントへの相談は行わない）
+If external dependencies or latest specs are needed, check with WebSearch or official docs (Context7, etc.).
+(Do not consult other agents.)
 
-### Phase 4: 要件定義書の作成
+### Phase 4: Write the Requirements Document
 
-以下フォーマットで作成:
+Create in the following format:
 
 ```markdown
-# Issue #<番号> 要件定義書
+# Issue #<number> Requirements
 
-## 概要
-- **Issue タイトル**: [タイトル]
-- **Issue 番号**: #[番号]
-- **Issue 種別**: feat/fix/docs/refactor
-- **影響範囲**: [ファイル/モジュール]
+## Overview
+- **Issue title**: [title]
+- **Issue number**: #[number]
+- **Issue type**: feat/fix/docs/refactor
+- **Impact scope**: [files/modules]
 
-## 要件詳細
-### 機能要件
-[詳細な機能要件]
+## Requirements
+### Functional Requirements
+[detailed functional requirements]
 
-### 非機能要件
-- **セキュリティ**: [要件]
-- **パフォーマンス**: [要件]
+### Non-Functional Requirements
+- **Security**: [requirements]
+- **Performance**: [requirements]
 
-## 実装方針
-### 主要な実装ステップ
-1. [ステップ 1]
-2. [ステップ 2]
+## Implementation Plan
+### Key Steps
+1. [step 1]
+2. [step 2]
 
-## ブランチ名
+## Branch Name
 `<type>/<description>`
 
-## 判断記録
-1. 判断内容の要約
-2. 検討した代替案
-3. 採用しなかった案とその理由
-4. 前提条件・仮定・不確実性
-5. 他エージェントによるレビュー可否
+## Decision Log
+1. Summary of the decision
+2. Alternatives considered
+3. Rejected alternatives and reasons
+4. Assumptions and uncertainties
+5. Whether other agents can review
 ```
 
-### Phase 5: Issue へのコメント投稿
+### Phase 5: Post Comment to Issue
 
 ```bash
 gh issue comment $ARGUMENTS --body "$(cat <<'EOF'
-[要件定義書の内容]
+[requirements document content]
 EOF
 )"
 ```
 
-機密情報が含まれていないことを必ず確認すること。
+Always verify no sensitive information is included.
 
-### Phase 6: プランファイルへの記載
+### Phase 6: Write to Plan File
 
-system-reminder に記載されたプランファイルパスへ Write ツールで記載。
+Write to the plan file path specified in the system-reminder using the Write tool.
 
-### Phase 7: ExitPlanMode の実行
+### Phase 7: Run ExitPlanMode
 
 ```
 ExitPlanMode()
@@ -99,49 +99,49 @@ ExitPlanMode()
 
 ---
 
-## 実行モードワークフロー
+## Execution Mode Workflow
 
-### 前提確認
+### Prerequisites
 
-- `gh`、`jq` が利用可能であること
-- Git リポジトリ内で実行されていること
+- `gh` and `jq` must be available
+- Must be run inside a Git repository
 
-### Issue 情報の取得
+### Fetch Issue Info
 
 ```bash
 gh issue view $ARGUMENTS --json title,state,body,comments,author
 ```
 
-Issue が OPEN でない場合は警告を表示。
+If the issue is not OPEN, display a warning.
 
-### ブランチの作成
+### Create Branch
 
 ```bash
 git fetch origin
-# デフォルトブランチを確認
+# Check default branch
 git checkout -b <branch_name> origin/<default_branch>
 ```
 
-ブランチ名は Conventional Branch に従う（feat/fix/docs/refactor）。
+Branch name follows Conventional Branch (feat/fix/docs/refactor).
 
-### Issue への対応
+### Implement the Fix
 
-Issue の内容を確認し、適切な実装を行う。
-dotfiles では `home/` 配下の chezmoi ソースを更新する。
+Review the issue content and implement appropriately.
+In dotfiles, update chezmoi source files under `home/`.
 
-### PR の作成
+### Create PR
 
 ```bash
-gh pr create --title "<タイトル>" --body "<PR 本文>"
+gh pr create --title "<title>" --body "<PR body>"
 ```
 
-PR 本文は日本語・最新状態のみ・更新履歴なし。
+PR body: in Japanese, current state only, no update history.
 
-### PR 作成後の対応
+### After PR Creation
 
-完了後、直ちに `/pr-health-monitor <PR番号>` を使う。
+Immediately run `/pr-health-monitor <PR number>` when done.
 
-## 注意事項
+## Notes
 
-- レビュー待ちや CI 待ちの間に別作業へ逸れない
-- 判断記録は Issue コメントまたは PR 本文に残す（Markdown ファイルには書かない）
+- Do not drift to other tasks while waiting for review or CI
+- Record decision log in the issue comment or PR body (not in Markdown files)

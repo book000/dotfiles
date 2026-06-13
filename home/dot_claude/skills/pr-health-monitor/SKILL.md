@@ -1,46 +1,45 @@
 ---
 name: pr-health-monitor
-description: PR 作成後の監視・対応フローを自動化する。CI 確認・Copilot レビュー待機・コードレビュー・コンフリクト確認・PR 本文更新を並列実行する。PR 作成直後に /pr-health-monitor <PR番号または URL> で使う。
-argument-hint: "[PR番号またはURL]"
+description: Automates the post-PR monitoring workflow. Runs CI check, Copilot review wait, code review, conflict check, and PR body update in parallel. Use with /pr-health-monitor <PR number or URL> immediately after creating a PR.
+argument-hint: "[PR number or URL]"
 ---
 
-# PR ヘルスモニター
+# PR Health Monitor
 
-PR 作成後のチェックリスト全体を自動化します。
+Automates the full post-PR checklist.
 
-## 使用方法
+## Usage
 
 ```
-/pr-health-monitor <PR 番号または URL>
+/pr-health-monitor <PR number or URL>
 ```
 
-**例:**
+**Examples:**
 - `/pr-health-monitor 123`
 - `/pr-health-monitor https://github.com/owner/repo/pull/123`
 
 ---
 
-## ステップ 0: PR 情報の解決
+## Step 0: Resolve PR Info
 
-引数から OWNER・REPO・PR 番号を解決する。
+Resolve OWNER, REPO, and PR number from the argument.
 
 ```bash
-# URL 形式の場合: grep -oP でキャプチャグループは使えないため、
-# 各フィールドを個別に抽出する
+# URL format: grep -oP does not support capture groups, so extract each field separately
 PR_ARG="$ARGUMENTS"
 if echo "$PR_ARG" | grep -q 'github\.com'; then
   OWNER=$(echo "$PR_ARG" | grep -oP 'github\.com/\K[^/]+')
   REPO=$(echo "$PR_ARG" | grep -oP 'github\.com/[^/]+/\K[^/]+(?=/pull)')
   PR_NUMBER=$(echo "$PR_ARG" | grep -oP '/pull/\K\d+')
 else
-  # 番号のみの場合（現在のリポジトリから取得）
+  # Number only (get from current repository)
   OWNER=$(gh repo view --json owner --jq '.owner.login')
   REPO=$(gh repo view --json name --jq '.name')
   PR_NUMBER="$PR_ARG"
 fi
 ```
 
-PR の URL を確認:
+Confirm the PR URL:
 
 ```bash
 gh pr view "$PR_NUMBER" --json url --jq '.url'
@@ -48,46 +47,45 @@ gh pr view "$PR_NUMBER" --json url --jq '.url'
 
 ---
 
-## ステップ 1: 並列実行フェーズ
+## Step 1: Parallel Execution Phase
 
-**Task ツールを使い、以下をすべて並列で実行すること。**
+**Use the Task tool to run all of the following in parallel.**
 
-### Task A: Copilot レビュー依頼 → バックグラウンド待機
+### Task A: Request Copilot Review → Background Wait
 
 ```bash
-# Copilot にレビューを依頼
+# Request review from Copilot
 request-review-copilot "https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}"
 
-# バックグラウンドで Copilot レビューを待機
-# 検出時は自動的に /handle-pr-reviews が tmux 経由で実行される
+# Wait for Copilot review in the background
+# On detection, /handle-pr-reviews is automatically triggered via tmux
 ~/.claude/skills/wait-for-copilot-review/scripts/wait-for-copilot-review.sh "$PR_NUMBER" &
-echo "Copilot レビュー待機を開始（バックグラウンド）"
-echo "ログ: ~/.claude/logs/wait-copilot-review-${PR_NUMBER}.log"
+echo "Copilot review wait started (background)"
+echo "Log: ~/.claude/logs/wait-copilot-review-${PR_NUMBER}.log"
 ```
 
-### Task B: CI 確認
+### Task B: CI Check
 
 ```bash
 gh pr checks "$PR_NUMBER" --watch
 ```
 
-CI が失敗している場合:
-1. `gh run view <RUN_ID> --log-failed` でログを確認
-2. 原因を特定して修正
-3. コミット・プッシュ後、再度 CI が通るまで待機
+If CI fails:
+1. Check logs with `gh run view <RUN_ID> --log-failed`
+2. Identify the cause and fix it
+3. Commit, push, and wait until CI passes again
 
-### Task C: コンフリクト確認
+### Task C: Conflict Check
 
 ```bash
 gh pr view "$PR_NUMBER" --json mergeable,mergeStateStatus --jq '{mergeable,mergeStateStatus}'
 ```
 
-コンフリクトがある場合はベースブランチをマージして解消する。
+If there are conflicts, merge the base branch to resolve them.
 
-### Task D: PR 本文更新
+### Task D: Update PR Body
 
-CLAUDE.md のルールに従い、PR 本文を現在のブランチの最終状態のみ・漏れなく・日本語で記載する。
-過去の更新履歴は含めない。
+Following CLAUDE.md rules, write the PR body with the current final state of the branch only — no history — in Japanese.
 
 ```bash
 gh pr edit "$PR_NUMBER" --body "$(cat <<'BODY'
@@ -103,35 +101,35 @@ BODY
 )"
 ```
 
-## ステップ 2: 完了報告
+## Step 2: Completion Report
 
-各タスクの結果をまとめて報告する。以下のフォーマットで:
+Report the result of each task in the following format:
 
 ```
-✅ CI: 全チェック通過
-✅ コンフリクト: なし
-✅ PR 本文: 更新済み
-⏳ Copilot レビュー待機: バックグラウンドで継続中
-   → 検出時は自動的に /handle-pr-reviews が実行されます
-   → ログ: ~/.claude/logs/wait-copilot-review-<PR_NUMBER>.log
+✅ CI: all checks passed
+✅ Conflicts: none
+✅ PR body: updated
+⏳ Copilot review wait: continuing in background
+   → /handle-pr-reviews will be triggered automatically on detection
+   → Log: ~/.claude/logs/wait-copilot-review-<PR_NUMBER>.log
 ```
 
 ---
 
-## フェーズ 2: Copilot レビュー検出後（自動実行）
+## Phase 2: After Copilot Review Detection (auto-triggered)
 
-バックグラウンドスクリプトが Copilot レビューを検出すると、tmux 経由で以下が自動実行される:
+When the background script detects a Copilot review, the following is automatically triggered via tmux:
 
 ```
 /handle-pr-reviews https://github.com/OWNER/REPO/pull/PR_NUMBER
 ```
 
-これにより、全レビュースレッドへの返信・resolve・CI 最終確認が自動で行われる。
+This automatically replies to all review threads, resolves them, and does a final CI check.
 
 ---
 
-## 注意事項
+## Notes
 
-- `request-review-copilot` コマンドが存在しない場合はスキップしてよい
-- Copilot レビューが 30 分以内に来ない場合はタイムアウトし、tmux に通知が届く
-- CI は長時間かかる場合があるため、Task ツールで並列実行すること
+- Skip `request-review-copilot` if the command does not exist
+- If no Copilot review arrives within 30 minutes, the script times out and sends a tmux notification
+- CI can take a long time — always use the Task tool to run it in parallel

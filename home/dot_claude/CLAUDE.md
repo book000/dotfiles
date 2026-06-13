@@ -1,105 +1,98 @@
 ## Guardrails / Rules
 
-- 無許可の変更（フックの無効化、PR のクローズ、設定の変更など）をユーザーの明示的な承認なしに行ってはならない。何かが進行を妨げている場合は、黙って回避するのではなく、**ユーザーに尋ねること**。
-- 大規模な調査や改修作業であっても、非効率的であることを気にせず、手を抜くことなく、時間をかけて、愚直に、丁寧に作業を行うこと。これはどんなケースでも適用される強制要件です。
-- **明示的な指示があるまで PR をマージしてはならない**。
+- Do not make unauthorized changes (disabling hooks, closing PRs, changing settings, etc.) without explicit user approval. If something is blocking progress, ask the user instead of silently working around it.
+- Even for large-scale research or refactoring, do not cut corners — work carefully, methodically, and thoroughly. This is a mandatory requirement that applies in all cases.
+- **Do not merge PRs until explicitly instructed.**
 
-## ふるまい
+## Behavior
 
-- 私に忖度しないこと。常に批判的思考で対話し、私が間違っていると思ったら反論すること
-- 「素晴らしい提案です！」「おっしゃる通りです！」のようなおべっかは不要。簡潔に本題から入ること
+- Do not flatter me. Always engage with critical thinking; push back if you think I'm wrong.
+- Skip phrases like "Great suggestion!" or "You're absolutely right!" — get to the point concisely.
 
-## 言語
+## Language
 
-- 最終的なユーザへの回答は日本語で行なってください。途中経過は、コンテキスト削減のため主要・重要なところ以外は英語で説明します。
-- コード内のコメントは、日本語で記載してください。エラーメッセージなどは、原則英語で記載します。
-- 日本語と英数字の間には半角スペースを挿入すること
+- Final responses to the user must be in Japanese. For intermediate steps, use English except for key/important points, to reduce context size.
+- Code comments must be in Japanese. Error messages should be in English as a general rule.
+- Insert a half-width space between Japanese and alphanumeric characters.
 
-## 環境のルール
+## Environment Rules
 
-- Git コミットの作成時は、[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) に従わなければなりません。ただし、`<description>` は日本語で記載します。
-- ブランチを作成するときは、[Conventional Branch](https://conventional-branch.github.io) に従わなければなりません。ただし、`<type>` は短縮形 (feat, fix) で記載します。
-- GitHub リポジトリを調査のために参照する場合、テンポラリディレクトリに git clone して、そこでコード検索してください。
-- CLAUDE.md の内容は適宜更新しなければなりません。
-- Renovate が作成した既存のプルリクエストに対して、追加コミットや更新を行ってはなりません。
-- バックグラウンドでの監視を行う際、監視終了時や異常時に、Claude Code が動作している tmux セッションに send-keys でメッセージを送り、Claude Code が自動的に動作できるようにしてください。セッション名は `tmux display-message -p '#{session_name}'` で取得でき、コマンド例は `tmux send-keys -t "$SESSION" "メッセージ" && sleep 3 && tmux send-keys -t "$SESSION" Enter` です。メッセージと Enter の間に sleep 3 を入れないと、Claude Code が入力を認識する前に Enter が送られ、改行として処理されてしまいます。
-- `<<'EOF'` ヒアドキュメント（シングルクォートデリミタ）内では `\` はエスケープ文字として機能しないため、バックティック (`` ` ``) は `\`` とせずそのまま `` ` `` と記述する。`\`` と書くと 2 文字がそのまま出力され、GitHub Markdown でバックスラッシュ付きで表示されてしまう。
+- Git commits must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). The `<description>` must be in Japanese.
+- Branches must follow [Conventional Branch](https://conventional-branch.github.io). Use short-form `<type>` (feat, fix).
+- When researching a GitHub repository, clone it to a temporary directory and search there.
+- Keep CLAUDE.md up to date.
+- Do not add commits or updates to existing Renovate-created PRs.
+- For background monitoring, when monitoring ends or on error, send a message to the tmux session running Claude Code via send-keys so Claude Code can act automatically. Get the session name with `tmux display-message -p '#{session_name}'`. Example: `tmux send-keys -t "$SESSION" "message" && sleep 3 && tmux send-keys -t "$SESSION" Enter`. Without `sleep 3` between the message and Enter, Enter is sent before Claude Code recognizes the input and is treated as a newline.
+- In `<<'EOF'` heredocs (single-quote delimiter), `\` does not function as an escape character, so backticks (`` ` ``) must be written as `` ` `` directly, not as `` \` ``. Writing `` \` `` outputs two characters and renders with a backslash in GitHub Markdown.
 
 ## Git Operations
 
-git push 操作には常に **SSH**（HTTPS ではなく）を使用すること。ユーザーに git 認証を手動で修正するよう求めない。自律的に処理する。
+Always use **SSH** (not HTTPS) for git push. Do not ask the user to fix git authentication manually. Handle it autonomously.
 
-## Git Worktree について
+## Git Worktree
 
-プロジェクトによっては、Git Worktree を採用している場合があります。
-
-Git Worktree のディレクトリ構成は、以下でなければなりません。  
-新規ブランチを作成する場合は、ブランチ作成後に Git Worktree を新規作成してください。
+Some projects use Git Worktree. The directory structure must be:
 
 ```text
 .bare/
-<ブランチ名>
+<branch-name>
 ```
+
+When creating a new branch, create a new Git Worktree after creating the branch.
 
 ## Workflow Modes
 
-**プランモード時**: プランのみを作成し、ユーザーが明示的に承認するまで、プランモードを終了したり実装を開始したりしない。**ユーザーのシグナルを待ってから遷移すること**。
+**Plan mode**: Create the plan only; do not exit plan mode or begin implementation until the user explicitly approves. **Wait for the user's signal before transitioning.**
 
-## PR / Issue ワークフロー
+## PR / Issue Workflow
 
-以下のスキルを使ってワークフローを実行すること:
+Use the following skills to run the workflow:
 
-| スキル | 用途 |
+| Skill | Purpose |
 |---|---|
-| `/issue-pr <Issue番号>` | Issue から実装・PR 作成まで |
-| `/pr-health-monitor <PR番号>` | PR 作成後の監視・CI・レビュー対応 |
-| `/handle-pr-reviews <PR URL>` | レビュースレッドへの返信・resolve 処理 |
-| `/wait-for-copilot-review <PR番号>` | Copilot レビューのバックグラウンド待機 |
+| `/issue-pr <issue number>` | From issue to implementation and PR creation |
+| `/pr-health-monitor <PR number>` | Post-PR monitoring, CI, and review handling |
+| `/handle-pr-reviews <PR URL>` | Reply to and resolve review threads |
+| `/wait-for-copilot-review <PR number>` | Background wait for Copilot review |
 
-詳細な手順・GraphQL クエリは各スキル（`/handle-pr-reviews`・`/pr-health-monitor`）を参照。
+See each skill (`/handle-pr-reviews`, `/pr-health-monitor`) for detailed steps and GraphQL queries.
 
-## 必ず実施すること
+## Must Do
 
-以下の内容については、Todo ツールを使用し、漏らさずすべてを実施してください。
+Use the Todo tool to track all of the following without omission.
 
-### 新規改修時
+### Before New Work
 
-新規改修を行う前に、以下を必ず確認しなければなりません
+1. Thoroughly explore and understand the project
+2. Verify the working branch is appropriate — not a branch with a closed PR
+3. Verify it is a new branch based on the latest remote branch
+4. Verify that closed/unnecessary branches have been deleted
+5. Install dependencies using the project's specified package manager
 
-1. プロジェクトについて詳細に探索し理解すること
-2. 作業を行うブランチが適切であること。すでに PR を提出しクローズされたブランチでないこと
-3. 最新のリモートブランチに基づいた新規ブランチであること
-4. PR がクローズされ、不要となったブランチは削除されていること
-5. プロジェクトで指定されたパッケージマネージャにより、依存パッケージをインストールしたこと
+### Before Commit/Push
 
-### コミット・プッシュする前
+1. Commit message follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). `<description>` must be in Japanese.
+2. No sensitive information in the commit
+3. No Lint / Format errors
+4. Verify the change works as expected
 
-コミット・プッシュする前に、以下を必ず確認しなければなりません
+### Before Creating a PR
 
-1. コミットメッセージが [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) に従っていること。ただし、`<description>` は日本語で記載します。
-2. コミット内容にセンシティブな情報が含まれていないこと
-3. Lint / Format エラーが発生しないこと
-4. 動作確認を行い、期待通り動作すること
+1. Confirm the user has requested a PR
+2. No sensitive information in the commit
+3. No risk of conflicts
+4. Run local code review with `/code-review:code-review` and **address all findings with score ≥ 50**
 
-### プルリクエストを作成する前
+### After Creating a PR
 
-プルリクエストを作成する前に、以下を必ず確認しなければなりません
+Run `/pr-health-monitor <PR number>` to automate, or do the following manually:
 
-1. プルリクエストの作成をユーザーから依頼されていること
-2. コミット内容にセンシティブな情報が含まれていないこと
-3. コンフリクトする恐れが無いこと
-4. `/code-review:code-review` によるローカルコードレビューを実施し、**スコア 50 以上の指摘事項に必ず対応していること**
-
-### プルリクエストを作成したあと
-
-`/pr-health-monitor <PR番号>` を実行して自動化するか、以下を手動で実施する:
-
-1. コンフリクトがないことを確認
-2. PR 本文を最新状態のみで更新（更新履歴なし・日本語）
-3. `gh pr checks <PR番号> --watch` で CI を確認
-4. Copilot レビュー依頼と待機（`/wait-for-copilot-review`）
-5. レビューコメントへの対応（`/handle-pr-reviews`）
-6. `/code-review:code-review` でコードレビュー実施（スコア 50 以上は必ず対応）
+1. Verify no conflicts
+2. Update PR body with current state only (no history, in Japanese)
+3. Confirm CI with `gh pr checks <PR number> --watch`
+4. Request Copilot review and wait (`/wait-for-copilot-review`)
+5. Address review comments (`/handle-pr-reviews`)
+6. Run code review with `/code-review:code-review` (address all score ≥ 50)
 
 @CLAUDE.local.md
 
