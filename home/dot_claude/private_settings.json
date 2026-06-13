@@ -60,10 +60,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/tmux-ipc-check.sh"
-          },
-          {
-            "type": "command",
             "command": "bash ~/.claude/hooks/code-review-immediate-fix.sh"
           },
           {
@@ -113,14 +109,6 @@
     "typescript-lsp@claude-plugins-official": true,
     "commit-commands@claude-plugins-official": true,
     "pr-review-toolkit@claude-plugins-official": true
-  },
-  "extraKnownMarketplaces": {
-    "wakatime": {
-      "source": {
-        "source": "github",
-        "repo": "wakatime/claude-code-wakatime"
-      }
-    }
   },
   "skipDangerousModePermissionPrompt": true,
   "showThinkingSummaries": true,

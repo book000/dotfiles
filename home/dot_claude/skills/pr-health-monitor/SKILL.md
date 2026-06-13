@@ -1,7 +1,7 @@
 ---
 name: pr-health-monitor
-description: PR 作成後の監視・対応フローを自動化する。CI 確認・Copilot レビュー待機・コンフリクト確認・PR 本文更新を並列実行する。
-trigger: Use /pr-health-monitor <PR_NUMBER_OR_URL> immediately after creating a PR to automate the full post-PR checklist
+description: PR 作成後の監視・対応フローを自動化する。CI 確認・Copilot レビュー待機・コードレビュー・コンフリクト確認・PR 本文更新を並列実行する。PR 作成直後に /pr-health-monitor <PR番号または URL> で使う。
+argument-hint: "[PR番号またはURL]"
 ---
 
 # PR ヘルスモニター
@@ -27,7 +27,7 @@ PR 作成後のチェックリスト全体を自動化します。
 ```bash
 # URL 形式の場合: grep -oP でキャプチャグループは使えないため、
 # 各フィールドを個別に抽出する
-PR_ARG="https://github.com/owner/repo/pull/123"
+PR_ARG="$ARGUMENTS"
 if echo "$PR_ARG" | grep -q 'github\.com'; then
   OWNER=$(echo "$PR_ARG" | grep -oP 'github\.com/\K[^/]+')
   REPO=$(echo "$PR_ARG" | grep -oP 'github\.com/[^/]+/\K[^/]+(?=/pull)')
@@ -60,7 +60,7 @@ request-review-copilot "https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}"
 
 # バックグラウンドで Copilot レビューを待機
 # 検出時は自動的に /handle-pr-reviews が tmux 経由で実行される
-~/.claude/skills/pr-workflow/scripts/wait-for-copilot-review.sh "$PR_NUMBER" &
+~/.claude/skills/wait-for-copilot-review/scripts/wait-for-copilot-review.sh "$PR_NUMBER" &
 echo "Copilot レビュー待機を開始（バックグラウンド）"
 echo "ログ: ~/.claude/logs/wait-copilot-review-${PR_NUMBER}.log"
 ```

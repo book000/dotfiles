@@ -12,7 +12,6 @@ HOOKS=(
   "home/dot_claude/hooks/executable_code-review-immediate-fix.sh"
   "home/dot_claude/hooks/executable_require-code-review-fixes.sh"
   "home/dot_claude/hooks/executable_require-review-thread-fixes.sh"
-  "home/dot_codex/hooks/executable_tmux-ipc-check.sh"
 )
 
 # 各フックの構文チェック
@@ -32,48 +31,6 @@ for hook in "${HOOKS[@]}"; do
     echo "✅ Syntax OK: $hook"
   fi
 done
-
-echo "Testing Codex tmux IPC hook behavior..."
-TEST_HOME=$(mktemp -d)
-TEST_SESSION_ID="codex-hook-test-$$"
-TEST_IPC_ROOT=$(mktemp -d)
-TEST_IPC_DIR="$TEST_IPC_ROOT/$TEST_SESSION_ID"
-cleanup() {
-  rm -rf "$TEST_HOME" "$TEST_IPC_ROOT"
-}
-trap cleanup EXIT
-
-mkdir -p "$TEST_IPC_DIR/inbox" "$TEST_IPC_DIR/processed"
-CURRENT_TIME=$(date +%s)
-cat > "$TEST_IPC_DIR/inbox/valid.json" <<EOF
-{"id":"valid","from":"tester","timestamp":$CURRENT_TIME,"ttl":300,"body":"hello from hook test"}
-EOF
-cat > "$TEST_IPC_DIR/inbox/invalid.json" <<'EOF'
-{invalid json
-EOF
-
-HOOK_OUTPUT=$(printf '%s' 'not-json' | TMUX=1 TMUX_IPC_DIR="$TEST_IPC_ROOT" TMUX_IPC_SESSION_ID="$TEST_SESSION_ID" HOME="$TEST_HOME" bash home/dot_codex/hooks/executable_tmux-ipc-check.sh)
-if [[ "$HOOK_OUTPUT" != *"hello from hook test"* || "$HOOK_OUTPUT" != *"UserPromptSubmit"* ]]; then
-  echo "❌ Codex tmux IPC hook did not inject valid inbox messages with fallback event name"
-  FAILED=1
-else
-  echo "✅ Codex tmux IPC hook handled invalid stdin and processed valid messages"
-fi
-
-if compgen -G "$TEST_IPC_DIR/inbox/*.json" > /dev/null; then
-  echo "❌ Codex tmux IPC hook left inbox messages unprocessed"
-  FAILED=1
-else
-  echo "✅ Codex tmux IPC hook moved inbox messages out of inbox"
-fi
-
-PROCESSED_COUNT=$(find "$TEST_IPC_DIR/processed" -maxdepth 1 -type f | wc -l | tr -d ' ')
-if [[ "$PROCESSED_COUNT" != "2" ]]; then
-  echo "❌ Codex tmux IPC hook did not move malformed messages to processed"
-  FAILED=1
-else
-  echo "✅ Codex tmux IPC hook safely moved malformed messages to processed"
-fi
 
 echo "Testing gh-pr-target-repo helper behavior..."
 TEST_REPO_DIR=$(mktemp -d)

@@ -1,11 +1,7 @@
 ---
 name: handle-pr-reviews
 description: PR のレビュースレッドを一括処理する。全未解決スレッドを取得し、コード修正・返信・resolve・CI 確認を体系的に実施する。Copilot レビュー検出時にバックグラウンドスクリプトから自動実行される。
-args:
-  - name: pr_url_or_number
-    description: GitHub PR の URL（https://github.com/OWNER/REPO/pull/NUMBER）または PR 番号
-    required: true
-    type: string
+argument-hint: "[PR URL または PR番号]"
 ---
 
 # PR レビュー一括処理
@@ -20,7 +16,7 @@ PR の全レビュースレッドを体系的に処理します。
 
 ```bash
 # URL 形式の場合
-PR_ARG="<引数>"
+PR_ARG="$ARGUMENTS"
 if echo "$PR_ARG" | grep -q 'github\.com'; then
   OWNER=$(echo "$PR_ARG" | grep -oP 'github\.com/\K[^/]+')
   REPO=$(echo "$PR_ARG" | grep -oP 'github\.com/[^/]+/\K[^/]+(?=/pull)')

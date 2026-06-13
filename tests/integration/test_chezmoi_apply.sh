@@ -64,11 +64,6 @@ if [ ! -f "$HOME/.codex/hooks.json" ]; then
   exit 1
 fi
 
-if [ ! -x "$HOME/.codex/hooks/tmux-ipc-check.sh" ]; then
-  echo "❌ Codex tmux IPC hook not generated"
-  exit 1
-fi
-
 if [ ! -x "$HOME/.codex/scripts/completion-notify/notify-completion.sh" ]; then
   echo "❌ Codex completion notification script not generated"
   exit 1
