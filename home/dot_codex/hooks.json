@@ -1,43 +1,5 @@
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup|resume",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.codex/hooks/tmux-ipc-check.sh",
-            "statusMessage": "tmux IPC メッセージを確認中...",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.codex/hooks/tmux-ipc-check.sh",
-            "statusMessage": "tmux IPC メッセージを確認中...",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.codex/hooks/tmux-ipc-check.sh",
-            "statusMessage": "tmux IPC メッセージを確認中...",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "hooks": [

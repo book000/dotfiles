@@ -72,10 +72,10 @@ chezmoi はソース側のプレフィックスを解釈してデプロイする
 
 ```jsonc
 // 正しい
-{"command": "bash ~/.claude/hooks/tmux-ipc-check.sh"}
+{"command": "bash ~/.claude/hooks/statusline.sh"}
 
 // 誤り（chezmoi 適用後にファイルが存在しない）
-{"command": "bash ~/.claude/hooks/executable_tmux-ipc-check.sh"}
+{"command": "bash ~/.claude/hooks/executable_statusline.sh"}
 ```
 
 `symlink_executable_` パターン（シンボリックリンクで `executable_` 付きの名前を作る回避策）は使用しない。

@@ -13,46 +13,8 @@
 cd "$(dirname "$0")" || exit 1
 # shellcheck source=/dev/null
 source ./.env
-
-# Windowsパスをシェル互換パスに変換する関数
-# WSL: C:\Users\... → /mnt/c/Users/...
-# Git Bash/MSYS2: C:\Users\... → /c/Users/...
-# Linux/Unix: そのまま
-convert_path() {
-  local path="$1"
-
-  # チルダをHOMEに展開
-  if [[ "$path" == "~"* ]]; then
-    path="${HOME}${path:1}"
-  fi
-
-  # Windowsパス形式かどうかをチェック (例: C:\ or C:/)
-  # 正規表現でバックスラッシュを正しくマッチさせるため、^[A-Za-z]: のみでチェック
-  if [[ "$path" =~ ^[A-Za-z]: ]]; then
-    local third_char="${path:2:1}"
-    # 3文字目がスラッシュまたはバックスラッシュの場合のみ変換
-    if [[ "$third_char" == "/" ]] || [[ "$third_char" == "\\" ]]; then
-      local drive_letter="${path:0:1}"
-      local rest="${path:2}"
-      # バックスラッシュをスラッシュに変換 (tr を使用)
-      # shellcheck disable=SC1003
-      rest=$(echo "$rest" | tr '\\' '/')
-      # ドライブレターを小文字に変換
-      drive_letter=$(echo "$drive_letter" | tr '[:upper:]' '[:lower:]')
-
-      # 環境を検出してパスを変換
-      if [[ -f /proc/version ]] && grep -qiE '(microsoft|wsl)' /proc/version 2>/dev/null; then
-        # WSL環境
-        path="/mnt/${drive_letter}${rest}"
-      elif [[ -n "$MSYSTEM" ]] || [[ "$(uname -s)" == MINGW* ]] || [[ "$(uname -s)" == MSYS* ]]; then
-        # Git Bash/MSYS2環境
-        path="/${drive_letter}${rest}"
-      fi
-    fi
-  fi
-
-  echo "$path"
-}
+# shellcheck source=/dev/null
+source "$(dirname "$0")/lib.sh"
 
 # Agent Teams のリーダーエージェントかどうかを判定する関数
 # 入力: session_id
