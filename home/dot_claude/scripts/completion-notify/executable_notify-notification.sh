@@ -16,7 +16,7 @@
 cd "$(dirname "$0")" || exit 1
 # shellcheck source=/dev/null
 source ./.env
-# shellcheck source=./lib.sh
+# shellcheck source=/dev/null
 source "$(dirname "$0")/lib.sh"
 
 # データディレクトリの作成
