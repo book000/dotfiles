@@ -42,7 +42,7 @@ Jira の課題タイプからブランチタイプを決定する:
    - チケットキーのみの場合: `mcp__atlassian__getAccessibleAtlassianResources` で `cloudId` を取得する
 1. Jira チケット情報を取得する。
    - `mcp__atlassian__getJiraIssue({ cloudId: "<cloud-id>", issueIdOrKey: "<key>" })`
-   - Done / Closed / Resolved 等のステータスのチケットには着手しない
+   - Done / Closed / Resolved 等のステータスの場合は警告を表示し、処理を中断する
 2. 要件と不確実性を整理する。
    - 変更対象
    - 想定されるリスク
