@@ -89,7 +89,7 @@ Use the Todo tool to track all of the following without omission.
 Run `/pr-health-monitor <PR number>` to automate, or do the following manually:
 
 1. Verify no conflicts
-2. Update PR body with current state only (no history, in Japanese)
+2. Update PR body with current state only (no history). Language: follow the project CLAUDE.md if it specifies one; otherwise Japanese
 3. Confirm CI with `gh pr checks <PR number> --watch`
 4. Request Copilot review and wait (`/wait-for-copilot-review`)
 5. Address review comments (`/handle-pr-reviews`)
