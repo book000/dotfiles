@@ -85,7 +85,7 @@ If there are conflicts, merge the base branch to resolve them.
 
 ### Task D: Update PR Body
 
-Following CLAUDE.md rules, write the PR body with the current final state of the branch only — no history — in Japanese.
+Following CLAUDE.md rules, write the PR body with the current final state of the branch only — no history. Language: follow the project CLAUDE.md if it specifies one; otherwise Japanese.
 
 ```bash
 gh pr edit "$PR_NUMBER" --body "$(cat <<'BODY'

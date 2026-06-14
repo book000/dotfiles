@@ -191,10 +191,11 @@ Only when `CHANGES_MADE=true`:
 # Check changed files
 git -C "$LOCAL_REPO_PATH" status
 
-# Commit following Conventional Commits (description in Japanese)
+# Commit following Conventional Commits
+# description language: follow the project CLAUDE.md if specified; otherwise Japanese
 # Explicitly stage edited files instead of using interactive add
 git -C "$LOCAL_REPO_PATH" add <list edited file paths>
-git -C "$LOCAL_REPO_PATH" commit -m "fix: レビューコメントに基づく修正"
+git -C "$LOCAL_REPO_PATH" commit -m "fix: <description in the project language>"
 
 # Push via SSH
 git -C "$LOCAL_REPO_PATH" push

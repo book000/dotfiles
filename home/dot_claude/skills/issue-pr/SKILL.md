@@ -135,7 +135,7 @@ In dotfiles, update chezmoi source files under `home/`.
 gh pr create --title "<title>" --body "<PR body>"
 ```
 
-PR body: in Japanese, current state only, no update history.
+PR body: follow the project CLAUDE.md language if specified; otherwise Japanese. Current state only, no update history.
 
 ### After PR Creation
 

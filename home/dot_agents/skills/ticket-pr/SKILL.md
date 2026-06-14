@@ -64,11 +64,11 @@ Jira の課題タイプからブランチタイプを決定する:
    - 最低限、変更内容に対応する syntax / unit / integration テストを実行する
    - dotfiles の場合は `tests/` と `chezmoi apply` 系確認を優先する
 7. コミットと push を行う。
-   - Conventional Commits を使い、説明は日本語にする
+   - Conventional Commits を使い、説明はプロジェクトの CLAUDE.md に従い、指定がない場合は日本語にする
 8. PR を作成する。
    - `gh-pr-target-repo.sh` で PR 作成先のリポジトリを解決する
    - `upstream` remote が存在する場合は、それを既定の PR 作成先にする
-   - PR 本文は日本語で、最新状態のみを記載する
+   - PR 本文はプロジェクトの CLAUDE.md に従い、指定がない場合は日本語で、最新状態のみを記載する
    - 更新履歴の羅列は含めない
    - **重要**: PR のタイトル・本文には Jira チケットキーや Jira への言及を含めない
 9. Jira チケットに完了コメントを投稿する。
