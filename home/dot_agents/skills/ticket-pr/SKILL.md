@@ -51,8 +51,9 @@ Jira の課題タイプからブランチタイプを決定する:
 4. ブランチを作成する。
    - `git fetch --all --prune`
    - ベースは `origin/master` を優先し、存在しなければデフォルトブランチを使う
-   - ブランチ名は Conventional Branch に従う（チケットキーを含めると追跡しやすい）
-   - 例: `feat/PROJECT-123-add-feature`
+   - ブランチ名は Conventional Branch に従う
+   - **重要**: ブランチ名に Jira チケットキーを含めない（ブランチ名は GitHub PR ページに表示されるため）
+   - 例: `feat/add-user-authentication`
 5. 実装する。
    - dotfiles では `home/` 配下の chezmoi ソースを更新する
    - 関連ドキュメントも同期する

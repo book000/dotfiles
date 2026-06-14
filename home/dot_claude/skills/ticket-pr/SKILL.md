@@ -161,8 +161,8 @@ git fetch origin
 git checkout -b <branch_name> origin/<default_branch>
 ```
 
-ブランチ名は Conventional Branch に従う（例: `feat/PROJECT-123-add-feature`）。
-チケットキーをブランチ名に含めると追跡しやすい。
+ブランチ名は Conventional Branch に従う（例: `feat/add-user-authentication`）。
+**重要**: ブランチ名に Jira チケットキーを含めない。ブランチ名は GitHub PR ページに表示されるため、Jira への言及に相当する。
 
 ### 実装
 
