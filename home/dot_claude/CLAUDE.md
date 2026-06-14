@@ -67,6 +67,7 @@ See each skill (`/handle-pr-reviews`, `/pr-health-monitor`) for detailed steps a
 - As a general rule, use GitHub Issues for issues and tickets. GitHub Issues should be managed using the gh command
 - If a user explicitly requests the use of Jira, interact with Jira via MCP
 - Search for and identify the Jira space by the project name. If the relevant space does not exist, confirm with the user
+- Jira ticket titles and descriptions must be written in Japanese. Also, please be careful, as there are many cases where the line break format in the description is incorrect
 - Do not mention Jira on GitHub Issues or pull requests
 
 ## Must Do
