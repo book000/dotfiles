@@ -6,13 +6,14 @@
 INPUT=$(cat)
 
 # jq を 1 回だけ呼び出して必要なフィールドをまとめて取得する（オーバーヘッド削減）
-read -r USED_PCT TOKENS_USED CTX_MAX <<< "$(
+# セパレータに | を使う（タブだと used_percentage が null のとき read の IFS 処理でフィールドがずれるため）
+IFS='|' read -r USED_PCT TOKENS_USED CTX_MAX <<< "$(
   echo "$INPUT" | jq -r '
     [
-      (.context_window.used_percentage // .context_window.percent_used // ""),
-      (.context_window.tokens_used // 0 | tostring),
-      (.context_window.context_window_size // .context_window.current_model_max // 0 | tostring)
-    ] | join("\t")
+      (.context_window.used_percentage // ""),
+      (.context_window.total_input_tokens // 0 | tostring),
+      (.context_window.context_window_size // 0 | tostring)
+    ] | join("|")
   ' 2>/dev/null
 )"
 
