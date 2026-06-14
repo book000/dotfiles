@@ -45,26 +45,6 @@ Some projects use Git Worktree. The directory structure must be:
 
 When creating a new branch, create a new Git Worktree after creating the branch.
 
-## PR / Issue ワークフロー
-
-以下のスキルを使ってワークフローを実行してください。
-
-| スキル | 目的 |
-|---|---|
-| `/issue-pr <issue 番号>` | GitHub Issue から実装・PR 作成まで |
-| `/ticket-pr <チケットキーまたは URL>` | Jira チケットから実装・PR 作成まで |
-| `/pr-health-monitor <PR 番号>` | PR 作成後の監視、CI、レビュー対応 |
-| `/handle-pr-reviews <PR URL>` | レビュースレッドへの返信・resolve |
-| `/wait-for-copilot-review <PR 番号>` | Copilot レビューのバックグラウンド待機 |
-
-`/ticket-pr` を使う際の注意:
-- PR タイトル・本文に Jira チケットキーや Jira への言及を含めない
-- 判断記録や完了報告は Jira チケットのコメントに記録する
-
-## Workflow Modes
-
-**Plan mode**: Create the plan only; do not exit plan mode or begin implementation until the user explicitly approves. **Wait for the user's signal before transitioning.**
-
 ## PR / Issue Workflow
 
 Use the following skills to run the workflow:
@@ -72,6 +52,7 @@ Use the following skills to run the workflow:
 | Skill | Purpose |
 |---|---|
 | `/issue-pr <issue number>` | From issue to implementation and PR creation |
+| `/ticket-pr <ticket key OR URL>` | From Jira ticket to implementation and PR creation |
 | `/pr-health-monitor <PR number>` | Post-PR monitoring, CI, and review handling |
 | `/handle-pr-reviews <PR URL>` | Reply to and resolve review threads |
 | `/wait-for-copilot-review <PR number>` | Background wait for Copilot review |
@@ -84,6 +65,7 @@ See each skill (`/handle-pr-reviews`, `/pr-health-monitor`) for detailed steps a
 - If a user explicitly requests the use of Jira, interact with Jira via MCP
 - Search for and identify the Jira space by the project name. If the relevant space does not exist, confirm with the user
 - Jira ticket titles and descriptions must be written in Japanese. Also, please be careful, as there are many cases where the line break format in the description is incorrect
+- When starting implementation, please change the Jira ticket status to To Do. Once the PR is created, there are no conflicts, CI has passed, Copilot Review is complete, and the PR is ready to be merged, please comment to that effect on the ticket and change the status to Resolved.
 - Do not mention Jira on GitHub Issues or pull requests
 
 ## Must Do
