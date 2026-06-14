@@ -178,6 +178,57 @@ GitHub の issue を確認し、対応のためのブランチを作成して PR
 # ブランチ作成 → 実装 → ローカルコードレビュー対応 → PR 作成 → CI 確認 → Copilot レビュー対応
 ```
 
+### ticket-pr
+
+Jira チケットを確認し、対応のためのブランチを作成して PR を作成する Claude Code スキルです。  
+`issue-pr` の Jira チケット版です。Jira MCP を使用してチケット情報を取得します。
+
+```
+/ticket-pr <ticket_key_or_url>
+```
+
+引数には Jira チケットキー（例: `PROJECT-123`）または URL（例: `https://company.atlassian.net/browse/PROJECT-123`）を指定します。
+
+#### Jira 課題タイプとブランチタイプの対応
+
+| Jira 課題タイプ | ブランチタイプ |
+|---|---|
+| Epic / Story / Task / New Feature / Improvement | `feat` |
+| Bug | `fix` |
+| Documentation | `docs` |
+| Refactoring / Technical Debt | `refactor` |
+| Sub-task | 親チケットに準拠、不明なら `feat` |
+
+#### プランモードで実行した場合
+
+プランモード（`/plan` コマンドで起動）で実行すると、以下の作業を行います：
+
+1. **Jira チケット情報の取得**: Jira MCP でチケット内容を取得
+2. **ユーザーへの質問** (不明点がある場合のみ): 不明点や仕様の確認を対話的に質問
+3. **外部仕様の確認**: 必要に応じて外部依存や最新仕様を確認
+4. **要件定義書の作成**: 詳細な要件定義書を作成
+5. **Jira チケットへのコメント投稿**: 要件定義書を Jira チケットにコメントとして投稿
+6. **プランファイルへの記載**: 実装計画をプランファイルに記載
+7. **ExitPlanMode の実行**: プランモードを終了し、ユーザーの承認を待つ
+
+#### 実行モードで実行した場合
+
+1. Jira チケット情報を MCP で取得
+2. チケットタイプからブランチタイプを決定しブランチを作成
+3. 実装を行い PR を作成（PR に Jira への言及は含めない）
+4. Jira チケットに PR URL を含む完了コメントを投稿
+5. `/pr-health-monitor` でポスト PR フローを実行
+
+**使用例:**
+
+```bash
+# チケットキーで指定
+/ticket-pr PROJECT-123
+
+# URL で指定
+/ticket-pr https://company.atlassian.net/browse/PROJECT-123
+```
+
 ## code-review プラグインのカスタマイズ
 
 Claude Code の `/code-review:code-review` コマンドは、デフォルトでスコア 80 以上の指摘のみを報告しますが、このリポジトリでは以下のカスタマイズを適用しています：

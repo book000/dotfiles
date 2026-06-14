@@ -1,0 +1,6 @@
+interface:
+  display_name: "Ticket To PR"
+  short_description: "Jira チケットから PR 作成と PR 後フロー開始までを進める"
+  default_prompt: "$ticket-pr <ticket-key-or-url>"
+policy:
+  allow_implicit_invocation: false

@@ -45,6 +45,22 @@ Some projects use Git Worktree. The directory structure must be:
 
 When creating a new branch, create a new Git Worktree after creating the branch.
 
+## PR / Issue ワークフロー
+
+以下のスキルを使ってワークフローを実行してください。
+
+| スキル | 目的 |
+|---|---|
+| `/issue-pr <issue 番号>` | GitHub Issue から実装・PR 作成まで |
+| `/ticket-pr <チケットキーまたは URL>` | Jira チケットから実装・PR 作成まで |
+| `/pr-health-monitor <PR 番号>` | PR 作成後の監視、CI、レビュー対応 |
+| `/handle-pr-reviews <PR URL>` | レビュースレッドへの返信・resolve |
+| `/wait-for-copilot-review <PR 番号>` | Copilot レビューのバックグラウンド待機 |
+
+`/ticket-pr` を使う際の注意:
+- PR タイトル・本文に Jira チケットキーや Jira への言及を含めない
+- 判断記録や完了報告は Jira チケットのコメントに記録する
+
 ## Workflow Modes
 
 **Plan mode**: Create the plan only; do not exit plan mode or begin implementation until the user explicitly approves. **Wait for the user's signal before transitioning.**
