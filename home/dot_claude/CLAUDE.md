@@ -55,7 +55,7 @@ See each skill (`/handle-pr-reviews`, `/pr-health-monitor`) for detailed steps a
 - Search for and identify the Jira space by the project name. If the relevant space does not exist, confirm with the user
 - Jira ticket titles and descriptions must be written in Japanese. When posting, set `contentFormat: "markdown"` and write line breaks as actual newline characters (not the literal `\n`) to avoid line-break issues
 - When starting implementation, please change the Jira ticket status to "In Progress". Once the PR is created, there are no conflicts, CI has passed, Copilot Review is complete, and the PR is ready to be merged, please comment to that effect on the ticket and change the status to "Resolved".
-- When checking content or changing status, please also consider the child tickets. In Business (simplified) projects, child issues are created as the "Task" type and are not listed in the parent's `subtasks` field — use the JQL `parent = <KEY>` to fetch them (see the ticket-pr skill for details).
+- When checking content or changing status, please also consider the child tickets. In Business (simplified) projects, child issues are created as the "Task" type and are not listed in the parent's `subtasks` field — use the JQL `parent = <ISSUE_KEY>` to fetch them (see the ticket-pr skill for details).
 - Do not mention Jira on GitHub Issues or pull requests
 
 ## Must Do

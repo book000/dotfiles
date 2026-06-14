@@ -29,7 +29,7 @@ The following applies to both modes.
   `mcp__atlassian__searchJiraIssuesUsingJql` with the JQL `parent = <ISSUE_KEY>`
   (or `project = <KEY> AND parent = <ISSUE_KEY>` if needed).
 - **Line breaks in comments/descriptions**: When posting comments or descriptions via
-  `addCommentToJiraIssue` etc., explicitly set `contentFormat: "markdown"`. Write line breaks as
+  `mcp__atlassian__addCommentToJiraIssue` etc., explicitly set `contentFormat: "markdown"`. Write line breaks as
   actual newline characters, not the literal `\n` (don't add extra escaping). This prevents
   doubled line breaks and literal `\n` from showing up in the rendered text.
 
