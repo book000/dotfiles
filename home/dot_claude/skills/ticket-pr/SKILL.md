@@ -9,8 +9,8 @@ disable-model-invocation: true
 
 This skill operates in two modes: **plan mode** and **execution mode**.
 
-`$ARGUMENTS` は Jira チケットのキー（例: `PROJECT-123`）または URL（例: `https://company.atlassian.net/browse/PROJECT-123`）を受け取る。
-URL が渡された場合は、パスの末尾からチケットキーを抽出する。
+`$ARGUMENTS` receives a Jira ticket key (e.g. `PROJECT-123`) or URL (e.g. `https://company.atlassian.net/browse/PROJECT-123`).
+If a URL is passed, extract the ticket key from the end of the path.
 
 ## Mode Detection
 
@@ -19,20 +19,36 @@ If present: plan mode. Otherwise: execution mode (fallback).
 
 ---
 
+## Notes on Jira MCP Operations
+
+The following applies to both modes.
+
+- **Fetching child issues**: In Business (simplified) projects, child issues are created as the "Task" type
+  rather than the "Sub-task" type, so they are not included in the parent ticket's `subtasks` field.
+  To check or fetch child tickets, don't rely on `subtasks` — instead use
+  `mcp__atlassian__searchJiraIssuesUsingJql` with the JQL `parent = <ISSUE_KEY>`
+  (or `project = <KEY> AND parent = <ISSUE_KEY>` if needed).
+- **Line breaks in comments/descriptions**: When posting comments or descriptions via
+  `addCommentToJiraIssue` etc., explicitly set `contentFormat: "markdown"`. Write line breaks as
+  actual newline characters, not the literal `\n` (don't add extra escaping). This prevents
+  doubled line breaks and literal `\n` from showing up in the rendered text.
+
+---
+
 ## Plan Mode Workflow
 
-### Phase 0: cloudId の解決
+### Phase 0: Resolve cloudId
 
-すべての Jira MCP ツール呼び出しに `cloudId` が必要。以下の手順で解決する:
+Every Jira MCP tool call requires `cloudId`. Resolve it as follows:
 
-1. `$ARGUMENTS` が URL（例: `https://company.atlassian.net/browse/PROJECT-123`）の場合:
-   - ホスト名（例: `company.atlassian.net`）を `cloudId` として使用する
-2. チケットキーのみの場合（例: `PROJECT-123`）:
-   - `mcp__atlassian__getAccessibleAtlassianResources` で利用可能なサイトを取得し、対象の `cloudId` を特定する
+1. If `$ARGUMENTS` is a URL (e.g. `https://company.atlassian.net/browse/PROJECT-123`):
+   - Use the hostname (e.g. `company.atlassian.net`) as the `cloudId`
+2. If only a ticket key is given (e.g. `PROJECT-123`):
+   - Use `mcp__atlassian__getAccessibleAtlassianResources` to list available sites and identify the target `cloudId`
 
-### Phase 1: Jira チケット情報の取得
+### Phase 1: Fetch Jira Ticket Info
 
-MCP ツール `mcp__atlassian__getJiraIssue` でチケット情報を取得する。
+Fetch ticket info with the MCP tool `mcp__atlassian__getJiraIssue`.
 
 ```
 mcp__atlassian__getJiraIssue({
@@ -42,88 +58,93 @@ mcp__atlassian__getJiraIssue({
 })
 ```
 
-チケットが Done / Closed / Resolved / 完了 などのステータスの場合は警告を表示し、処理を中断する。
+If the ticket status is Done / Closed / Resolved / etc., show a warning and stop processing.
+To check for child tickets, use the JQL `parent = <ISSUE_KEY>` instead of the `subtasks` field
+(see "Notes on Jira MCP Operations" for details).
 
-### Phase 2: 分析
+### Phase 2: Analysis
 
-1. チケットタイプの判定（feat / fix / docs / refactor）
+1. Determine ticket type (feat / fix / docs / refactor)
    - Epic / Story / Task / New Feature / Improvement → `feat`
    - Bug → `fix`
    - Documentation → `docs`
    - Refactoring / Technical Debt → `refactor`
-   - Sub-task → 親チケットのタイプに準拠、不明なら `feat`
-2. 変更対象ファイルと影響範囲
-3. 不明点のリスト
+   - Sub-task → follow the parent ticket's type, `feat` if unknown
+2. Files to change and impact scope
+3. List of unknowns
 
-### Phase 3: ユーザーへの確認
+### Phase 3: Ask the User
 
-不明点がある場合のみ AskUserQuestion ツールで確認する。
-「このプランは問題ありませんか？」とは聞かない — それは ExitPlanMode の役割。
+Use the AskUserQuestion tool only if there are unknowns.
+Do not ask "Is this plan okay?" — that is ExitPlanMode's role.
 
-AskUserQuestion の制限事項: セッションあたり約 4〜6 回、各質問は 60 秒でタイムアウト、Task ツール経由のサブエージェントからは使用不可。
+AskUserQuestion limits: roughly 4-6 calls per session, each question times out after 60 seconds, and it cannot be used from sub-agents via the Task tool.
 
-### Phase 4: 外部仕様の確認
+### Phase 4: Check External Specs
 
-外部依存や最新仕様が必要な場合は WebSearch や公式ドキュメント（Context7 など）で確認する。
-（他のエージェントには相談しない。）
+If external dependencies or latest specs are needed, check with WebSearch or official docs (Context7, etc.).
+(Do not consult other agents.)
 
-### Phase 5: 要件定義書の作成
+### Phase 5: Write the Requirements Document
 
-以下のフォーマットで作成する:
+Create in the following format:
 
 ```markdown
-# <チケットキー> 要件定義
+# <ticket-key> Requirements
 
-## 概要
-- **チケットタイトル**: [タイトル]
-- **チケットキー**: [PROJECT-123]
-- **チケットタイプ**: Epic / Story / Task / Bug / ...
-- **ブランチタイプ**: feat / fix / docs / refactor
-- **影響範囲**: [ファイル・モジュール]
+## Overview
+- **Ticket title**: [title]
+- **Ticket key**: [PROJECT-123]
+- **Ticket type**: Epic / Story / Task / Bug / ...
+- **Branch type**: feat / fix / docs / refactor
+- **Impact scope**: [files/modules]
 
-## 要件
-### 機能要件
-[詳細な機能要件]
+## Requirements
+### Functional Requirements
+[detailed functional requirements]
 
-### 非機能要件
-- **セキュリティ**: [要件]
-- **パフォーマンス**: [要件]
+### Non-Functional Requirements
+- **Security**: [requirements]
+- **Performance**: [requirements]
 
-## 実装計画
-### 主要ステップ
-1. [ステップ 1]
-2. [ステップ 2]
+## Implementation Plan
+### Key Steps
+1. [step 1]
+2. [step 2]
 
-## ブランチ名
+## Branch Name
 `<type>/<description>`
 
-## 判断記録
-1. 判断内容の要約
-2. 検討した代替案
-3. 採用しなかった案とその理由
-4. 前提条件・仮定・不確実性
-5. 他エージェントによるレビュー可否
+## Decision Log
+1. Summary of the decision
+2. Alternatives considered
+3. Rejected alternatives and reasons
+4. Assumptions and uncertainties
+5. Whether other agents can review
 ```
 
-### Phase 6: Jira チケットへのコメント投稿
+### Phase 6: Post Comment to Jira Ticket
 
-MCP ツール `mcp__atlassian__addCommentToJiraIssue` で要件定義書をコメントとして投稿する。
+Post the requirements document as a comment with the MCP tool `mcp__atlassian__addCommentToJiraIssue`.
 
 ```
 mcp__atlassian__addCommentToJiraIssue({
   cloudId: "<cloud-id>",
   issueIdOrKey: "<ticket-key>",
-  commentBody: "<要件定義書の内容>"
+  commentBody: "<requirements document content>",
+  contentFormat: "markdown"
 })
 ```
 
-センシティブな情報が含まれていないことを必ず確認する。
+Always verify no sensitive information is included.
+Explicitly set `contentFormat: "markdown"`, and write line breaks as actual newline
+characters rather than the literal `\n` (see "Notes on Jira MCP Operations" for details).
 
-### Phase 7: プランファイルへの書き込み
+### Phase 7: Write to Plan File
 
-system-reminder で指定されたプランファイルパスに Write ツールで書き込む。
+Write to the plan file path specified in the system-reminder using the Write tool.
 
-### Phase 8: ExitPlanMode の実行
+### Phase 8: Run ExitPlanMode
 
 ```
 ExitPlanMode()
@@ -135,21 +156,21 @@ ExitPlanMode()
 
 ### Prerequisites
 
-- `gh` がインストール済みであること
-- Git リポジトリ内で実行すること
+- `gh` must be installed
+- Must be run inside a Git repository
 
-### cloudId の解決
+### Resolve cloudId
 
-すべての Jira MCP ツール呼び出しに `cloudId` が必要。以下の手順で解決する:
+Every Jira MCP tool call requires `cloudId`. Resolve it as follows:
 
-1. `$ARGUMENTS` が URL（例: `https://company.atlassian.net/browse/PROJECT-123`）の場合:
-   - ホスト名（例: `company.atlassian.net`）を `cloudId` として使用する
-2. チケットキーのみの場合（例: `PROJECT-123`）:
-   - `mcp__atlassian__getAccessibleAtlassianResources` で利用可能なサイトを取得し、対象の `cloudId` を特定する
+1. If `$ARGUMENTS` is a URL (e.g. `https://company.atlassian.net/browse/PROJECT-123`):
+   - Use the hostname (e.g. `company.atlassian.net`) as the `cloudId`
+2. If only a ticket key is given (e.g. `PROJECT-123`):
+   - Use `mcp__atlassian__getAccessibleAtlassianResources` to list available sites and identify the target `cloudId`
 
-### Jira チケット情報の取得
+### Fetch Jira Ticket Info
 
-MCP ツール `mcp__atlassian__getJiraIssue` でチケット情報を取得する。
+Fetch ticket info with the MCP tool `mcp__atlassian__getJiraIssue`.
 
 ```
 mcp__atlassian__getJiraIssue({
@@ -159,65 +180,67 @@ mcp__atlassian__getJiraIssue({
 })
 ```
 
-チケットが Done / Closed / Resolved 等のステータスの場合は警告を表示し、処理を中断する。
+If the ticket status is Done / Closed / Resolved / etc., show a warning and stop processing.
 
-### ブランチタイプの決定
+### Determine Branch Type
 
-Jira の課題タイプからブランチタイプを決定する:
+Determine the branch type from the Jira issue type:
 
-| Jira 課題タイプ | ブランチタイプ |
+| Jira Issue Type | Branch Type |
 |---|---|
 | Epic / Story / Task / New Feature / Improvement | `feat` |
 | Bug | `fix` |
 | Documentation | `docs` |
 | Refactoring / Technical Debt | `refactor` |
-| Sub-task | 親チケットに準拠、不明なら `feat` |
+| Sub-task | follow the parent ticket, `feat` if unknown |
 
-### ブランチの作成
+### Create Branch
 
-`origin/master` を優先し、存在しなければデフォルトブランチを使う:
+Prefer `origin/master`, falling back to the default branch if it doesn't exist:
 
 ```bash
 git fetch --all --prune
 git checkout -b <branch_name> origin/master
 ```
 
-ブランチ名は Conventional Branch に従う（例: `feat/add-user-authentication`）。
-**重要**: ブランチ名に Jira チケットキーを含めない。ブランチ名は GitHub PR ページに表示されるため、Jira への言及に相当する。
+Branch name follows Conventional Branch (e.g. `feat/add-user-authentication`).
+**Important**: do not include the Jira ticket key in the branch name. The branch name is
+shown on the GitHub PR page, which would amount to referencing Jira there.
 
-### 実装
+### Implement the Fix
 
-チケットの内容を確認し、適切に実装する。
-dotfiles では `home/` 配下の chezmoi ソースファイルを更新する。
-関連ドキュメント（README.md, CLAUDE.md 等）も合わせて更新する。
+Review the ticket content and implement appropriately.
+In dotfiles, update chezmoi source files under `home/`.
+Also update related documentation (README.md, CLAUDE.md, etc.).
 
-### 検証
+### Verification
 
-変更内容に対応するテストを実行する。
-dotfiles では `chezmoi apply` による動作確認を優先する。
+Run tests corresponding to the changes.
+In dotfiles, prefer verifying with `chezmoi apply`.
 
-### コミット
+### Commit
 
 ```bash
 git add <files>
-git commit -m "<type>: <日本語説明>"
+git commit -m "<type>: <Japanese description>"
 ```
 
-Conventional Commits に従い、`<description>` は日本語で記載する。
+Follow Conventional Commits, with `<description>` written in Japanese.
 
-### PR の作成
+### Create PR
 
-`gh-pr-target-repo.sh` で PR 作成先のリポジトリを解決する。`upstream` remote が存在する場合はそれを既定の作成先とする。
+Resolve the target repository for the PR with `gh-pr-target-repo.sh`. If an `upstream` remote
+exists, it is used as the default target.
 
 ```bash
 REPO=$(gh-pr-target-repo.sh 2>/dev/null || echo "")
 gh pr create ${REPO:+--repo "$REPO"} --title "<title>" --body "<PR body>"
 ```
 
-**重要**: PR のタイトル・本文には Jira チケットキーや Jira への言及を含めない。
-PR 本文: 日本語で、最新状態のみ記載、更新履歴は含めない。
+**Important**: do not include the Jira ticket key or any reference to Jira in the PR title or body.
+PR body: in Japanese, current state only, no update history.
 
-PR 本文の構成例:
+Example PR body structure:
 ```markdown
 ## 概要
 
@@ -234,24 +257,29 @@ PR 本文の構成例:
 - [確認項目 2]
 ```
 
-### Jira チケットへの作業完了コメント
+### Completion Comment on Jira Ticket
 
-PR 作成後、MCP ツール `mcp__atlassian__addCommentToJiraIssue` で PR URL を含む完了コメントを投稿する。
+After creating the PR, post a completion comment containing the PR URL with the MCP tool
+`mcp__atlassian__addCommentToJiraIssue`.
 
 ```
 mcp__atlassian__addCommentToJiraIssue({
   cloudId: "<cloud-id>",
   issueIdOrKey: "<ticket-key>",
-  commentBody: "実装完了しました。PR を作成しました: <PR URL>"
+  commentBody: "実装完了しました。PR を作成しました: <PR URL>",
+  contentFormat: "markdown"
 })
 ```
 
-### PR 作成後
+Explicitly set `contentFormat: "markdown"`, and write line breaks as actual newline
+characters rather than the literal `\n` (see "Notes on Jira MCP Operations" for details).
 
-完了したら直ちに `/pr-health-monitor <PR number>` を実行する。
+### After PR Creation
+
+Immediately run `/pr-health-monitor <PR number>` when done.
 
 ## Notes
 
-- レビュー待ちや CI 待ちの間に別作業へ逸れない
-- Jira への言及は PR 本文・GitHub Issue には含めない（Jira チケット側にのみ記録する）
-- 判断記録は Jira チケットのコメントに残す
+- Do not drift to other tasks while waiting for review or CI
+- Do not reference Jira in the PR body or GitHub Issues (record it only on the Jira ticket side)
+- Record decision logs in Jira ticket comments
