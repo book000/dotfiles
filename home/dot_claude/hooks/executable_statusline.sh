@@ -7,7 +7,7 @@ INPUT=$(cat)
 
 # jq を 1 回だけ呼び出して必要なフィールドをまとめて取得する（オーバーヘッド削減）
 # セパレータに | を使う（タブだと used_percentage が null のとき read の IFS 処理でフィールドがずれるため）
-IFS='|' read -r USED_PCT TOKENS_USED CTX_MAX <<< "$(
+IFS='|' read -r USED_PCT TOTAL_INPUT_TOKENS CTX_MAX <<< "$(
   echo "$INPUT" | jq -r '
     [
       (.context_window.used_percentage // ""),
@@ -87,8 +87,8 @@ format_tokens() {
   fi
 }
 
-TOKENS_USED_FMT=$(format_tokens "$TOKENS_USED")
+TOTAL_INPUT_TOKENS_FMT=$(format_tokens "$TOTAL_INPUT_TOKENS")
 CTX_MAX_FMT=$(format_tokens "$CTX_MAX")
 
 # ステータスラインを出力する
-printf "${BAR_COLOR}[${BAR_FILLED}${COLOR_DIM}${BAR_EMPTY}${COLOR_RESET}${BAR_COLOR}]${COLOR_RESET} ${BAR_COLOR}${USED_INT}%%${COLOR_RESET} ${COLOR_DIM}(${TOKENS_USED_FMT}/${CTX_MAX_FMT})${COLOR_RESET}"
+printf "${BAR_COLOR}[${BAR_FILLED}${COLOR_DIM}${BAR_EMPTY}${COLOR_RESET}${BAR_COLOR}]${COLOR_RESET} ${BAR_COLOR}${USED_INT}%%${COLOR_RESET} ${COLOR_DIM}(${TOTAL_INPUT_TOKENS_FMT}/${CTX_MAX_FMT})${COLOR_RESET}"
