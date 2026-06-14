@@ -65,7 +65,7 @@ See each skill (`/handle-pr-reviews`, `/pr-health-monitor`) for detailed steps a
 - If a user explicitly requests the use of Jira, interact with Jira via MCP
 - Search for and identify the Jira space by the project name. If the relevant space does not exist, confirm with the user
 - Jira ticket titles and descriptions must be written in Japanese. Also, please be careful, as there are many cases where the line break format in the description is incorrect
-- When starting implementation, please change the Jira ticket status to To Do. Once the PR is created, there are no conflicts, CI has passed, Copilot Review is complete, and the PR is ready to be merged, please comment to that effect on the ticket and change the status to Resolved.
+- When starting implementation, please change the Jira ticket status to "In progres"s. Once the PR is created, there are no conflicts, CI has passed, Copilot Review is complete, and the PR is ready to be merged, please comment to that effect on the ticket and change the status to "Resolved".
 - Do not mention Jira on GitHub Issues or pull requests
 
 ## Must Do
