@@ -114,6 +114,6 @@
   "showThinkingSummaries": true,
   "statusLine": {
     "type": "command",
-    "command": "npx -y ccstatusline@2.2.21"
+    "command": "npx -y ccstatusline@latest"
   }
 }
