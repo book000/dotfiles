@@ -114,6 +114,6 @@
   "showThinkingSummaries": true,
   "statusLine": {
     "type": "command",
-    "command": "~/.claude/hooks/statusline.sh"
+    "command": "npx -y ccstatusline@latest"
   }
 }
