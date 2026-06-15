@@ -18,7 +18,16 @@ _claude_trust_cwd() {
   [ -f "$config" ] || return 0
   command -v jq > /dev/null 2>&1 || return 0
   if [ "$(jq -r --arg p "$PWD" '.projects[$p].hasTrustDialogAccepted // false' "$config" 2> /dev/null)" != "true" ]; then
-    jq --arg p "$PWD" '.projects[$p] = ((.projects[$p] // {}) + {hasTrustDialogAccepted: true})' "$config" > "$config.tmp" && mv "$config.tmp" "$config"
+    local tmp perm
+    tmp=$(mktemp "${config}.XXXXXX") || return 0
+    # 元ファイルのパーミッションを一時ファイルに反映する (GNU stat / BSD stat の両方に対応)
+    perm=$(stat -c '%a' "$config" 2> /dev/null || stat -f '%Lp' "$config" 2> /dev/null)
+    [ -n "$perm" ] && chmod "$perm" "$tmp"
+    if jq --arg p "$PWD" '.projects[$p] = ((.projects[$p] // {}) + {hasTrustDialogAccepted: true})' "$config" > "$tmp"; then
+      mv "$tmp" "$config"
+    else
+      rm -f "$tmp"
+    fi
   fi
 }
 claude() {
