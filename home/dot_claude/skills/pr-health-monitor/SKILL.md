@@ -89,13 +89,14 @@ Following CLAUDE.md rules, write the PR body with the current final state of the
 
 ```bash
 gh pr edit "$PR_NUMBER" --body "$(cat <<'BODY'
-## 概要
+## Summary
+(or ## 概要 if project language is Japanese)
+
 ...
 
-## 変更内容
-...
+## Changes
+(or ## 変更内容 if project language is Japanese)
 
-## 確認方法
 ...
 BODY
 )"

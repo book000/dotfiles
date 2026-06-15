@@ -17,7 +17,7 @@
 
 ## Environment Rules
 
-- Git commits must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). The `<description>` must be in Japanese.
+- Git commits must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). The `<description>` language: follow the project CLAUDE.md if it specifies one; otherwise Japanese.
 - Branches must follow [Conventional Branch](https://conventional-branch.github.io). Use short-form `<type>` (feat, fix).
 - When researching a GitHub repository, clone it to a temporary directory and search there.
 - Keep CLAUDE.md up to date.
@@ -72,7 +72,7 @@ Use the Todo tool to track all of the following without omission.
 
 ### Before Commit/Push
 
-1. Commit message follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). `<description>` must be in Japanese.
+1. Commit message follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). `<description>` language: follow the project CLAUDE.md if specified; otherwise Japanese.
 2. No sensitive information in the commit
 3. No Lint / Format errors
 4. Verify the change works as expected

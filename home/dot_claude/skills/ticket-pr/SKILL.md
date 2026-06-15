@@ -240,21 +240,21 @@ gh pr create ${REPO:+--repo "$REPO"} --title "<title>" --body "<PR body>"
 **Important**: do not include the Jira ticket key or any reference to Jira in the PR title or body.
 PR body: follow the project CLAUDE.md language if specified; otherwise Japanese. Current state only, no update history.
 
-Example PR body structure:
+Example PR body structure (section headings in the project language; Japanese shown as default):
 ```markdown
 ## 概要
 
-[summary of changes in the project language (default: Japanese)]
+[summary of changes]
 
 ## 変更内容
 
-- [変更点 1]
-- [変更点 2]
+- [change 1]
+- [change 2]
 
 ## 動作確認
 
-- [確認項目 1]
-- [確認項目 2]
+- [verification step 1]
+- [verification step 2]
 ```
 
 ### Completion Comment on Jira Ticket
