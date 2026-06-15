@@ -9,7 +9,7 @@ paths:
 
 ## Documentation
 
-- Write function description comments in Japanese
+- Write function description comments. Language: follow the project CLAUDE.md if it specifies one; otherwise Japanese
 
 ## Error Messages
 

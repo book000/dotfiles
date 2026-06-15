@@ -12,7 +12,7 @@
 ## Language
 
 - Final responses to the user must be in Japanese. For intermediate steps, use English except for key/important points, to reduce context size.
-- Code comments must be in Japanese. Error messages should be in English as a general rule.
+- Code comments: follow the project CLAUDE.md if it specifies one; otherwise Japanese. Error messages should be in English as a general rule.
 - Insert a half-width space between Japanese and alphanumeric characters.
 
 ## Environment Rules

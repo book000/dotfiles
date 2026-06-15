@@ -16,7 +16,7 @@ paths:
 
 ## Documentation
 
-- Write and maintain JSDoc (docstring) in Japanese for all functions, interfaces, and classes
+- Write and maintain JSDoc (docstring) for all functions, interfaces, and classes. Language: follow the project CLAUDE.md if it specifies one; otherwise Japanese
 
   ```typescript
   /**
