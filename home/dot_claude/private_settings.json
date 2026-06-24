@@ -9,7 +9,7 @@
     "IS_DEMO": "1"
   },
   "model": "opusplan",
-  "effortLevel": "high",
+  "effortLevel": "medium",
   "autoMemoryEnabled": false,
   "feedbackSurveyRate": 0,
   "showClearContextOnPlanAccept": true,
