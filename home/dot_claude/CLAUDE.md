@@ -82,7 +82,7 @@ Use the Todo tool to track all of the following without omission.
 1. Confirm the user has requested a PR
 2. No sensitive information in the commit
 3. No risk of conflicts
-4. Run local code review with `/code-review:code-review` and **address all findings with score ≥ 50**
+4. Run local code review with `/deep-review` and **address all findings with score ≥ 50**
 
 ### After Creating a PR
 
@@ -93,7 +93,7 @@ Run `/pr-health-monitor <PR number>` to automate, or do the following manually:
 3. Confirm CI with `gh pr checks <PR number> --watch`
 4. Request Copilot review and wait (`/wait-for-copilot-review`)
 5. Address review comments (`/handle-pr-reviews`)
-6. Run code review with `/code-review:code-review` (address all score ≥ 50)
+6. Run code review with `/deep-review` (address all score ≥ 50)
 
 @CLAUDE.local.md
 

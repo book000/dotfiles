@@ -229,67 +229,48 @@ Jira チケットを確認し、対応のためのブランチを作成して PR
 /ticket-pr https://company.atlassian.net/browse/PROJECT-123
 ```
 
-## code-review プラグインのカスタマイズ
+## `/deep-review` スキル
 
-Claude Code の `/code-review:code-review` コマンドは、デフォルトでスコア 80 以上の指摘のみを報告しますが、このリポジトリでは以下のカスタマイズを適用しています：
+外部プラグインに依存しない自前のコードレビュースキル。
+`home/dot_claude/skills/deep-review/SKILL.md` として管理され、`chezmoi apply` で `~/.claude/skills/deep-review/SKILL.md` にデプロイされる。
 
-1. **閾値の変更**: スコア 80 → 50 に変更（より多くの指摘を報告）
-2. **自動修正機能**: スコア 50 以上の指摘事項を自動的に修正
-
-### 仕組み
-
-1. **パッチファイル**:
-   - `home/dot_claude/patches/code-review-threshold.patch`: 閾値変更（80 → 50）
-   - `home/dot_claude/patches/code-review-autofix.patch`: 自動修正機能の追加
-
-2. **自動適用スクリプト**: `chezmoi apply` 時に `.chezmoiscripts/run_after_apply-code-review-patch.sh.tmpl` が毎回実行され、以下のディレクトリにパッチを自動適用:
-   - **Marketplace**: `~/.claude/plugins/marketplaces/claude-plugins-official/plugins/code-review/`
-   - **Cache**: `~/.claude/plugins/cache/claude-plugins-official/code-review/*/`（すべてのハッシュディレクトリ）
-
-3. **キャッシュクリア**: パッチファイルが変更されると、`dot_claude/.chezmoiscripts/run_onchange_after_clear-plugin-cache.sh.tmpl` が自動実行され、プラグインキャッシュ (`~/.claude/plugins/cache/`) をクリア
-
-4. **冪等性**: 既にパッチが適用されている場合はスキップ（何度実行しても安全）
-
-### 適用先の詳細
-
-パッチは以下の両方に適用されます：
-
-- **Marketplace**: Claude Code がプラグインをインストールした際の元ファイル
-- **Cache**: Claude Code が実行時に使用するキャッシュファイル（ハッシュ値付きディレクトリ）
-
-Cache への適用により、キャッシュが再生成された場合でもパッチが確実に適用されます。
-
-### 閾値の変更方法
-
-閾値を変更したい場合は、`home/dot_claude/patches/code-review-threshold.patch` を編集してください。
-
-```diff
--6. Filter out any issues with a score less than 80. If there are no issues that meet this criteria, do not proceed.
-+6. Filter out any issues with a score less than 50. If there are no issues that meet this criteria, do not proceed.
-```
-
-変更後、`chezmoi apply` を実行すると新しい閾値が適用されます（スクリプトは毎回実行され、冪等性があります）。
-
-### トラブルシューティング
-
-#### パッチが適用されない
-
-1. **Marketplace が存在しない**: `~/.claude/plugins/marketplaces/claude-plugins-official/plugins/code-review/` が存在しない場合は、`/code-review:code-review` を一度実行してプラグインをインストールしてください
-
-2. **Cache が存在しない**: `~/.claude/plugins/cache/` が空の場合は、Claude Code を起動してキャッシュを生成してください
-
-3. **パッチ適用に失敗**: code-review プラグインの構造が変更された可能性があります。その場合は、パッチファイルを手動で更新する必要があります
-
-#### パッチ適用状況の確認
+### 使い方
 
 ```bash
-# Marketplace の確認
-grep "Filter out any issues with a score less than 50" ~/.claude/plugins/marketplaces/claude-plugins-official/plugins/code-review/commands/code-review.md
+# PR をレビューする
+/deep-review 123
+/deep-review https://github.com/owner/repo/pull/123
 
-# Cache の確認
-for f in ~/.claude/plugins/cache/claude-plugins-official/code-review/*/commands/code-review.md; do
-  echo "=== $f ==="
-  grep "Filter out any issues with a score less than 50" "$f"
-  grep "CHECK PR AUTHOR" "$f"
-done
+# ローカル diff をレビューする（引数なし）
+/deep-review
 ```
+
+### 特徴
+
+- **外部依存なし**: `code-review@claude-plugins-official` や `pr-review-toolkit@claude-plugins-official` を一切使用しない
+- **独自パイプライン**: 独立したサブエージェントを並列起動して観点別にレビューし、確信度スコア 0-100 でフィルタリング（スコア 50 未満は除外）
+- **PR/ローカル diff 両対応**: 引数ありで PR モード、引数なしでローカル diff モード
+- **自動修正（自分の PR のみ）**: スコア 50 以上の指摘を自動修正 → コミット → push → PR 本文更新
+- **偽陽性抑制**: 各エージェントに「無視すべきもの」を明示して精度を確保
+
+### レビュー観点
+
+| 観点 | 内容 |
+|---|---|
+| CLAUDE.md 準拠 | CLAUDE.md / rules の指示との整合性 |
+| バグ・正確性 | 変更差分中心の大きなバグの検出 |
+| git 履歴 | blame・log を踏まえた問題 |
+| 過去 PR コメント | 同ファイルへの過去の指摘との照合（PR モードのみ）|
+| コード内コメント整合 | docstring・コメントの指示との整合 |
+| セキュリティ | 入力検証・認可・シークレット漏洩・AI-PR 固有リスク |
+| パフォーマンス | 不要ループ・N+1・ホットパスへの影響 |
+| サイレント障害 | エラー握り潰し・不適切なフォールバック |
+| 型設計・テスト | 不変条件の表現・重要パスのテスト欠如 |
+
+### 強制対応フック
+
+`~/.claude/hooks/deep-review-immediate-fix.sh`（PostToolUse）と
+`~/.claude/hooks/deep-review-require-fixes.sh`（Stop）が設定されており、
+スコア 50 以上の指摘が未対応の場合は Claude の処理を一時ブロックして対応を促す。
+
+これらのフックは公式フック契約（stdin JSON + `decision/reason` 出力）に準拠している。
