@@ -14,6 +14,7 @@
 - Final responses to the user must be in Japanese. For intermediate steps, use English except for key/important points, to reduce context size.
 - Code comments: follow the project CLAUDE.md if it specifies one; otherwise Japanese. Error messages should be in English as a general rule.
 - Insert a half-width space between Japanese and alphanumeric characters.
+- **All Markdown files under `~/.claude/` must be written in English** (CLAUDE.md, skills, rules, etc.).
 
 ## Environment Rules
 
@@ -82,7 +83,7 @@ Use the Todo tool to track all of the following without omission.
 1. Confirm the user has requested a PR
 2. No sensitive information in the commit
 3. No risk of conflicts
-4. Run local code review with `/deep-review` and **address all findings with score ≥ 50**
+4. Run `/deep-review` (local diff mode — no argument) and **address all findings with score ≥ 50** before proceeding to PR creation
 
 ### After Creating a PR
 
@@ -93,7 +94,6 @@ Run `/pr-health-monitor <PR number>` to automate, or do the following manually:
 3. Confirm CI with `gh pr checks <PR number> --watch`
 4. Request Copilot review and wait (`/wait-for-copilot-review`)
 5. Address review comments (`/handle-pr-reviews`)
-6. Run code review with `/deep-review` (address all score ≥ 50)
 
 @CLAUDE.local.md
 

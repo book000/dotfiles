@@ -22,7 +22,7 @@ Execute the following steps strictly in order.
 
 Launch a Haiku sub-agent to verify the PR does not fall into any of these categories. Abort and report the reason if it does:
 
-- Closed or draft
+- Closed
 - Auto-generated (Renovate, dependabot, etc.) or trivially simple
 - The current GitHub user (run `gh api user --jq '.login'` to detect) has already posted a code-review comment
 
@@ -150,7 +150,6 @@ fix: コードレビュー指摘事項を修正
 - [list of fixed issues]
 
 Co-Authored-By: Claude <noreply@anthropic.com>
-Claude-Session: <current session URL or omit>
 ```
 
 3. `git push origin <branch>` (use SSH).
@@ -180,10 +179,6 @@ Score: <score>
 <https://github.com/<owner>/<repo>/blob/<full_sha>/<path>#L<start>-L<end>>
 
 **Fixed**: <description of the fix applied>
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-
-<sub>- If this code review was useful, please react with 👍. Otherwise, react with 👎.</sub>
 ```
 
 When issues were found (other author's PR, no autofix):
@@ -198,10 +193,6 @@ Found X issues:
 Score: <score>
 
 <https://github.com/<owner>/<repo>/blob/<full_sha>/<path>#L<start>-L<end>>
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-
-<sub>- If this code review was useful, please react with 👍. Otherwise, react with 👎.</sub>
 ```
 
 When no issues were found:
@@ -214,7 +205,7 @@ No issues found. Checked for bugs, CLAUDE.md compliance, security (incl. AI-PR r
 
 #### Formatting rules
 
-- GitHub code links must use the full SHA + `#L<line>` format. Do not embed `$(git rev-parse HEAD)` — it will not expand in Markdown. Correct example: `https://github.com/book000/dotfiles/blob/1d54823877c4de72b2316a64032a54afc404e619/home/dot_claude/SKILL.md#L10-L15`
-- No emoji except 🤖, 👍, and 👎.
+- GitHub code links must use the full SHA + `#L<line>` format. Do not embed `$(git rev-parse HEAD)` — it will not expand in Markdown.
+- No emoji.
 - Each finding must include `Score: <number>` (the Stop hook extracts scores using this exact format).
 - Cite both the code (`file:line`) and the relevant CLAUDE.md rule for each finding.
