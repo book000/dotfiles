@@ -14,6 +14,15 @@
   "feedbackSurveyRate": 0,
   "showClearContextOnPlanAccept": true,
   "awaySummaryEnabled": false,
+  "verbose": true,
+  "language": "Use Japanese for interaction with humans and creating plans. Write the Markdown below .claude in English.",
+  "preferredNotifChannel": "auto",
+  "teammateMode": "auto",
+  "inputNeededNotifEnabled": true,
+  "worktree": {
+    "baseRef": "fresh"
+  },
+  "enableWorkflows": true,
   "hooks": {
     "Stop": [
       {
