@@ -24,7 +24,7 @@ Launch a Haiku sub-agent to verify the PR does not fall into any of these catego
 
 - Closed or draft
 - Auto-generated (Renovate, dependabot, etc.) or trivially simple
-- The current user (akubiusa) has already posted a code-review comment
+- The current GitHub user (run `gh api user --jq '.login'` to detect) has already posted a code-review comment
 
 ### Step 2: Collect CLAUDE.md / rules paths
 
@@ -122,9 +122,10 @@ Launch a Haiku sub-agent to repeat the Step 1 eligibility check. Abort if the PR
 
 ### Step 8: PR author check (PR mode only)
 
-Run `gh pr view <PR> --json author` to identify the author.
+Run `gh api user --jq '.login'` to get the current GitHub user login.
+Then run `gh pr view <PR> --json author --jq '.author.login'` to get the PR author.
 
-- Author is `akubiusa` or a bot created by the user → proceed to Step 9 (autofix).
+- Author matches the current user login, or is a bot created by the current user → proceed to Step 9 (autofix).
 - Any other author (Renovate, dependabot, external contributors) → skip to Step 12 (report only).
 
 ### Step 9: Autofix (own PRs only)
@@ -180,8 +181,6 @@ Score: <score>
 
 **Fixed**: <description of the fix applied>
 
----
-
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
 <sub>- If this code review was useful, please react with 👍. Otherwise, react with 👎.</sub>
@@ -200,8 +199,6 @@ Score: <score>
 
 <https://github.com/<owner>/<repo>/blob/<full_sha>/<path>#L<start>-L<end>>
 
----
-
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
 <sub>- If this code review was useful, please react with 👍. Otherwise, react with 👎.</sub>
@@ -213,8 +210,6 @@ When no issues were found:
 ### Deep Review
 
 No issues found. Checked for bugs, CLAUDE.md compliance, security (incl. AI-PR risks), performance, error handling, silent failures, type design, and test coverage.
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
 ```
 
 #### Formatting rules
