@@ -1,16 +1,13 @@
 #!/bin/bash
 
-# セッション終了時に deep-review の指摘対応漏れを防止する Stop フック
-# /deep-review を実行済みでスコア 50 以上の指摘が残っている場合に終了をブロックする
+# Stop hook: block session end if deep-review found unresolved high-score issues.
+# Triggers when /deep-review was run in this session and Score: 50+ findings remain.
 
-# stdin から JSON を読み込む（公式フック契約: stdin JSON）
+# Read JSON from stdin (official hook contract: stdin JSON)
 INPUT=$(cat)
 
-# transcript パスを取得する（stdin JSON を優先し、環境変数にフォールバック）
+# Get transcript path from stdin JSON
 TRANSCRIPT_PATH=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null || echo "")
-if [[ -z "$TRANSCRIPT_PATH" ]]; then
-    TRANSCRIPT_PATH="${TRANSCRIPT_PATH:-}"
-fi
 
 # transcript ファイルが存在しない場合はブロックしない
 if [[ -z "$TRANSCRIPT_PATH" ]] || [[ ! -f "$TRANSCRIPT_PATH" ]]; then
@@ -24,8 +21,14 @@ if ! grep -q 'deep-review' "$TRANSCRIPT_PATH"; then
     exit 0
 fi
 
-# transcript からスコアを抽出する
-SCORES=$(grep -oP 'Score:\s*\K\d+' "$TRANSCRIPT_PATH" 2>/dev/null || echo "")
+# 最後の deep-review 実行以降のスコアのみを対象にする
+# これにより、過去のセッションで修正済みの指摘が残り続けてブロックし続けることを防ぐ
+LAST_LINE=$(grep -n 'deep-review' "$TRANSCRIPT_PATH" | tail -1 | cut -d: -f1)
+if [[ -n "$LAST_LINE" ]]; then
+    SCORES=$(tail -n "+$LAST_LINE" "$TRANSCRIPT_PATH" | grep -oP 'Score:\s*\K\d+' 2>/dev/null || echo "")
+else
+    SCORES=""
+fi
 
 # スコア 50 以上の指摘をカウントする
 HIGH_SCORE_COUNT=0
