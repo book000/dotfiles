@@ -9,20 +9,6 @@
     "IS_DEMO": "1"
   },
   "model": "opusplan",
-  "effortLevel": "medium",
-  "autoMemoryEnabled": false,
-  "feedbackSurveyRate": 0,
-  "showClearContextOnPlanAccept": true,
-  "awaySummaryEnabled": false,
-  "verbose": true,
-  "language": "Use Japanese for interaction with humans and creating plans. Write the Markdown below .claude in English.",
-  "preferredNotifChannel": "auto",
-  "teammateMode": "auto",
-  "inputNeededNotifEnabled": true,
-  "worktree": {
-    "baseRef": "fresh"
-  },
-  "enableWorkflows": true,
   "hooks": {
     "Stop": [
       {
@@ -112,17 +98,31 @@
       }
     ]
   },
+  "worktree": {
+    "baseRef": "fresh"
+  },
+  "enableWorkflows": true,
+  "statusLine": {
+    "type": "command",
+    "command": "npx -y ccstatusline@latest"
+  },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "commit-commands@claude-plugins-official": true
   },
-  "skipDangerousModePermissionPrompt": true,
+  "language": "Use Japanese for interaction with humans and creating plans. Write the Markdown below .claude in English.",
+  "feedbackSurveyRate": 0,
+  "effortLevel": "medium",
+  "awaySummaryEnabled": false,
+  "showClearContextOnPlanAccept": true,
+  "autoMemoryEnabled": false,
   "showThinkingSummaries": true,
+  "skipDangerousModePermissionPrompt": true,
+  "verbose": true,
+  "preferredNotifChannel": "auto",
+  "teammateMode": "auto",
+  "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "remoteControlAtStartup": true,
-  "statusLine": {
-    "type": "command",
-    "command": "npx -y ccstatusline@latest"
-  }
+  "remoteControlAtStartup": true
 }
