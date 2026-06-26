@@ -2,7 +2,8 @@
 name: deep-review
 description: Deep code review of a GitHub PR or the local working diff. Runs independent, scoped sub-agent reviews (CLAUDE.md adherence, bugs, git history, security incl. AI-PR risks, performance, silent failures, type design, tests), scores each finding 0-100 for confidence, reports only findings with score >= 50, and for the user's own PRs auto-fixes, commits, pushes, and updates the PR body.
 argument-hint: "[PR number or URL | omit to review the local working diff]"
-disable-model-invocation: false
+disable-model-invocation: true
+effort: high
 ---
 
 # deep-review skill

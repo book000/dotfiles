@@ -2,6 +2,7 @@
 name: wait-for-copilot-review
 description: Waits in the background for a GitHub Copilot review after PR creation and automatically triggers /handle-pr-reviews on detection.
 argument-hint: "[PR number]"
+disable-model-invocation: true
 ---
 
 # Wait for GitHub Copilot Review
@@ -17,7 +18,7 @@ Automatically detects and notifies when GitHub Copilot posts a review after PR c
 Or run the script directly:
 
 ```bash
-~/.claude/skills/wait-for-copilot-review/scripts/wait-for-copilot-review.sh <PR_NUMBER> &
+${CLAUDE_SKILL_DIR}/scripts/wait-for-copilot-review.sh <PR_NUMBER> &
 ```
 
 ## Features

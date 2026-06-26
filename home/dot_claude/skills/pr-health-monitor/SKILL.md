@@ -2,6 +2,7 @@
 name: pr-health-monitor
 description: Automates the post-PR monitoring workflow. Runs CI check, Copilot review wait, code review, conflict check, and PR body update in parallel. Use with /pr-health-monitor <PR number or URL> immediately after creating a PR.
 argument-hint: "[PR number or URL]"
+disable-model-invocation: true
 ---
 
 # PR Health Monitor
