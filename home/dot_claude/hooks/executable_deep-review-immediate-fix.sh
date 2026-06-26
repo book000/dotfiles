@@ -45,7 +45,8 @@ done
 
 # ステートファイルに結果を書き出す（Stop hook が使用）
 # ディレクトリはオーナーのみアクセス可能 (700) で作成する
-mkdir -p -m 700 "$STATE_DIR"
+# mkdir -p と -m の組み合わせは最深ディレクトリにしか適用されないため分割する（SC2174）
+mkdir -p "$STATE_DIR" && chmod 700 "$STATE_DIR"
 if ! jq -n \
     --arg session_id "$SESSION_ID" \
     --argjson high_score_count "$HIGH_SCORE_COUNT" \

@@ -280,7 +280,7 @@ After PR creation, write the PR URL to the session state file so hooks can refer
 without parsing the transcript:
 
 ```bash
-mkdir -p -m 700 ~/.claude/data
+mkdir -p ~/.claude/data && chmod 700 ~/.claude/data
 PR_URL=$(gh pr view --json url -q .url)
 SESSION_ID=$(jq -r '.session_id // ""' <<< "${CLAUDE_HOOK_INPUT:-{}}")
 jq -n --arg pr_url "$PR_URL" --arg session_id "$SESSION_ID" \
