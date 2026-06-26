@@ -1,56 +1,38 @@
 #!/bin/bash
 
-# Stop hook: block session end if deep-review found unresolved high-score issues.
-# Triggers when /deep-review was run in this session and Score: 50+ findings remain.
+# Stop hook: セッション終了時に deep-review の未対応指摘が残っていないか検証する。
+# トランスクリプトのテキストパースには頼らず、PostToolUse フックが書き出した
+# ステートファイル (~/.claude/data/deep-review-state.json) を優先参照する。
+# ステートファイルが存在しない場合はブロックしない（セッション内で deep-review 未実行）。
 
-# Read JSON from stdin (official hook contract: stdin JSON)
+STATE_FILE="$HOME/.claude/data/deep-review-state.json"
+
+# stdin から JSON を読み込む（公式フック契約: stdin JSON）
 INPUT=$(cat)
 
-# Get transcript path from stdin JSON
-TRANSCRIPT_PATH=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null || echo "")
+# 現在のセッション ID を取得する
+SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""' 2>/dev/null)
 
-# transcript ファイルが存在しない場合はブロックしない
-if [[ -z "$TRANSCRIPT_PATH" ]] || [[ ! -f "$TRANSCRIPT_PATH" ]]; then
-    echo '{}'
+# ステートファイルが存在しない → このセッションで deep-review 未実行 → ブロックしない
+if [[ ! -f "$STATE_FILE" ]]; then
     exit 0
 fi
 
-# deep-review スキルの実行有無を確認する
-if ! grep -q 'deep-review' "$TRANSCRIPT_PATH"; then
-    echo '{}'
+# ステートファイルを読み込む
+STATE_SESSION=$(jq -r '.session_id // ""' "$STATE_FILE" 2>/dev/null)
+HIGH_SCORE_COUNT=$(jq -r '.high_score_count // 0' "$STATE_FILE" 2>/dev/null)
+MAX_SCORE=$(jq -r '.max_score // 0' "$STATE_FILE" 2>/dev/null)
+
+# セッション ID が一致しない → 別セッションの古いデータ → ブロックしない
+if [[ -n "$SESSION_ID" && -n "$STATE_SESSION" && "$SESSION_ID" != "$STATE_SESSION" ]]; then
     exit 0
 fi
-
-# 最後の deep-review 実行以降のスコアのみを対象にする
-# これにより、過去のセッションで修正済みの指摘が残り続けてブロックし続けることを防ぐ
-LAST_LINE=$(grep -n 'deep-review' "$TRANSCRIPT_PATH" | tail -1 | cut -d: -f1)
-if [[ -n "$LAST_LINE" ]]; then
-    SCORES=$(tail -n "+$LAST_LINE" "$TRANSCRIPT_PATH" | grep -oP 'Score:\s*\K\d+' 2>/dev/null || echo "")
-else
-    SCORES=""
-fi
-
-# スコア 50 以上の指摘をカウントする
-HIGH_SCORE_COUNT=0
-MAX_SCORE=0
-while IFS= read -r score; do
-    if [[ -n "$score" && "$score" -ge 50 ]]; then
-        HIGH_SCORE_COUNT=$((HIGH_SCORE_COUNT + 1))
-        if [[ "$score" -gt "$MAX_SCORE" ]]; then
-            MAX_SCORE="$score"
-        fi
-    fi
-done <<< "$SCORES"
 
 # スコア 50 以上の指摘が残っている場合はセッション終了をブロックする
 if [[ "$HIGH_SCORE_COUNT" -gt 0 ]]; then
     REASON="⚠️ deep-review で ${HIGH_SCORE_COUNT} 件の重要な指摘事項が見つかりました（最高スコア: ${MAX_SCORE}）。
 
 CLAUDE.md のルールに従い、スコア 50 以上の指摘事項に対応してから終了してください。
-
-対応が必要な理由:
-- スコア 50 以上の指摘は、機能や品質に直接影響する重要な問題です。
-- これらの問題を放置すると、後で重大なバグや保守性の低下につながる可能性があります。
 
 対応手順:
 1. スコア 50 以上の指摘をすべて確認する
@@ -63,5 +45,4 @@ CLAUDE.md のルールに従い、スコア 50 以上の指摘事項に対応し
 fi
 
 # 対応済みまたは指摘なし
-echo '{}'
 exit 0

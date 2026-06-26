@@ -137,6 +137,21 @@ gh pr create --title "<title>" --body "<PR body>"
 
 PR body: follow the project CLAUDE.md language if specified; otherwise Japanese. Current state only, no update history.
 
+### Write Session State
+
+After PR creation, write the PR URL to the session state file so hooks can reference it
+without parsing the transcript:
+
+```bash
+mkdir -p -m 700 ~/.claude/data
+PR_URL=$(gh pr view --json url -q .url)
+SESSION_ID=$(jq -r '.session_id // ""' <<< "${CLAUDE_HOOK_INPUT:-{}}")
+jq -n --arg pr_url "$PR_URL" --arg session_id "$SESSION_ID" \
+    '{"session_id": $session_id, "pr_url": $pr_url}' \
+    > ~/.claude/data/session-state.json
+chmod 600 ~/.claude/data/session-state.json
+```
+
 ### After PR Creation
 
 Immediately run `/pr-health-monitor <PR number>` when done.
