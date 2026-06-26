@@ -1,41 +1,69 @@
 #!/bin/bash
 
-# deep-review スキル実行後に指摘事項の対応を促す PostToolUse フック
-# スコア 50 以上の指摘が残っている場合に Claude の処理をブロックする
+# PostToolUse hook: deep-review スキル実行後に指摘事項の対応を促す。
+# スコア 50 以上の指摘が残っている場合に Claude の処理をブロックする。
+# 副作用として findings を ~/.claude/data/deep-review-state.json に書き出す。
+# これにより Stop hook (deep-review-require-fixes.sh) がトランスクリプトを
+# パースせずステートファイルから確実に判定できる。
+
+STATE_DIR="$HOME/.claude/data"
+STATE_FILE="$STATE_DIR/deep-review-state.json"
 
 # stdin から JSON を読み込む（公式フック契約: stdin JSON）
 INPUT=$(cat)
 
 # Skill ツールの実行か確認する
-TOOL_NAME=$(printf '%s' "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null || echo "")
+TOOL_NAME=$(printf '%s' "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null)
 if [[ "$TOOL_NAME" != "Skill" ]]; then
-    echo '{}'
     exit 0
 fi
 
 # deep-review スキル以外はスキップする
-# skill_name と skill の両方を試みて互換性を確保する
-SKILL=$(printf '%s' "$INPUT" | jq -r '.tool_input.skill_name // .tool_input.skill // ""' 2>/dev/null || echo "")
+SKILL=$(printf '%s' "$INPUT" | jq -r '.tool_input.skill_name // .tool_input.skill // ""' 2>/dev/null)
 if [[ "$SKILL" != "deep-review" ]]; then
-    echo '{}'
     exit 0
 fi
 
+# セッション ID を取得する
+SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""' 2>/dev/null)
+
 # tool_response からスコアを抽出する
-TOOL_RESPONSE=$(printf '%s' "$INPUT" | jq -r '.tool_response // ""' 2>/dev/null || echo "")
-SCORES=$(printf '%s' "$TOOL_RESPONSE" | grep -oP 'Score:\s*\K\d+' 2>/dev/null || echo "")
+# grep -oP（PCRE）は macOS の BSD grep では動かないため grep -E + sed で代替する
+TOOL_RESPONSE=$(printf '%s' "$INPUT" | jq -r '.tool_response // ""' 2>/dev/null)
+mapfile -t SCORES < <(printf '%s' "$TOOL_RESPONSE" | grep -E 'Score:[[:space:]]*[0-9]+' | sed 's/.*Score:[[:space:]]*//' | grep -E '^[0-9]+')
 
 # スコア 50 以上の指摘をカウントする
 HIGH_SCORE_COUNT=0
 MAX_SCORE=0
-while IFS= read -r score; do
+for score in "${SCORES[@]}"; do
     if [[ -n "$score" && "$score" -ge 50 ]]; then
         HIGH_SCORE_COUNT=$((HIGH_SCORE_COUNT + 1))
         if [[ "$score" -gt "$MAX_SCORE" ]]; then
             MAX_SCORE="$score"
         fi
     fi
-done <<< "$SCORES"
+done
+
+# ステートファイルに結果を書き出す（Stop hook が使用）
+# ディレクトリはオーナーのみアクセス可能 (700) で作成する
+# mkdir -p と -m の組み合わせは最深ディレクトリにしか適用されないため分割する（SC2174）
+mkdir -p "$STATE_DIR" && chmod 700 "$STATE_DIR"
+if ! jq -n \
+    --arg session_id "$SESSION_ID" \
+    --argjson high_score_count "$HIGH_SCORE_COUNT" \
+    --argjson max_score "$MAX_SCORE" \
+    --argjson timestamp "$(date +%s)" \
+    '{
+        session_id: $session_id,
+        timestamp: $timestamp,
+        high_score_count: $high_score_count,
+        max_score: $max_score
+    }' > "$STATE_FILE"; then
+    echo "ERROR: Failed to write deep-review state to $STATE_FILE" >&2
+    # PostToolUse ブロックは機能しているため続行する。Stop hook での再検証はスキップされる。
+fi
+# ステートファイルはオーナーのみ読み書き可能 (600) にする
+chmod 600 "$STATE_FILE" 2>/dev/null
 
 # スコア 50 以上の指摘がある場合はブロックして対応を促す
 if [[ "$HIGH_SCORE_COUNT" -gt 0 ]]; then
@@ -56,19 +84,10 @@ CLAUDE.md の規則により、スコア 50 以上の指摘事項に必ず対応
 fi
 
 # スコア情報はあるが全件 50 未満の場合
-if [[ -n "$SCORES" ]]; then
-    TOTAL=$(printf '%s' "$SCORES" | grep -c '^' 2>/dev/null || echo 0)
-    jq -n --arg total "$TOTAL" '{"decision":"approve","reason":("deep-review: " + $total + " 件の指摘がありましたが、すべてスコア 50 未満です。")}'
+TOTAL="${#SCORES[@]}"
+if [[ "$TOTAL" -gt 0 ]]; then
+    jq -n --argjson total "$TOTAL" '{"decision":"approve","reason":("deep-review: " + ($total | tostring) + " 件の指摘がありましたが、すべてスコア 50 未満です。")}'
     exit 0
 fi
 
-# スコア情報がない場合は "Found X issue(s)" 形式から件数を取得する
-TOTAL_ISSUES=$(printf '%s' "$TOOL_RESPONSE" | grep -oP 'Found \K\d+(?= issues?)' 2>/dev/null || echo "")
-if [[ -n "$TOTAL_ISSUES" && "$TOTAL_ISSUES" -gt 0 ]]; then
-    jq -n --arg total "$TOTAL_ISSUES" '{"decision":"approve","reason":("deep-review: " + $total + " 件の指摘がありました（スコア情報なし）。必要に応じて対応を検討してください。")}'
-    exit 0
-fi
-
-# 問題なし
-echo '{}'
 exit 0

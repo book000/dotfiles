@@ -274,6 +274,20 @@ mcp__atlassian__addCommentToJiraIssue({
 Explicitly set `contentFormat: "markdown"`, and write line breaks as actual newline
 characters rather than the literal `\n` (see "Notes on Jira MCP Operations" for details).
 
+### Write Session State
+
+After PR creation, write the PR URL to the session state file so hooks can reference it
+without parsing the transcript:
+
+```bash
+mkdir -p ~/.claude/data && chmod 700 ~/.claude/data
+PR_URL=$(gh pr view --json url -q .url)
+jq -n --arg pr_url "$PR_URL" --argjson timestamp "$(date +%s)" \
+    '{"pr_url": $pr_url, "timestamp": $timestamp}' \
+    > ~/.claude/data/session-state.json
+chmod 600 ~/.claude/data/session-state.json
+```
+
 ### After PR Creation
 
 Immediately run `/pr-health-monitor <PR number>` when done.

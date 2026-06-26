@@ -16,15 +16,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/completion-notify/notify-completion.sh"
+            "command": "~/.claude/scripts/completion-notify/notify-completion.sh",
+            "onFailure": "ignore"
           },
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/deep-review-require-fixes.sh"
+            "command": "bash ~/.claude/hooks/deep-review-require-fixes.sh",
+            "onFailure": "fail"
           },
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/require-review-thread-fixes.sh"
+            "command": "bash ~/.claude/hooks/require-review-thread-fixes.sh",
+            "onFailure": "fail"
           }
         ]
       }
@@ -35,7 +38,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/completion-notify/notify-askuserquestion.sh"
+            "command": "~/.claude/scripts/completion-notify/notify-askuserquestion.sh",
+            "onFailure": "ignore"
           }
         ]
       },
@@ -44,7 +48,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/rtk-rewrite.sh"
+            "command": "~/.claude/hooks/rtk-rewrite.sh",
+            "onFailure": "ignore"
           }
         ]
       }
@@ -55,11 +60,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/deep-review-immediate-fix.sh"
+            "command": "bash ~/.claude/hooks/deep-review-immediate-fix.sh",
+            "onFailure": "ignore"
           },
           {
             "type": "command",
-            "command": "~/.claude/scripts/completion-notify/notify-post-tool-use.sh"
+            "command": "~/.claude/scripts/completion-notify/notify-post-tool-use.sh",
+            "onFailure": "ignore"
           }
         ]
       }
@@ -70,7 +77,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/completion-notify/notify-permission-request.sh"
+            "command": "~/.claude/scripts/completion-notify/notify-permission-request.sh",
+            "onFailure": "ignore"
           }
         ]
       }
@@ -81,7 +89,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/completion-notify/notify-notification.sh"
+            "command": "~/.claude/scripts/completion-notify/notify-notification.sh",
+            "onFailure": "ignore"
           }
         ]
       }
@@ -92,7 +101,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/completion-notify/notify-user-prompt-submit.sh"
+            "command": "~/.claude/scripts/completion-notify/notify-user-prompt-submit.sh",
+            "onFailure": "ignore"
           }
         ]
       }
