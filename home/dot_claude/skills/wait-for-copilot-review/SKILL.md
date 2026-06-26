@@ -2,7 +2,7 @@
 name: wait-for-copilot-review
 description: Waits in the background for a GitHub Copilot review after PR creation and automatically triggers /handle-pr-reviews on detection.
 argument-hint: "[PR number]"
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Wait for GitHub Copilot Review
