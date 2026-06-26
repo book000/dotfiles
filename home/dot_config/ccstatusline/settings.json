@@ -19,21 +19,21 @@
         "id": "bb9488bf-4f10-49f4-9e69-7f87743c8cb6",
         "type": "current-working-dir",
         "color": "brightCyan",
+        "rawValue": true,
+        "merge": "no-padding",
         "metadata": {
           "abbreviateHome": "true"
-        },
-        "rawValue": true,
-        "merge": "no-padding"
+        }
       },
       {
         "id": "68535394-8694-4855-84e7-e1ac1a1a8017",
         "type": "git-branch",
         "color": "brightGreen",
+        "rawValue": false,
         "metadata": {
           "hideNoGit": "true",
           "linkToRepo": "true"
-        },
-        "rawValue": false
+        }
       }
     ],
     [
@@ -41,10 +41,10 @@
         "id": "a5a9beac-3d4b-4fa7-995c-620aa2334e79",
         "type": "context-percentage",
         "color": "green",
+        "rawValue": true,
         "metadata": {
           "inverse": "true"
-        },
-        "rawValue": true
+        }
       },
       {
         "id": "f4905fd3-66bb-44d9-8fac-67e244fecb25",
@@ -83,8 +83,12 @@
       {
         "id": "d99404bc-12b0-4474-a3bb-2ccfe02122a6",
         "type": "weekly-usage",
-        "rawValue": false,
-        "merge": true
+        "rawValue": false
+      },
+      {
+        "id": "4d8adf32-a8b1-4eee-b390-0f1b6f742c27",
+        "type": "weekly-sonnet-usage",
+        "rawValue": true
       },
       {
         "id": "2dea4c81-054c-4b4c-a829-2af490205d8e",
