@@ -28,8 +28,9 @@ fi
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""' 2>/dev/null)
 
 # tool_response からスコアを抽出する
+# grep -oP（PCRE）は macOS の BSD grep では動かないため grep -E + sed で代替する
 TOOL_RESPONSE=$(printf '%s' "$INPUT" | jq -r '.tool_response // ""' 2>/dev/null)
-mapfile -t SCORES < <(printf '%s' "$TOOL_RESPONSE" | grep -oP 'Score:\s*\K\d+' 2>/dev/null)
+mapfile -t SCORES < <(printf '%s' "$TOOL_RESPONSE" | grep -E 'Score:[[:space:]]*[0-9]+' | sed 's/.*Score:[[:space:]]*//' | grep -E '^[0-9]+')
 
 # スコア 50 以上の指摘をカウントする
 HIGH_SCORE_COUNT=0

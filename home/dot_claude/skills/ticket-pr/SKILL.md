@@ -282,9 +282,8 @@ without parsing the transcript:
 ```bash
 mkdir -p ~/.claude/data && chmod 700 ~/.claude/data
 PR_URL=$(gh pr view --json url -q .url)
-SESSION_ID=$(jq -r '.session_id // ""' <<< "${CLAUDE_HOOK_INPUT:-{}}")
-jq -n --arg pr_url "$PR_URL" --arg session_id "$SESSION_ID" \
-    '{"session_id": $session_id, "pr_url": $pr_url}' \
+jq -n --arg pr_url "$PR_URL" --argjson timestamp "$(date +%s)" \
+    '{"pr_url": $pr_url, "timestamp": $timestamp}' \
     > ~/.claude/data/session-state.json
 chmod 600 ~/.claude/data/session-state.json
 ```

@@ -21,11 +21,16 @@ TRANSCRIPT_PATH=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/n
 # --- PR URL 解決 ---
 
 PR_URL=""
+# セッション状態ファイルの有効期限（24時間）
+STATE_TTL=86400
 
 # 優先 1: ステートファイル（スキルが書き出した構造化データ）
+# セッション ID が一致、またはタイムスタンプが TTL 以内であれば有効と見なす
 if [[ -f "$STATE_FILE" ]]; then
-    STATE_SESSION=$(jq -r '.session_id // ""' "$STATE_FILE" 2>/dev/null)
-    if [[ -z "$SESSION_ID" || "$SESSION_ID" == "$STATE_SESSION" ]]; then
+    STATE_TIMESTAMP=$(jq -r '.timestamp // 0' "$STATE_FILE" 2>/dev/null)
+    CURRENT_TIME=$(date +%s)
+    STATE_AGE=$(( CURRENT_TIME - STATE_TIMESTAMP ))
+    if [[ "$STATE_AGE" -le "$STATE_TTL" ]]; then
         PR_URL=$(jq -r '.pr_url // ""' "$STATE_FILE" 2>/dev/null)
     fi
 fi
@@ -46,9 +51,10 @@ if [[ -z "$PR_URL" ]]; then
     exit 0
 fi
 
-# PR 番号を抽出する
-PR_NUMBER=$(printf '%s' "$PR_URL" | grep -oP '/pull/\K\d+' 2>/dev/null)
-if [[ -z "$PR_NUMBER" ]]; then
+# PR 番号を抽出する（Bash 正規表現で PCRE 非依存）
+if [[ "$PR_URL" =~ /pull/([0-9]+) ]]; then
+    PR_NUMBER="${BASH_REMATCH[1]}"
+else
     exit 0
 fi
 
