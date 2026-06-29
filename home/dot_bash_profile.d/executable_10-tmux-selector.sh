@@ -119,7 +119,18 @@ tmux_session_selector() {
       cwd="?"
       if [[ -n "$pane_id" ]]; then
         cmd="$(tmux display-message -p -t "$pane_id" '#{pane_current_command}' 2>/dev/null || echo "unknown")"
-        cwd="$(tmux display-message -p -t "$pane_id" '#{pane_current_path}' 2>/dev/null || echo "?")"
+
+        # TMUX_PROJECT_DIR が設定されていれば優先する。
+        # pane_current_path はサブプロセスの影響で一時的に別ディレクトリを指すことがあるため信頼性が低い。
+        # 設定方法: tmux new-session -e TMUX_PROJECT_DIR="$(pwd)"
+        #           または tmux set-environment -t <session> TMUX_PROJECT_DIR "$(pwd)"
+        local project_dir
+        project_dir="$(tmux show-environment -t "${sname}" TMUX_PROJECT_DIR 2>/dev/null)"
+        if [[ "$project_dir" == TMUX_PROJECT_DIR=* ]]; then
+          cwd="${project_dir#TMUX_PROJECT_DIR=}"
+        else
+          cwd="$(tmux display-message -p -t "$pane_id" '#{pane_current_path}' 2>/dev/null || echo "?")"
+        fi
         [[ -n "${HOME:-}" ]] && cwd="${cwd/#$HOME/\~}"
         if [[ "${#cwd}" -gt "$TMUX_PATH_MAX" ]]; then
           cwd="…${cwd: -$TMUX_PATH_MAX}"
@@ -220,7 +231,9 @@ tmux_session_selector() {
   case "$sel_type" in
     NEW)
       sleep "$TMUX_SESSION_DELAY"
-      tmux new-session
+      # TMUX_PROJECT_DIR を現在のディレクトリで設定してセッションを作成する。
+      # 以降はセレクタが pane_current_path の代わりにこの値を使うため表示が安定する。
+      tmux new-session -e "TMUX_PROJECT_DIR=$(pwd)"
       ;;
     SESSION)
       # 重要: 数字名でも曖昧にならないよう session_name: で attach
