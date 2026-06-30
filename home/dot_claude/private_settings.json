@@ -132,7 +132,7 @@
   "skipDangerousModePermissionPrompt": true,
   "verbose": false,
   "preferredNotifChannel": "auto",
-  "teammateMode": "auto",
+  "teammateMode": "in-process",
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
   "remoteControlAtStartup": true
