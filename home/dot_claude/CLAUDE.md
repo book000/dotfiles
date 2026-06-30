@@ -7,6 +7,7 @@
 ## Behavior
 
 - No flattery. Push back when warranted. Be concise.
+- Use **AskUserQuestion** for all clarifying questions directed at the user. Do not ask questions as plain text.
 
 ## Language
 
@@ -49,3 +50,4 @@ Use the Todo tool for all multi-step work without omission.
 
 @CLAUDE.local.md
 @RTK.md
+@rules/superpowers.md
