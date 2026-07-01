@@ -21,7 +21,7 @@ if [ "$(jq -r --arg p "$CWD" '.projects[$p].hasTrustDialogAccepted // false' "$C
     PERM=$(stat -c '%a' "$CONFIG" 2> /dev/null || stat -f '%Lp' "$CONFIG" 2> /dev/null)
     [ -n "$PERM" ] && chmod "$PERM" "$TMP"
     if jq --arg p "$CWD" '.projects[$p] = ((.projects[$p] // {}) + {hasTrustDialogAccepted: true})' "$CONFIG" > "$TMP"; then
-        mv "$TMP" "$CONFIG"
+        mv "$TMP" "$CONFIG" || rm -f "$TMP"
     else
         rm -f "$TMP"
     fi
