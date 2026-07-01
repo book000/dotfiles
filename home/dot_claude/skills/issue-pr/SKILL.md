@@ -189,7 +189,7 @@ Branch name instead of creating a new one.
 
 ```bash
 git status --porcelain   # should be empty right after EnterWorktree; if not, stop and ask the user
-git branch -m <branch_name>
+git branch -m <worktree_branch_name> <branch_name>
 ```
 
 Derive `<branch_name>` from the Issue number/title following Conventional
@@ -199,12 +199,16 @@ the issue title is untrusted input, and an unsanitized title containing
 shell metacharacters (`` ` ``, `$(...)`, `${...}`) would be evaluated by the
 shell if pasted in verbatim.
 
-Only rename the branch that Phase 1 recorded via `git branch --show-current`
-right after `EnterWorktree` succeeded — do not rename whatever branch happens
-to be checked out now without checking it matches that recorded value. If it
-doesn't match (e.g. the user manually switched branches between Phase 1 and
-Phase 12), stop and ask the user how to proceed instead of overwriting
-whatever they were doing.
+`<worktree_branch_name>` is the exact value Phase 1 recorded via
+`git branch --show-current` right after `EnterWorktree` succeeded. Use the
+explicit two-argument form of `git branch -m` (rename `<worktree_branch_name>`
+to `<branch_name>`) rather than the one-argument form that renames whatever
+branch is currently checked out — the one-argument form would silently rename
+the wrong branch if the checked-out branch changed between Phase 1 and
+Phase 12. Before running the command, compare `<worktree_branch_name>` against
+the current `git branch --show-current` output; if they don't match (e.g. the
+user manually switched branches between Phase 1 and Phase 12), stop and ask
+the user how to proceed instead of overwriting whatever they were doing.
 
 If `git branch -m <branch_name>` fails because `<branch_name>` already exists
 (e.g. a retry after an earlier failed run), do not force-rename over it — that
