@@ -194,11 +194,26 @@ unconditional hard gate you can't get past.
 
 ## Phase 6: Approve the Spec
 
-Use **AskUserQuestion** to get explicit spec approval ("Approve this spec /
-revise it") before moving on to Phase 7. No exceptions — not for "the spec is
-obviously fine" and not for "ask forgiveness after Phase 7 instead." If the
-user asks for changes, go back to Phase 3 and repeat Phases 3–6 (Phase 5
-becomes a Confluence page update, not a new page).
+Use **AskUserQuestion** to get explicit spec approval before moving on to
+Phase 7. No exceptions — not for "the spec is obviously fine" and not for
+"ask forgiveness after Phase 7 instead."
+
+The question text MUST include the Confluence URL captured in Phase 5. If
+Phase 5's Confluence upload failed and fell back per `rules/confluence.md`,
+you must have already reported that to the user before reaching this phase
+— do not silently ask for approval without ever having surfaced the failure.
+
+Fix the options to exactly these two (plus AskUserQuestion's built-in
+"Other" free-text, which covers ad-hoc revision requests):
+
+- "承認する" (Approve)
+- "ページコメントを参照して修正してほしい" (Revise based on page comments)
+
+If the second option is chosen, fetch the unresolved inline/footer comments
+on the Confluence page (`mcp__atlassian__getConfluencePageInlineComments`,
+`mcp__atlassian__getConfluencePageFooterComments`), incorporate them into
+the spec, and repeat Phases 3–6 (Phase 5 becomes a Confluence page update,
+not a new page).
 
 ## Phase 7: Write the Plan
 
@@ -230,9 +245,19 @@ one. Same fallback as Phase 5 if Confluence resolution fails.
 Use **AskUserQuestion** again for explicit plan approval before moving on to
 Phase 11 — the spec's approval in Phase 6 does not carry over, since a plan
 can diverge from its spec. "The spec was already approved so the plan is
-implied" is exactly the shortcut this gate blocks. If the user asks for
-changes, go back to Phase 7 and repeat Phases 7–10 (Phase 9 becomes a
-Confluence page update, not a new page).
+implied" is exactly the shortcut this gate blocks.
+
+Same requirements as Phase 6: the question text MUST include the Confluence
+URL captured in Phase 9 (report any upload failure to the user before this
+phase, per `rules/confluence.md`'s fallback), and the options are fixed to
+exactly:
+
+- "承認する" (Approve)
+- "ページコメントを参照して修正してほしい" (Revise based on page comments)
+
+If the second option is chosen, fetch the unresolved Confluence page
+comments, incorporate them into the plan, and repeat Phases 7–10 (Phase 9
+becomes a Confluence page update, not a new page).
 
 ## Phase 11: Comment on the Issue
 
