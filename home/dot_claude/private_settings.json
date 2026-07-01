@@ -69,6 +69,16 @@
             "onFailure": "ignore"
           }
         ]
+      },
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/trust-worktree-cwd.sh",
+            "onFailure": "ignore"
+          }
+        ]
       }
     ],
     "PermissionRequest": [
