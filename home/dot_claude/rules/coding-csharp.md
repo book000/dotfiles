@@ -2,6 +2,10 @@
 paths:
   - "**/*.cs"
   - "**/*.csproj"
+  - "**/*.sln"
+  - "**/*.pubxml"
+  - "**/Directory.Build.props"
+  - "**/stylecop.json"
 ---
 
 # C# Coding Rules
@@ -65,7 +69,8 @@ paths:
   a rule silently
 - It is acceptable to relax documentation-comment rules (`CS1591`, `SA1600`,
   `SA1602`, `SA1611`, `SA1615`, `SA1618`) during incremental adoption, but mark the
-  override with a "段階的に対応" (phased rollout) comment so it reads as temporary
+  override with a `# 段階的に対応` (phased-rollout) comment so it reads as temporary,
+  not permanent
 - Add a `[tests/**.cs]` (or equivalent glob) section that relaxes test-only
   conventions instead of loosening them globally: allow underscores in xUnit
   `Method_Scenario_Expected` test names (`dotnet_diagnostic.CA1707.severity = none`)
