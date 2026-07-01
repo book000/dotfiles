@@ -55,7 +55,7 @@ Do NOT report the following:
 - Pre-existing issues on lines not touched by this PR
 - Issues that linters, type checkers, or CI already catch (formatting, import errors, type errors, etc.)
 - Intentionally suppressed issues (lint-ignore comments, etc.)
-- General code quality concerns (test coverage, documentation) unless explicitly required in CLAUDE.md
+- General code quality concerns (test coverage, documentation) unless explicitly required in CLAUDE.md or explicitly listed as a specific agent's scope below (e.g. Agent e's redundant/stale-comment checks)
 - Functional changes that are clearly intentional given the broader context
 - Anything asserted without a concrete `file:line` citation
 
@@ -69,7 +69,12 @@ Do NOT report the following:
 
 - **Agent d (past PR comments) [PR mode only]**: Find recently merged PRs that touched the same files (`gh pr list --state merged`). Check their review comments for concerns that may also apply here.
 
-- **Agent e (code-comment consistency)**: Read code comments and docstrings in changed files. Flag cases where the implementation contradicts what a comment describes.
+- **Agent e (code-comment quality)**: Read code comments and docstrings in changed files. These checks are explicitly in scope for this agent, so the shared "general code quality concerns" suppression above does not apply to them. Flag:
+  - Cases where the implementation contradicts what a comment describes.
+  - Redundant comments that merely restate what the code already makes obvious (e.g. a comment saying "increment i by 1" directly above `i++`).
+  - Comments prone to becoming stale — descriptions of specific values, counts, enumerated lists, or implementation details duplicated from the code, which are likely to drift out of sync when the code changes.
+
+  If the same redundant/stale-prone pattern repeats many times in the diff, report it once with one or two representative `file:line` examples rather than listing every occurrence.
 
 - **Agent f (security)**: Check for:
   - Missing input validation / sanitisation (XSS, SQL injection, etc.)
@@ -109,6 +114,8 @@ Score the issue on a scale of 0-100 based on your level of confidence that it is
 - **100**: Absolutely certain. The agent double checked the issue, and confirmed that it is definitely a real issue, that will happen frequently in practice. The evidence directly confirms this.
 
 For issues sourced from CLAUDE.md, double-check that the CLAUDE.md actually mentions that specific issue before scoring high.
+
+Findings from an agent's explicitly listed scope (e.g. Agent e's redundant/stale-comment checks) are not "unscoped stylistic nitpicks" for the purpose of the 25-point band above — score them on the same real-world-impact basis as any other finding (how likely the comment is to mislead a future reader or drift from the code it describes).
 
 Each agent must return the score in the format: `Score: <0-100>`
 (The Stop hook extracts scores using this exact format.)
