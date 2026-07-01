@@ -18,18 +18,21 @@ paths:
 
 ## Action Version References
 
+- Applies to step-level Action references (`steps[].uses`) — not the
+  reusable-workflow calls in the previous section, which intentionally stay
+  on `@master`.
 - Pin every Action (including first-party `actions/*`) to a full-length commit SHA
   with a version comment, per [GitHub's secure-use guidance](https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions).
   Renovate (`book000/templates//renovate/base`, preset
   `helpers:pinGitHubActionDigestsToSemver`) manages these — don't hand-edit SHAs.
 
   ```yaml
-  # good
-  uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v6.0.1
+  # good (SHA and version comment refer to the same release)
+  - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
   # bad
-  uses: actions/checkout@v6
-  uses: actions/checkout@main
+  - uses: actions/checkout@v6
+  - uses: actions/checkout@main
   ```
 
 ## Node.js Version
