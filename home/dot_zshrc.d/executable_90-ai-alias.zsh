@@ -5,15 +5,15 @@
 # claude コマンドのラッパー関数。
 # AI エージェントの更新を行い、--permission-mode auto を付与して実行する。
 # ただし remote-control サブコマンドはフラグを付与しない。
-# （auto モードのフラグ（2トークン）が前置されると process.argv[2] が "remote-control" でなくなり、
+# （auto モードのフラグが前置されると process.argv[2] が "remote-control" でなくなり、
 #   コマンドディスパッチが失敗して "Unknown argument: remote-control" エラーが発生するため）
 # 既存セッションで旧エイリアスが残存している場合に備えて、関数定義前に unalias する。
 unalias claude 2>/dev/null
 # カレントディレクトリを Claude Code のワークスペース信頼済みディレクトリとして
 # ~/.claude.json に登録する。
 # Workspace Trust dialog の非永続化は --dangerously-skip-permissions 固有ではなく
-# Claude Code 全体の既知の問題であり、hasTrustDialogAccepted が永続化されないと
-# statusLine や hooks が無音でスキップされてしまう。auto モードでも同様に必要な対策。
+# Claude Code 全体の既知の問題（Issue #165 で検証済み）であり、hasTrustDialogAccepted が
+# 永続化されないと statusLine や hooks が無音でスキップされてしまう。auto モードでも同様に必要な対策。
 _claude_trust_cwd() {
   local config="$HOME/.claude.json"
   [ -f "$config" ] || return 0
