@@ -1,18 +1,19 @@
 # AI CLI ツールのエイリアス設定
-# --dangerously-skip-permissions や --yolo は、確認プロンプトをスキップして実行するためのオプションです。
+# --yolo は、確認プロンプトをスキップして実行するためのオプションです。
+# claude は --permission-mode auto で、分類器による安全チェックを介して確認プロンプトを削減します。
 # AI エージェントの自動更新 (update-ai-agents.sh --quick) を各 CLI 実行前に実行します。
 # claude コマンドのラッパー関数。
-# AI エージェントの更新を行い、--dangerously-skip-permissions を付与して実行する。
+# AI エージェントの更新を行い、--permission-mode auto を付与して実行する。
 # ただし remote-control サブコマンドはフラグを付与しない。
-# （--dangerously-skip-permissions が前置されると process.argv[2] が "remote-control" でなくなり、
+# （auto モードのフラグ（2トークン）が前置されると process.argv[2] が "remote-control" でなくなり、
 #   コマンドディスパッチが失敗して "Unknown argument: remote-control" エラーが発生するため）
 # 既存セッションで旧エイリアスが残存している場合に備えて、関数定義前に unalias する。
 unalias claude 2>/dev/null
 # カレントディレクトリを Claude Code のワークスペース信頼済みディレクトリとして
 # ~/.claude.json に登録する。
-# --dangerously-skip-permissions 環境では Workspace Trust dialog が機能せず
-# hasTrustDialogAccepted が永続化されないため、statusLine や hooks が無音で
-# スキップされてしまう問題への対策。
+# Workspace Trust dialog の非永続化は --dangerously-skip-permissions 固有ではなく
+# Claude Code 全体の既知の問題であり、hasTrustDialogAccepted が永続化されないと
+# statusLine や hooks が無音でスキップされてしまう。auto モードでも同様に必要な対策。
 _claude_trust_cwd() {
   local config="$HOME/.claude.json"
   [ -f "$config" ] || return 0
@@ -37,7 +38,7 @@ claude() {
       command claude "$@" ;;
     *)
       _claude_trust_cwd
-      command claude --dangerously-skip-permissions "$@" ;;
+      command claude --permission-mode auto "$@" ;;
   esac
 }
 alias codex='[ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick; codex --yolo'
