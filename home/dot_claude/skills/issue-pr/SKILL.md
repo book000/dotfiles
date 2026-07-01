@@ -35,11 +35,11 @@ do not proceed and hit the failure several phases later.
 
 ## Progress Tracking
 
-Before Phase 1, create one task per phase below (Phase 1 through Phase 18)
-with the Todo tool, subject = the phase title. This is a long, multi-phase
-flow spanning two approval gates and several delegated skills — track it
-explicitly so no phase gets skipped or forgotten mid-run, especially after a
-revise-and-repeat loop (Phase 6 or Phase 10) or a context compaction.
+Before Phase 1, create one task per phase below with the Todo tool,
+subject = the phase title. This is a long, multi-phase flow spanning two
+approval gates and several delegated skills — track it explicitly so no
+phase gets skipped or forgotten mid-run, especially after a revise-and-repeat
+loop (Phase 6 or Phase 10) or a context compaction.
 
 Mark each task `in_progress` immediately before starting that phase and
 `completed` immediately after finishing it — do not batch updates at the
@@ -78,7 +78,7 @@ runs inside the worktree created here.
 ## Phase 2: Fetch the Issue
 
 ```bash
-gh issue view "$ARGUMENTS" --json title,state,body,comments,author
+gh issue view "$ARGUMENTS" --json title,state,body,comments,author,url
 ```
 
 If this command fails (auth, network, issue doesn't exist) or the issue is
@@ -86,11 +86,82 @@ not OPEN, stop here and report it to the user — do not guess at intent and
 continue. Turning a closed or nonexistent issue into a PR is not a warning-
 level situation, it's a reason to stop.
 
+Extract `ISSUE_OWNER` and `ISSUE_REPO` from the returned `url` field
+(`https://github.com/<owner>/<repo>/issues/<number>`):
+
+```bash
+# grep -oP（PCRE）は macOS の BSD grep では動かないため sed -E で移植可能な形にする
+ISSUE_URL=$(gh issue view "$ARGUMENTS" --json url -q .url)
+ISSUE_OWNER=$(echo "$ISSUE_URL" | sed -E 's#.*github\.com/([^/]+)/.*#\1#')
+ISSUE_REPO=$(echo "$ISSUE_URL" | sed -E 's#.*github\.com/[^/]+/([^/]+)/issues/.*#\1#')
+if [ -z "$ISSUE_OWNER" ] || [ -z "$ISSUE_REPO" ]; then
+  echo "ERROR: failed to extract owner/repo from Issue URL: $ISSUE_URL" >&2
+  exit 1
+fi
+```
+
+If extraction fails, stop and report it to the user — every later phase
+that targets a specific repository (`gh issue comment`, `gh pr create`,
+`gh pr view` from the new `wait-for-pr-close` phase) depends on
+`ISSUE_OWNER`/`ISSUE_REPO` being correct. **`ISSUE_OWNER`/`ISSUE_REPO` is
+the repository the Issue actually lives in — this is what determines the PR
+destination in every later phase, regardless of whether the local checkout
+is a fork.**
+
+### Rebase onto the correct base branch (fork scenario)
+
+`EnterWorktree` in Phase 1 created the working branch off
+`origin/<default-branch>`. If `ISSUE_OWNER/ISSUE_REPO` differs from the
+local `origin`'s owner/repo (a fork working on an upstream Issue), `origin`'s
+default branch may be stale relative to `ISSUE_OWNER/ISSUE_REPO`'s. Rebase
+onto the correct base immediately, before any spec/plan/implementation work
+begins:
+
+```bash
+ORIGIN_OWNER=$(gh repo view --json owner -q .owner.login)
+ORIGIN_REPO=$(gh repo view --json name -q .name)
+if [ "$ISSUE_OWNER/$ISSUE_REPO" != "$ORIGIN_OWNER/$ORIGIN_REPO" ]; then
+  # Reuse an existing remote pointing at ISSUE_OWNER/ISSUE_REPO, or add one.
+  REMOTE_NAME=$(git remote -v | grep -F "github.com/$ISSUE_OWNER/$ISSUE_REPO" | head -1 | cut -f1)
+  if [ -z "$REMOTE_NAME" ]; then
+    REMOTE_NAME="upstream"
+    if git remote get-url "$REMOTE_NAME" >/dev/null 2>&1; then
+      echo "ERROR: remote '$REMOTE_NAME' already exists but does not point at $ISSUE_OWNER/$ISSUE_REPO" >&2
+      exit 1
+    fi
+    git remote add "$REMOTE_NAME" "https://github.com/$ISSUE_OWNER/$ISSUE_REPO.git"
+  fi
+  DEFAULT_BRANCH=$(gh repo view "$ISSUE_OWNER/$ISSUE_REPO" --json defaultBranchRef -q .defaultBranchRef.name)
+  git fetch "$REMOTE_NAME" "$DEFAULT_BRANCH"
+  git reset --hard "$REMOTE_NAME/$DEFAULT_BRANCH"
+fi
+```
+
+This is safe because no implementation work has happened yet at this point
+in the flow — `git reset --hard` here discards nothing of value. If the
+`git remote add` step fails because a same-named remote already exists
+pointing elsewhere, stop and ask the user how to proceed rather than
+overwriting it.
+
 ## Phase 3: Write the Spec
 
 Invoke **superpowers:brainstorming** with the issue content as the starting
 problem. Relay any clarifying questions it raises to the user via
 AskUserQuestion. It produces a spec file under `docs/superpowers/specs/`.
+
+When invoking it, explicitly instruct it to write the spec document's body
+in the language required by the target project's CLAUDE.md (for this
+repository, Japanese — `会話は日本語で行う`). Code blocks, commands, and
+identifiers may stay in their original form. This must be stated explicitly
+in the prompt every time — do not assume the sub-skill infers it from
+context, since roughly one run in five otherwise defaults to English.
+
+Do not ask a content-free "may I proceed" confirmation between Phase 2 and
+this phase (e.g. "spec を作成してよいですか？"). Genuine requirement-
+clarifying questions (where the Issue's request could be interpreted two or
+more ways) are fine and expected via AskUserQuestion — the distinction is
+whether the question surfaces a real ambiguity to resolve, versus asking
+permission to do the next scheduled step with no new information attached.
 
 ## Phase 4: Review the Spec
 
@@ -124,16 +195,36 @@ unconditional hard gate you can't get past.
 
 ## Phase 6: Approve the Spec
 
-Use **AskUserQuestion** to get explicit spec approval ("Approve this spec /
-revise it") before moving on to Phase 7. No exceptions — not for "the spec is
-obviously fine" and not for "ask forgiveness after Phase 7 instead." If the
-user asks for changes, go back to Phase 3 and repeat Phases 3–6 (Phase 5
-becomes a Confluence page update, not a new page).
+Use **AskUserQuestion** to get explicit spec approval before moving on to
+Phase 7. No exceptions — not for "the spec is obviously fine" and not for
+"ask forgiveness after Phase 7 instead."
+
+The question text MUST include the Confluence URL captured in Phase 5. If
+Phase 5's Confluence upload failed and fell back per `rules/confluence.md`,
+you must have already reported that to the user before reaching this phase
+— do not silently ask for approval without ever having surfaced the failure.
+
+Fix the options to exactly these two (plus AskUserQuestion's built-in
+"Other" free-text, which covers ad-hoc revision requests):
+
+- "承認する" (Approve)
+- "ページコメントを参照して修正してほしい" (Revise based on page comments)
+
+If the second option is chosen, fetch the unresolved inline/footer comments
+on the Confluence page (`mcp__atlassian__getConfluencePageInlineComments`,
+`mcp__atlassian__getConfluencePageFooterComments`), incorporate them into
+the spec, and repeat Phases 3–6 (Phase 5 becomes a Confluence page update,
+not a new page).
 
 ## Phase 7: Write the Plan
 
 Invoke **superpowers:writing-plans** against the approved spec to produce a
 plan file under `docs/superpowers/plans/`.
+
+Same language instruction as Phase 3: explicitly tell it to write the plan
+document's body in the language required by the target project's CLAUDE.md
+(Japanese for this repository), with code blocks/commands/identifiers left
+in their original form.
 
 ## Phase 8: Review the Plan
 
@@ -155,9 +246,19 @@ one. Same fallback as Phase 5 if Confluence resolution fails.
 Use **AskUserQuestion** again for explicit plan approval before moving on to
 Phase 11 — the spec's approval in Phase 6 does not carry over, since a plan
 can diverge from its spec. "The spec was already approved so the plan is
-implied" is exactly the shortcut this gate blocks. If the user asks for
-changes, go back to Phase 7 and repeat Phases 7–10 (Phase 9 becomes a
-Confluence page update, not a new page).
+implied" is exactly the shortcut this gate blocks.
+
+Same requirements as Phase 6: the question text MUST include the Confluence
+URL captured in Phase 9 (report any upload failure to the user before this
+phase, per `rules/confluence.md`'s fallback), and the options are fixed to
+exactly:
+
+- "承認する" (Approve)
+- "ページコメントを参照して修正してほしい" (Revise based on page comments)
+
+If the second option is chosen, fetch the unresolved Confluence page
+comments, incorporate them into the plan, and repeat Phases 7–10 (Phase 9
+becomes a Confluence page update, not a new page).
 
 ## Phase 11: Comment on the Issue
 
@@ -165,7 +266,7 @@ Post the spec and plan summaries plus their Confluence URLs as an Issue
 comment — not the full document bodies:
 
 ```bash
-gh issue comment "$ARGUMENTS" --body "$(cat <<'EOF'
+gh issue comment "$ARGUMENTS" --repo "$ISSUE_OWNER/$ISSUE_REPO" --body "$(cat <<'EOF'
 [short summary]
 
 Spec: [Confluence URL]
@@ -173,6 +274,11 @@ Plan: [Confluence URL]
 EOF
 )"
 ```
+
+`--repo` is required here — without it, `gh issue comment` resolves the
+target repository from the local `origin`, which is wrong whenever
+`ISSUE_OWNER/ISSUE_REPO` (set in Phase 2) differs from `origin` (the fork
+scenario this Issue set targets).
 
 Verify no sensitive information is included before posting.
 
@@ -249,7 +355,7 @@ issue title / spec summary, e.g.:
 
 ```bash
 PR_TITLE="<derived from the issue title / spec summary>"
-gh pr create --title "$PR_TITLE" --body "$(cat <<'EOF'
+gh pr create --repo "$ISSUE_OWNER/$ISSUE_REPO" --title "$PR_TITLE" --body "$(cat <<'EOF'
 <PR body>
 EOF
 )"
@@ -267,6 +373,12 @@ EOF
 - Before running this command, check the composed title/body for sensitive
   information (tokens, internal URLs, credentials) the same way Phase 11
   checks the Issue comment — the PR is also externally visible.
+- `--repo "$ISSUE_OWNER/$ISSUE_REPO"` is required: the PR must be created
+  against the repository the Issue actually lives in (set in Phase 2), not
+  wherever `gh`'s own fork/parent heuristic would default to. The head side
+  (the fork's branch) is resolved automatically by `gh`; if that resolution
+  fails, fall back to explicitly passing
+  `--head <origin-owner>:<branch>`.
 
 ## Phase 17: Write Session State
 
@@ -275,7 +387,7 @@ without parsing the transcript:
 
 ```bash
 mkdir -p ~/.claude/data && chmod 700 ~/.claude/data
-PR_URL=$(gh pr view --json url -q .url)
+PR_URL=$(gh pr view --repo "$ISSUE_OWNER/$ISSUE_REPO" --json url -q .url)
 if [ -z "$PR_URL" ]; then
   echo "ERROR: gh pr view returned an empty URL, not writing session-state.json" >&2
   exit 1
@@ -307,6 +419,28 @@ instruction" guardrail doesn't apply. No separate confirmation is needed here
 because Phase 10 already approved the plan — this step just carries out the
 mechanical follow-through (fixing CI, resolving conflicts, addressing review
 feedback) without expanding scope beyond what was approved.
+
+## Phase 19: Launch Background Monitoring
+
+Immediately after Phase 18, launch the merge/close monitor in the
+background so cleanup happens even if the user merges or closes the PR
+outside this session:
+
+```bash
+PR_NUMBER=$(gh pr view --repo "$ISSUE_OWNER/$ISSUE_REPO" --json number -q .number)
+~/.claude/skills/wait-for-pr-close/scripts/wait-for-pr-close.sh "$PR_NUMBER" --repo "$ISSUE_OWNER/$ISSUE_REPO" &
+```
+
+Always pass `--repo "$ISSUE_OWNER/$ISSUE_REPO"` explicitly here, even in the
+non-fork case — omitting it makes `wait-for-pr-close.sh` fall back to the
+local `origin`, which is wrong whenever the fork scenario from Issue #171
+applies (the PR lives in `ISSUE_OWNER/ISSUE_REPO`, not `origin`).
+
+This is a fire-and-forget background launch, matching how
+`wait-for-copilot-review` is used elsewhere — the `issue-pr` flow is
+considered complete once this is launched. Detection and cleanup
+(`/pr-cleanup`) happen outside this session, in a fresh tmux prompt, once
+the monitor detects the PR closing.
 
 ## Notes
 
