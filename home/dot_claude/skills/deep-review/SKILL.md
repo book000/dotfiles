@@ -69,7 +69,10 @@ Do NOT report the following:
 
 - **Agent d (past PR comments) [PR mode only]**: Find recently merged PRs that touched the same files (`gh pr list --state merged`). Check their review comments for concerns that may also apply here.
 
-- **Agent e (code-comment consistency)**: Read code comments and docstrings in changed files. Flag cases where the implementation contradicts what a comment describes.
+- **Agent e (code-comment quality)**: Read code comments and docstrings in changed files. Flag:
+  - Cases where the implementation contradicts what a comment describes.
+  - Redundant comments that merely restate what the code already makes obvious (e.g. a comment saying "increment i by 1" directly above `i++`).
+  - Comments prone to becoming stale — descriptions of specific values, counts, enumerated lists, or implementation details duplicated from the code, which are likely to drift out of sync when the code changes.
 
 - **Agent f (security)**: Check for:
   - Missing input validation / sanitisation (XSS, SQL injection, etc.)
