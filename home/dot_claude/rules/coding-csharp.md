@@ -2,7 +2,6 @@
 paths:
   - "**/*.cs"
   - "**/*.csproj"
-  - "**/.editorconfig"
 ---
 
 # C# Coding Rules
@@ -21,14 +20,20 @@ VRCXDiscordTracker, ZoomInClass).
   - `<ImplicitUsings>enable</ImplicitUsings>`
   - `<Nullable>enable</Nullable>`
   - `<GenerateDocumentationFile>true</GenerateDocumentationFile>`
-  - `<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>` (fails the build on
-    `.editorconfig` IDE-diagnostic violations, not just formatting)
+  - `<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>` (runs `.editorconfig`
+    IDE code-style analyzers at build time and surfaces them as build
+    warnings/errors at whatever severity `.editorconfig` assigns — combine with
+    warning-severity diagnostics below, or `TreatWarningsAsErrors`, to actually
+    gate the build)
 - Target the latest LTS/STS `net<major>.0` (Windows GUI apps add the Windows TFM,
   e.g. `net10.0-windows` or `net9.0-windows10.0.17763.0`)
 - Windows GUI apps (WinForms, etc.): `<OutputType>WinExe</OutputType>`,
   `<PublishSingleFile>true</PublishSingleFile>`, `<DebugType>embedded</DebugType>`.
-  A companion self-contained updater project additionally sets
-  `<RuntimeIdentifier>win-x64</RuntimeIdentifier>` and `<SelfContained>true</SelfContained>`
+  `PublishSingleFile` requires a `RuntimeIdentifier` (e.g. `win-x64`) on any
+  project that publishes it — set directly in the `.csproj` or via a publish
+  profile (`.pubxml`). A companion self-contained updater project additionally
+  sets `<RuntimeIdentifier>win-x64</RuntimeIdentifier>` and
+  `<SelfContained>true</SelfContained>`
 
 ## StyleCop
 
@@ -43,8 +48,13 @@ VRCXDiscordTracker, ZoomInClass).
 
 - Provide a `stylecop.json` next to the `.csproj` and reference it with
   `<AdditionalFiles Include="stylecop.json" />`
-- Set `"documentationCulture": "ja-JP"` and `"xmlHeader": false` unless the project's
-  CLAUDE.md specifies a different documentation language
+- Set `settings.documentationRules.documentationCulture` to `"ja-JP"` and
+  `settings.documentationRules.xmlHeader` to `false` unless the project's
+  CLAUDE.md specifies a different documentation language:
+
+  ```json
+  { "settings": { "documentationRules": { "documentationCulture": "ja-JP", "xmlHeader": false } } }
+  ```
 
 ## `.editorconfig`
 
@@ -116,4 +126,5 @@ VRCXDiscordTracker, ZoomInClass).
 - Steps: `dotnet restore` → `dotnet build --no-restore -c Release` →
   `dotnet test --no-build -c Release`
 - Style/format check: `dotnet format <sln> --verify-no-changes --severity warn`
-  in CI — this must pass before merge, same as StyleCop warnings at build time
+  in CI — this is the step that actually gates merges on formatting/style,
+  since StyleCop/analyzer diagnostics are build-time warnings, not build failures
