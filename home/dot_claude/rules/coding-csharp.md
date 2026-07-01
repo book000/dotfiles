@@ -22,14 +22,13 @@ paths:
     warning-severity diagnostics below, or `TreatWarningsAsErrors`, to actually
     gate the build)
 - Target the latest LTS/STS `net<major>.0` (Windows GUI apps add the Windows TFM,
-  e.g. `net10.0-windows` or `net9.0-windows10.0.17763.0`)
+  `net<major>.0-windows`, optionally suffixed with a target Windows SDK version)
 - Windows GUI apps (WinForms, etc.): `<OutputType>WinExe</OutputType>`,
   `<PublishSingleFile>true</PublishSingleFile>`, `<DebugType>embedded</DebugType>`.
-  `PublishSingleFile` requires a `RuntimeIdentifier` (e.g. `win-x64`) on any
-  project that publishes it — set directly in the `.csproj` or via a publish
-  profile (`.pubxml`). A companion self-contained updater project additionally
-  sets `<RuntimeIdentifier>win-x64</RuntimeIdentifier>` and
-  `<SelfContained>true</SelfContained>`
+  `PublishSingleFile` requires a `RuntimeIdentifier` on any project that publishes
+  it — set directly in the `.csproj` or via a publish profile (`.pubxml`). A
+  companion self-contained updater project additionally sets `<RuntimeIdentifier>`
+  and `<SelfContained>true</SelfContained>`
 
 ## StyleCop
 
@@ -56,24 +55,22 @@ paths:
 
 - Every repo has its own root `.editorconfig` (`root = true`) — do not rely on a
   shared/central template. When creating a new C# repo, copy the fullest existing
-  one (e.g. from `github-webhook-bridge` or `IdlingLightManager`) as the starting point
+  repo's `.editorconfig` as the starting point
 - Baseline formatting: `indent_style = space`, `indent_size = 4` for `*.cs`
   (`indent_size = 2` for `*.xml`, `*.json`, `*.yaml`, `*.yml`, `*.resx`, `*.pubxml`),
   `end_of_line = crlf`, `charset = utf-8`, `insert_final_newline = true`,
   `trim_trailing_whitespace = true`
 - Set almost all Roslyn `IDE*` / `CA*` / `SA*` diagnostics to `warning` severity by
-  default. Only relax a rule with an inline comment explaining why (e.g.
-  `dotnet_diagnostic.CA1848.severity = none # LoggerMessage デリゲートを使用しなくてもよい`) —
-  never disable a rule silently
+  default. Only relax a rule with an inline comment explaining why — never disable
+  a rule silently
 - It is acceptable to relax documentation-comment rules (`CS1591`, `SA1600`,
   `SA1602`, `SA1611`, `SA1615`, `SA1618`) during incremental adoption, but mark the
   override with a "段階的に対応" (phased rollout) comment so it reads as temporary
 - Add a `[tests/**.cs]` (or equivalent glob) section that relaxes test-only
-  conventions instead of loosening them globally, e.g.:
-  - `dotnet_diagnostic.CA1707.severity = none` — allow underscores in xUnit
-    `Method_Scenario_Expected` test names
-  - `dotnet_diagnostic.IDE1006.severity = none` — `[Fact]`/`[Theory]` methods don't
-    need an `Async` suffix
+  conventions instead of loosening them globally: allow underscores in xUnit
+  `Method_Scenario_Expected` test names (`dotnet_diagnostic.CA1707.severity = none`)
+  and drop the `Async`-suffix expectation for `[Fact]`/`[Theory]` methods
+  (`dotnet_diagnostic.IDE1006.severity = none`)
 
 ## Code Style
 
@@ -95,7 +92,7 @@ paths:
   (`Host.CreateDefaultBuilder()`), DI via `ConfigureServices`, options bound with
   `services.AddOptions<T>().Bind(...).ValidateOnStart()`
 - Logging: Serilog (`UseSerilog`), enrich from log context, override noisy
-  framework categories (e.g. `MinimumLevel.Override("Microsoft", LogEventLevel.Warning)`)
+  framework log categories to a higher minimum level
 - Azure Functions projects: `Microsoft.Azure.Functions.Worker` (isolated worker
   model), OpenTelemetry + Azure Monitor exporter for observability
 
@@ -107,18 +104,17 @@ paths:
 - Use `[InternalsVisibleTo("<ProjectName>.Tests")]` in the main project (via
   `AssemblyAttribute` in the `.csproj` or `AssemblyInfo`) instead of making members
   `public` just for testability
-- Test method names: PascalCase describing behaviour (e.g.
-  `RunAsyncCreatedTitleContainsStarred`) or the underscore-separated
+- Test method names: PascalCase describing behaviour, or the underscore-separated
   `Method_Scenario_Expected` xUnit convention — both are acceptable within one
   project as long as the `.editorconfig` test-only override permits underscores
-- CI enforces a minimum line-coverage threshold (project-specific, e.g. 80%) —
-  check for an existing threshold before lowering it
+- CI enforces a minimum line-coverage threshold (project-specific) — check for an
+  existing threshold before lowering it
 
 ## CI (GitHub Actions)
 
 - Runner: `windows-latest` (required for WinForms / Windows-only TFMs)
 - Setup with `actions/setup-dotnet`, pinning `dotnet-version` to the SDK's
-  major version with a floating patch (e.g. `"10.0.x"`)
+  major version with a floating patch (`"<major>.0.x"`)
 - Steps: `dotnet restore` → `dotnet build --no-restore -c Release` →
   `dotnet test --no-build -c Release`
 - Style/format check: `dotnet format <sln> --verify-no-changes --severity warn`
