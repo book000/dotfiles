@@ -6,10 +6,6 @@ paths:
 
 # C# Coding Rules
 
-Based on a cross-repository survey of book000 / tomacheese organization C# projects
-(github-webhook-bridge, watch-wishlist-sale, IdlingLightManager, ElitesRNGAuraObserver,
-VRCXDiscordTracker, ZoomInClass).
-
 ## Project Setup
 
 - Use SDK-style `.csproj` (`<Project Sdk="Microsoft.NET.Sdk">`). Legacy-style project
