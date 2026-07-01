@@ -35,11 +35,11 @@ do not proceed and hit the failure several phases later.
 
 ## Progress Tracking
 
-Before Phase 1, create one task per phase below with the Todo tool, subject
-= the phase title. This is a long, multi-phase
-flow spanning two approval gates and several delegated skills — track it
-explicitly so no phase gets skipped or forgotten mid-run, especially after a
-revise-and-repeat loop (Phase 6 or Phase 10) or a context compaction.
+Before Phase 1, create one task per phase below with the Todo tool,
+subject = the phase title. This is a long, multi-phase flow spanning two
+approval gates and several delegated skills — track it explicitly so no
+phase gets skipped or forgotten mid-run, especially after a revise-and-repeat
+loop (Phase 6 or Phase 10) or a context compaction.
 
 Mark each task `in_progress` immediately before starting that phase and
 `completed` immediately after finishing it — do not batch updates at the
@@ -90,9 +90,10 @@ Extract `ISSUE_OWNER` and `ISSUE_REPO` from the returned `url` field
 (`https://github.com/<owner>/<repo>/issues/<number>`):
 
 ```bash
+# grep -oP（PCRE）は macOS の BSD grep では動かないため sed -E で移植可能な形にする
 ISSUE_URL=$(gh issue view "$ARGUMENTS" --json url -q .url)
-ISSUE_OWNER=$(echo "$ISSUE_URL" | grep -oP 'github\.com/\K[^/]+')
-ISSUE_REPO=$(echo "$ISSUE_URL" | grep -oP 'github\.com/[^/]+/\K[^/]+(?=/issues)')
+ISSUE_OWNER=$(echo "$ISSUE_URL" | sed -E 's#.*github\.com/([^/]+)/.*#\1#')
+ISSUE_REPO=$(echo "$ISSUE_URL" | sed -E 's#.*github\.com/[^/]+/([^/]+)/issues/.*#\1#')
 if [ -z "$ISSUE_OWNER" ] || [ -z "$ISSUE_REPO" ]; then
   echo "ERROR: failed to extract owner/repo from Issue URL: $ISSUE_URL" >&2
   exit 1

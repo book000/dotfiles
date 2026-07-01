@@ -26,11 +26,12 @@ can be invoked manually for any PR, or automatically by `wait-for-pr-close`.
 ## Step 0: Resolve PR Info
 
 ```bash
+# grep -oP（PCRE）は macOS の BSD grep では動かないため sed -E で移植可能な形にする
 PR_ARG="$ARGUMENTS"
 if echo "$PR_ARG" | grep -q 'github\.com'; then
-  OWNER=$(echo "$PR_ARG" | grep -oP 'github\.com/\K[^/]+')
-  REPO=$(echo "$PR_ARG" | grep -oP 'github\.com/[^/]+/\K[^/]+(?=/pull)')
-  PR_NUMBER=$(echo "$PR_ARG" | grep -oP '/pull/\K\d+')
+  OWNER=$(echo "$PR_ARG" | sed -E 's#.*github\.com/([^/]+)/.*#\1#')
+  REPO=$(echo "$PR_ARG" | sed -E 's#.*github\.com/[^/]+/([^/]+)/pull/.*#\1#')
+  PR_NUMBER=$(echo "$PR_ARG" | sed -E 's#.*/pull/([0-9]+).*#\1#')
 else
   OWNER=$(gh repo view --json owner --jq '.owner.login')
   REPO=$(gh repo view --json name --jq '.name')
