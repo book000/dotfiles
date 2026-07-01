@@ -33,7 +33,7 @@ omitted, the script targets the local `origin`.
 
 ### Detection Logic
 
-- Polls `gh pr view <PR_NUMBER> [--repo <owner>/<repo>] --json state,mergedAt,url`
+- Polls `gh pr view <PR_NUMBER> [--repo <owner>/<repo>] --json state`
 - **Check interval**: 30 seconds
 - **Max wait time**: 30 minutes (60 checks). On timeout, notifies via tmux
   and exits 0 (not an error) — the user can re-run this script later for a
@@ -83,5 +83,5 @@ rm ~/.claude/locks/wait-pr-close-<PR_NUMBER>.lock
 ### Manually Check PR State
 
 ```bash
-gh pr view <PR_NUMBER> [--repo <owner>/<repo>] --json state,mergedAt,url
+gh pr view <PR_NUMBER> [--repo <owner>/<repo>] --json state
 ```

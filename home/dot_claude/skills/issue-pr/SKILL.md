@@ -35,8 +35,8 @@ do not proceed and hit the failure several phases later.
 
 ## Progress Tracking
 
-Before Phase 1, create one task per phase below (Phase 1 through Phase 19)
-with the Todo tool, subject = the phase title. This is a long, multi-phase
+Before Phase 1, create one task per phase below with the Todo tool, subject
+= the phase title. This is a long, multi-phase
 flow spanning two approval gates and several delegated skills — track it
 explicitly so no phase gets skipped or forgotten mid-run, especially after a
 revise-and-repeat loop (Phase 6 or Phase 10) or a context compaction.

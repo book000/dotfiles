@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -euo pipefail
 
@@ -32,19 +32,22 @@ mkdir -p "$LOG_DIR" "$LOCK_DIR"
 LOG_FILE="$LOG_DIR/wait-pr-close-${PR_NUMBER}.log"
 LOCK_FILE="$LOCK_DIR/wait-pr-close-${PR_NUMBER}.lock"
 
-# ロックファイルのクリーンアップを設定
-# shellcheck disable=SC2317
-cleanup() {
-  rm -f "$LOCK_FILE"
-}
-trap cleanup EXIT
-
 # ロック取得（既に実行中の場合はエラー）
 exec 200>"$LOCK_FILE"
 if ! flock -n 200; then
   echo "Already running for PR #${PR_NUMBER}" >&2
   exit 1
 fi
+
+# ロックファイルのクリーンアップを設定
+# ロック取得後に trap を張る。取得前に張ると、フロック競争に負けた側の
+# exit で勝った側のロックファイルが削除され、後続の別インスタンスが
+# 新しい inode に対して flock に成功し、多重起動排他が破られてしまう。
+# shellcheck disable=SC2317
+cleanup() {
+  rm -f "$LOCK_FILE"
+}
+trap cleanup EXIT
 
 # ログ開始
 {
@@ -121,7 +124,8 @@ fi
 echo "Initial state: ${INITIAL_STATE}" >> "$LOG_FILE"
 
 # クリーンアップ呼び出し用のターゲット文字列を決定する
-# --repo が local origin と異なる場合は URL 形式、そうでなければ PR 番号のみ
+# 新規セッションで起動される pr-cleanup はローカル origin の情報しか持たないため、
+# --repo でクロスリポジトリを指定した場合は PR 番号だけでは対象を解決できない
 if [[ -n "$REPO_SLUG" ]]; then
   CLEANUP_TARGET="https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}"
 else

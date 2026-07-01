@@ -104,6 +104,11 @@ git checkout "$DEFAULT_BRANCH"
 git pull
 ```
 
+If `DEFAULT_BRANCH` comes back empty, or either command exits non-zero
+(e.g. uncommitted local changes blocking the checkout, a network failure on
+pull), stop here and report it to the user — do not continue to Step 4/5 and
+report cleanup as complete when the local checkout may still be out of sync.
+
 This always targets the local `origin`'s default branch — even when the PR
 itself was created against a different repository (the fork/upstream
 scenario from Issue #171), the worktree/branch being cleaned up lives in
