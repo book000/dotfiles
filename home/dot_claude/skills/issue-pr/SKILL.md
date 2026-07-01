@@ -78,13 +78,69 @@ runs inside the worktree created here.
 ## Phase 2: Fetch the Issue
 
 ```bash
-gh issue view "$ARGUMENTS" --json title,state,body,comments,author
+gh issue view "$ARGUMENTS" --json title,state,body,comments,author,url
 ```
 
 If this command fails (auth, network, issue doesn't exist) or the issue is
 not OPEN, stop here and report it to the user — do not guess at intent and
 continue. Turning a closed or nonexistent issue into a PR is not a warning-
 level situation, it's a reason to stop.
+
+Extract `ISSUE_OWNER` and `ISSUE_REPO` from the returned `url` field
+(`https://github.com/<owner>/<repo>/issues/<number>`):
+
+```bash
+ISSUE_URL=$(gh issue view "$ARGUMENTS" --json url -q .url)
+ISSUE_OWNER=$(echo "$ISSUE_URL" | grep -oP 'github\.com/\K[^/]+')
+ISSUE_REPO=$(echo "$ISSUE_URL" | grep -oP 'github\.com/[^/]+/\K[^/]+(?=/issues)')
+if [ -z "$ISSUE_OWNER" ] || [ -z "$ISSUE_REPO" ]; then
+  echo "ERROR: failed to extract owner/repo from Issue URL: $ISSUE_URL" >&2
+  exit 1
+fi
+```
+
+If extraction fails, stop and report it to the user — every later phase
+that targets a specific repository (`gh issue comment`, `gh pr create`,
+`gh pr view` from the new `wait-for-pr-close` phase) depends on
+`ISSUE_OWNER`/`ISSUE_REPO` being correct. **`ISSUE_OWNER`/`ISSUE_REPO` is
+the repository the Issue actually lives in — this is what determines the PR
+destination in every later phase, regardless of whether the local checkout
+is a fork.**
+
+### Rebase onto the correct base branch (fork scenario)
+
+`EnterWorktree` in Phase 1 created the working branch off
+`origin/<default-branch>`. If `ISSUE_OWNER/ISSUE_REPO` differs from the
+local `origin`'s owner/repo (a fork working on an upstream Issue), `origin`'s
+default branch may be stale relative to `ISSUE_OWNER/ISSUE_REPO`'s. Rebase
+onto the correct base immediately, before any spec/plan/implementation work
+begins:
+
+```bash
+ORIGIN_OWNER=$(gh repo view --json owner -q .owner.login)
+ORIGIN_REPO=$(gh repo view --json name -q .name)
+if [ "$ISSUE_OWNER/$ISSUE_REPO" != "$ORIGIN_OWNER/$ORIGIN_REPO" ]; then
+  # Reuse an existing remote pointing at ISSUE_OWNER/ISSUE_REPO, or add one.
+  REMOTE_NAME=$(git remote -v | grep -F "github.com/$ISSUE_OWNER/$ISSUE_REPO" | head -1 | cut -f1)
+  if [ -z "$REMOTE_NAME" ]; then
+    REMOTE_NAME="upstream"
+    if git remote get-url "$REMOTE_NAME" >/dev/null 2>&1; then
+      echo "ERROR: remote '$REMOTE_NAME' already exists but does not point at $ISSUE_OWNER/$ISSUE_REPO" >&2
+      exit 1
+    fi
+    git remote add "$REMOTE_NAME" "https://github.com/$ISSUE_OWNER/$ISSUE_REPO.git"
+  fi
+  DEFAULT_BRANCH=$(gh repo view "$ISSUE_OWNER/$ISSUE_REPO" --json defaultBranchRef -q .defaultBranchRef.name)
+  git fetch "$REMOTE_NAME" "$DEFAULT_BRANCH"
+  git reset --hard "$REMOTE_NAME/$DEFAULT_BRANCH"
+fi
+```
+
+This is safe because no implementation work has happened yet at this point
+in the flow — `git reset --hard` here discards nothing of value. If the
+`git remote add` step fails because a same-named remote already exists
+pointing elsewhere, stop and ask the user how to proceed rather than
+overwriting it.
 
 ## Phase 3: Write the Spec
 
