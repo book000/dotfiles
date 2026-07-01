@@ -6,6 +6,8 @@
 # 90-ai-alias.zsh/sh の _claude_trust_cwd() が実行されず、
 # Workspace Trust dialog が発生する問題 (Issue #166) への対策。
 
+command -v jq > /dev/null 2>&1 || exit 0
+
 INPUT_JSON=$(cat)
 CWD=$(echo "$INPUT_JSON" | jq -r '.cwd // empty' 2> /dev/null)
 
@@ -13,7 +15,6 @@ CWD=$(echo "$INPUT_JSON" | jq -r '.cwd // empty' 2> /dev/null)
 
 CONFIG="$HOME/.claude.json"
 [ -f "$CONFIG" ] || exit 0
-command -v jq > /dev/null 2>&1 || exit 0
 
 if [ "$(jq -r --arg p "$CWD" '.projects[$p].hasTrustDialogAccepted // false' "$CONFIG" 2> /dev/null)" != "true" ]; then
     TMP=$(mktemp "${CONFIG}.XXXXXX") || exit 0
