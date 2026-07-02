@@ -66,10 +66,21 @@ fi
 
 echo "Repository: ${OWNER}/${REPO}" >> "$LOG_FILE"
 
-# 待機パラメータ
-MAX_WAIT=1800  # 30 分
-INTERVAL=30    # 30 秒
+# 待機パラメータ（環境変数で上書き可能。未設定時のデフォルトは
+# WAIT_FOR_PR_CLOSE_MAX_WAIT=86400（24 時間）、WAIT_FOR_PR_CLOSE_INTERVAL=30（30 秒））
+MAX_WAIT="${WAIT_FOR_PR_CLOSE_MAX_WAIT:-86400}"
+INTERVAL="${WAIT_FOR_PR_CLOSE_INTERVAL:-30}"
 ELAPSED=0
+
+# 待機パラメータの妥当性チェック（不正値をサイレントに無視しない）
+if ! [[ "$MAX_WAIT" =~ ^[0-9]+$ ]] || [[ "$MAX_WAIT" -le 0 ]]; then
+  echo "Error: WAIT_FOR_PR_CLOSE_MAX_WAIT must be a positive integer" >&2
+  exit 1
+fi
+if ! [[ "$INTERVAL" =~ ^[0-9]+$ ]] || [[ "$INTERVAL" -le 0 ]]; then
+  echo "Error: WAIT_FOR_PR_CLOSE_INTERVAL must be a positive integer" >&2
+  exit 1
+fi
 
 # PR 状態を取得する関数
 get_pr_state() {
@@ -145,8 +156,8 @@ if [[ "$INITIAL_STATE" == "MERGED" || "$INITIAL_STATE" == "CLOSED" ]]; then
 fi
 
 # ポーリングループ
-while [ $ELAPSED -lt $MAX_WAIT ]; do
-  sleep $INTERVAL
+while [ "$ELAPSED" -lt "$MAX_WAIT" ]; do
+  sleep "$INTERVAL"
   ELAPSED=$((ELAPSED + INTERVAL))
 
   if ! CURRENT_STATE=$(get_pr_state); then
