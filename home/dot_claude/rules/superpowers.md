@@ -46,3 +46,12 @@ via the AskUserQuestion tool. Do not ask questions as plain text.
 to ask the user something, it must report the question (with options where
 applicable) back to the main agent in its output. The main agent then uses
 AskUserQuestion to relay it to the user.
+
+## Local-Only Artifacts (`.gitignore` Compliance)
+
+`docs/superpowers/` and `.superpowers/` are intentionally excluded via the
+global `.gitignore` (`home/dot_config/git/ignore`). Spec and plan documents
+under these paths are local-only working artifacts — after uploading them
+to Confluence (per `rules/confluence.md`), do NOT force-add or commit them
+to git (no `git add -f`, no `--force`). The durable record is the
+Confluence page, not the git history.
