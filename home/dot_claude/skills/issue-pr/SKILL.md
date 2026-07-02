@@ -456,9 +456,9 @@ feedback) without expanding scope beyond what was approved.
 
 If `pr-health-monitor` (or `issue-pr` itself, in a fork scenario) launches
 `wait-for-copilot-review` in the background, verify the launch actually
-succeeded before reporting completion — do not state "Copilot レビューが届
-き次第自動的にトリガーされます" unconditionally. Check for the expected log
-file (`~/.claude/logs/wait-copilot-review-<PR 番号>.log`) and that the
+succeeded before reporting completion — do not unconditionally state
+"Copilot レビューが届き次第自動的にトリガーされます". Check for the
+expected log file (`~/.claude/logs/wait-copilot-review-<PR 番号>.log`) and that the
 process is still running (`ps aux | grep wait-for-copilot-review`). If
 either check fails, report that the background monitor failed to start and
 that manual re-invocation may be needed, instead of promising automation

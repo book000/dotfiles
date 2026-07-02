@@ -73,7 +73,9 @@ onward: any failure here is a warning, not a stop condition.
 2. Extract Confluence URLs from `Spec:` / `Plan:` lines:
 
    ```bash
-   CONFLUENCE_URLS=$(echo "$PR_BODY" | grep -E '^(Spec|Plan): https?://' | sed -E 's/^(Spec|Plan): //')
+   # sed -n はマッチなしでも exit status 0 を返すため、set -e 環境でも
+   # Spec/Plan 行が存在しない場合に異常終了しない（grep はマッチなしで exit 1 になる）
+   CONFLUENCE_URLS=$(printf '%s\n' "$PR_BODY" | sed -nE 's/^(Spec|Plan): (https?:\/\/.*)/\2/p')
    ```
 
    If `$CONFLUENCE_URLS` is empty (and step 1 did not already fail), skip
