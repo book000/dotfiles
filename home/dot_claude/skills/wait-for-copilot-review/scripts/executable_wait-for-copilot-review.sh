@@ -9,8 +9,8 @@ REPO_ARG=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --repo)
-      if [[ $# -lt 2 ]]; then
-        echo "Error: --repo requires a value (e.g. --repo owner/repo)" >&2
+      if [[ $# -lt 2 || -z "$2" ]]; then
+        echo "Error: --repo requires a non-empty value (e.g. --repo owner/repo)" >&2
         exit 1
       fi
       REPO_ARG="$2"
@@ -38,7 +38,9 @@ if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
   exit 1
 fi
 
-if [[ -n "$REPO_ARG" ]] && ! [[ "$REPO_ARG" =~ ^[^/]+/[^/]+$ ]]; then
+# GitHub の owner/repo で許可される文字集合（英数字・ハイフン・アンダースコア・ドット）に限定し、
+# tmux send-keys 経由でコマンドとして解釈され得る文字（スペース、バッククォート、$() など）を拒否する
+if [[ -n "$REPO_ARG" ]] && ! [[ "$REPO_ARG" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
   echo "Error: --repo must be in <owner>/<repo> format" >&2
   exit 1
 fi
