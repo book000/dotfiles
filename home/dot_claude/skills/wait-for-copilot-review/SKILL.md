@@ -18,8 +18,13 @@ Automatically detects and notifies when GitHub Copilot posts a review after PR c
 Or run the script directly:
 
 ```bash
-${CLAUDE_SKILL_DIR}/scripts/wait-for-copilot-review.sh <PR_NUMBER> &
+${CLAUDE_SKILL_DIR}/scripts/wait-for-copilot-review.sh <PR_NUMBER> [--repo <owner>/<repo>] &
 ```
+
+Always pass `--repo <owner>/<repo>` when the PR was created against a
+repository other than the local checkout's own `origin` (the fork scenario
+from Issue #171) — omitting it makes the script fall back to `gh repo view`
+(the local `origin`), which resolves the wrong repository in that case.
 
 ## Features
 

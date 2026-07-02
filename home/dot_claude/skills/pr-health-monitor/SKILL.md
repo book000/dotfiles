@@ -60,7 +60,10 @@ request-review-copilot "https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}"
 
 # Wait for Copilot review in the background
 # On detection, /handle-pr-reviews is automatically triggered via tmux
-~/.claude/skills/wait-for-copilot-review/scripts/wait-for-copilot-review.sh "$PR_NUMBER" &
+# --repo is required here: without it the script falls back to the local
+# checkout's own origin, which is wrong whenever OWNER/REPO (resolved above)
+# differs from origin (the fork scenario from Issue #171).
+~/.claude/skills/wait-for-copilot-review/scripts/wait-for-copilot-review.sh "$PR_NUMBER" --repo "$OWNER/$REPO" &
 echo "Copilot review wait started (background)"
 echo "Log: ~/.claude/logs/wait-copilot-review-${PR_NUMBER}.log"
 ```

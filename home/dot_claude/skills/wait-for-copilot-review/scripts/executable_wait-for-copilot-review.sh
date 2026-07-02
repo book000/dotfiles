@@ -2,17 +2,46 @@
 
 set -euo pipefail
 
-# 引数チェック
-if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <PR_NUMBER>" >&2
+# 引数パース: <PR_NUMBER> [--repo <owner>/<repo>]
+PR_NUMBER=""
+REPO_ARG=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo)
+      if [[ $# -lt 2 || -z "$2" ]]; then
+        echo "Error: --repo requires a non-empty value (e.g. --repo owner/repo)" >&2
+        exit 1
+      fi
+      REPO_ARG="$2"
+      shift 2
+      ;;
+    *)
+      if [[ -n "$PR_NUMBER" ]]; then
+        echo "Usage: $0 <PR_NUMBER> [--repo <owner>/<repo>]" >&2
+        exit 1
+      fi
+      PR_NUMBER="$1"
+      shift
+      ;;
+  esac
+done
+
+if [[ -z "$PR_NUMBER" ]]; then
+  echo "Usage: $0 <PR_NUMBER> [--repo <owner>/<repo>]" >&2
   exit 1
 fi
-
-PR_NUMBER="$1"
 
 # PR 番号の妥当性チェック
 if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
   echo "Error: PR_NUMBER must be a number" >&2
+  exit 1
+fi
+
+# GitHub の owner/repo で許可される文字集合（英数字・ハイフン・アンダースコア・ドット）に限定し、
+# tmux send-keys 経由でコマンドとして解釈され得る文字（スペース、バッククォート、$() など）を拒否する
+if [[ -n "$REPO_ARG" ]] && ! [[ "$REPO_ARG" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+  echo "Error: --repo must be in <owner>/<repo> format" >&2
   exit 1
 fi
 
@@ -44,9 +73,14 @@ fi
   echo "Waiting for Copilot review on PR #${PR_NUMBER}"
 } >> "$LOG_FILE"
 
-# リポジトリ情報取得
-OWNER=$(gh repo view --json owner --jq '.owner.login')
-REPO=$(gh repo view --json name --jq '.name')
+# リポジトリ情報取得（--repo 指定があればそちらを優先する）
+if [[ -n "$REPO_ARG" ]]; then
+  OWNER="${REPO_ARG%%/*}"
+  REPO="${REPO_ARG##*/}"
+else
+  OWNER=$(gh repo view --json owner --jq '.owner.login')
+  REPO=$(gh repo view --json name --jq '.name')
+fi
 
 echo "Repository: ${OWNER}/${REPO}" >> "$LOG_FILE"
 
