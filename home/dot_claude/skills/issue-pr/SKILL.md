@@ -163,6 +163,11 @@ more ways) are fine and expected via AskUserQuestion — the distinction is
 whether the question surfaces a real ambiguity to resolve, versus asking
 permission to do the next scheduled step with no new information attached.
 
+superpowers's brainstorming skill includes a step that commits the spec
+document to git. Skip that step here: per `rules/superpowers.md`'s
+"Local-Only Artifacts" policy, `docs/superpowers/` is `.gitignore`d and the
+spec file stays as a local untracked artifact — do not force-add it.
+
 ## Phase 4: Review the Spec
 
 `rules/superpowers.md` already requires a sub-agent review of every spec
@@ -225,6 +230,10 @@ Same language instruction as Phase 3: explicitly tell it to write the plan
 document's body in the language required by the target project's CLAUDE.md
 (Japanese for this repository), with code blocks/commands/identifiers left
 in their original form.
+
+Same as Phase 3: skip writing-plans' "commit the plan document to git" step
+— the plan file stays as a local untracked artifact per
+`rules/superpowers.md`'s "Local-Only Artifacts" policy.
 
 ## Phase 8: Review the Plan
 
