@@ -49,6 +49,54 @@ If `state` is not `MERGED` or `CLOSED`, stop here and report it to the
 user — do not delete a branch backing a still-open PR just because this
 skill was invoked manually or by mistake.
 
+## Step 1.5: Archive Confluence Spec/Plan Pages
+
+Run this whenever Step 1 passed (`state` is `MERGED` or `CLOSED`) —
+regardless of which of the two, since abandoned (closed-without-merge)
+spec/plan work should also be tidied up. This step must never block Step 2
+onward: any failure here is a warning, not a stop condition.
+
+1. Fetch the PR body:
+
+   ```bash
+   PR_BODY=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json body -q .body)
+   ```
+
+2. Extract Confluence URLs from `Spec:` / `Plan:` lines:
+
+   ```bash
+   CONFLUENCE_URLS=$(echo "$PR_BODY" | grep -E '^(Spec|Plan): https?://' | sed -E 's/^(Spec|Plan): //')
+   ```
+
+   If `$CONFLUENCE_URLS` is empty, skip the rest of this step entirely —
+   not every PR carries spec/plan documents.
+
+3. For each URL, resolve the Confluence page (via `mcp__atlassian__getConfluencePage`,
+   passing the full URL as-is) and note its `spaceId`. Whether the tool
+   resolves a full Confluence URL directly is unverified — if resolution
+   fails, this is covered by the warning-and-continue rule in item 6 below.
+
+4. Within that space, search for an existing archive parent page:
+
+   ```
+   mcp__atlassian__searchConfluenceUsingCql with
+   cql: title = "Archived Specs & Plans" AND space = "<space key>" AND type = page
+   ```
+
+   - If found, use its page ID as the archive parent.
+   - If not found, create it with `mcp__atlassian__createConfluencePage`
+     (`title: "Archived Specs & Plans"`, same `parentId` as the original
+     spec/plan page if it has one, otherwise no `parentId`).
+
+5. For each spec/plan page, call `mcp__atlassian__updateConfluencePage`
+   with `parentId` set to the archive parent's page ID from step 4. Do not
+   change the title or body.
+
+6. If any page's lookup or move fails (network error, permission error,
+   URL didn't parse to a resolvable page), log it as a warning and continue
+   — do not stop Step 2 (worktree/branch removal) because of a Confluence
+   side-effect failure.
+
 ## Step 2: Remove the Worktree or Branch
 
 `ExitWorktree` only operates on a worktree created by `EnterWorktree` **in
