@@ -73,11 +73,15 @@ INTERVAL="${WAIT_FOR_PR_CLOSE_INTERVAL:-30}"
 ELAPSED=0
 
 # 待機パラメータの妥当性チェック（不正値をサイレントに無視しない）
-if ! [[ "$MAX_WAIT" =~ ^[0-9]+$ ]] || [[ "$MAX_WAIT" -le 0 ]]; then
+# 先頭 0 埋めの値（例: 010）は後段の算術展開 $(( )) で 8 進数として解釈され、
+# 意図しない値やエラーになるため、10 進数として先頭 0 を持たない形式のみ許可する
+if ! [[ "$MAX_WAIT" =~ ^(0|[1-9][0-9]*)$ ]] || [[ "$MAX_WAIT" -le 0 ]]; then
+  echo "Error: WAIT_FOR_PR_CLOSE_MAX_WAIT must be a positive integer" >> "$LOG_FILE"
   echo "Error: WAIT_FOR_PR_CLOSE_MAX_WAIT must be a positive integer" >&2
   exit 1
 fi
-if ! [[ "$INTERVAL" =~ ^[0-9]+$ ]] || [[ "$INTERVAL" -le 0 ]]; then
+if ! [[ "$INTERVAL" =~ ^(0|[1-9][0-9]*)$ ]] || [[ "$INTERVAL" -le 0 ]]; then
+  echo "Error: WAIT_FOR_PR_CLOSE_INTERVAL must be a positive integer" >> "$LOG_FILE"
   echo "Error: WAIT_FOR_PR_CLOSE_INTERVAL must be a positive integer" >&2
   exit 1
 fi
