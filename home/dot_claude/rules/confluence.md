@@ -20,11 +20,26 @@ Git/GitHub artifacts — only to documents whose primary purpose is to be read b
 
 1. **Resolve cloudId**: same approach as `ticket-pr`'s cloudId resolution — try the site
    hostname first, otherwise use `mcp__atlassian__getAccessibleAtlassianResources`.
-2. **Determine space and parent page**: there is no fixed space or parent page configured.
-   - If unknown for this session, ask the user via AskUserQuestion (space key/name, and
-     parent page if any). Do not guess or fabricate a space key or page ID.
-   - Once confirmed in a session, reuse the same space/parent for subsequent uploads in
-     that session without re-asking, unless the user indicates otherwise.
+2. **Determine space and parent page automatically — do not ask the user.**
+   - **Repository name source**: use `ISSUE_OWNER`/`ISSUE_REPO` as already resolved by the
+     calling flow (`issue-pr`, `ticket-pr`, or the `rules/superpowers.md` spec/plan upload
+     step) — the repository the Issue/ticket actually belongs to. Do not derive this from
+     the local `git` `origin`/`upstream` remotes.
+   - **Repository space search**: call `mcp__atlassian__getConfluenceSpaces` and look for a
+     space whose `name` or `key` contains the repository name (e.g. `dotfiles`),
+     case-insensitive substring match.
+     - Exactly one match → use that space.
+     - Zero matches → fall back to the fixed Main space (key: `Main`).
+     - Multiple matches → prefer an exact match on `<owner>/<repo>`; if none is exact,
+       sort the matches by space name and pick the first one. Do not ask the user to choose.
+   - **Parent page**: always leave unset (upload at the space root). Do not attempt to
+     auto-select a parent page and do not ask the user about it.
+   - **Session cache**: once resolved for a repository in this session, reuse the same
+     space for subsequent uploads targeting the same repository in that session.
+   - **Fallback to asking**: if the calling flow has no `ISSUE_OWNER`/`ISSUE_REPO` context
+     (e.g. a standalone document upload not tied to an Issue/ticket), or if the
+     `getConfluenceSpaces` call itself fails, report this to the user and ask how to
+     proceed — do not guess or fabricate a space key or page ID in that case.
 3. **Check for sensitive information**: verify the document contains no secrets (tokens,
    passwords, internal URLs, credentials) before uploading — same check already required
    before posting to GitHub Issues or Jira (see `rules/security.md`).
