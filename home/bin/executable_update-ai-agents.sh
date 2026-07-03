@@ -217,6 +217,13 @@ main() {
                     echo "❌ --only requires an agent name (claude|copilot|codex)" >&2
                     exit 1
                 fi
+                case "$2" in
+                    claude|copilot|codex) ;;
+                    *)
+                        echo "❌ Unknown agent for --only: $2 (claude|copilot|codex)" >&2
+                        exit 1
+                        ;;
+                esac
                 only_agent="$2"
                 shift
                 ;;
