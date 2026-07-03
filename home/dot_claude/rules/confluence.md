@@ -30,8 +30,10 @@ Git/GitHub artifacts — only to documents whose primary purpose is to be read b
      case-insensitive substring match.
      - Exactly one match → use that space.
      - Zero matches → fall back to the fixed Main space (key: `Main`).
-     - Multiple matches → prefer an exact match on `<owner>/<repo>`; if none is exact,
-       sort the matches by space name and pick the first one. Do not ask the user to choose.
+     - Multiple matches → prefer a space whose `name` or `key` exactly equals the
+       repository name (e.g. `dotfiles`, not merely a substring match like
+       `my-dotfiles`); if none is an exact match, sort the matches by space name and
+       pick the first one. Do not ask the user to choose.
    - **Parent page**: always leave unset (upload at the space root). Do not attempt to
      auto-select a parent page and do not ask the user about it.
    - **Session cache**: once resolved for a repository in this session, reuse the same
