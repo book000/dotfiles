@@ -58,7 +58,7 @@ chezmoi はソース側のプレフィックスを解釈してデプロイする
 ## ドキュメント更新ルール
 
 - `README.md`
-- `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.github/copilot-instructions.md`
+- `CLAUDE.md` / `AGENTS.md` / `.github/copilot-instructions.md`
 
 ## リポジトリ固有
 

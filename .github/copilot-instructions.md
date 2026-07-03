@@ -44,7 +44,7 @@
 ## ドキュメント更新
 
 - `README.md`
-- `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.github/copilot-instructions.md`
+- `CLAUDE.md` / `AGENTS.md` / `.github/copilot-instructions.md`
 
 ## リポジトリ固有
 
