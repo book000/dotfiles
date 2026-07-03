@@ -132,6 +132,8 @@ GitHub の issue を確認し、対応のためのブランチを作成して PR
 /issue-pr <issue_number>
 ```
 
+**注意**: Plan Mode（`/plan`）が有効な状態では実行できません。`issue-pr` skill 側で Plan Mode を検知すると即座に停止するため、実行前に Plan Mode を終了してください。
+
 このコマンドは以下の流れで動作します：
 
 1. **Worktree の作成**: `EnterWorktree` でこの Issue 専用の作業ツリーを作成
