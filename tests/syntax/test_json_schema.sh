@@ -64,7 +64,6 @@ PY
   FILES_CHECKED=$((FILES_CHECKED + 1))
 fi
 
-
 # 検証対象のファイルが存在しない場合はエラー
 if [ $FILES_CHECKED -eq 0 ]; then
   echo "❌ No AI agent configuration files found to validate"
