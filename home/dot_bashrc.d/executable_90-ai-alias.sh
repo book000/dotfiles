@@ -43,7 +43,6 @@ claude() {
   esac
 }
 alias codex='[ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick --only codex; ~/.local/share/chezmoi/update.sh; codex --yolo'
-alias gemini='[ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick --only gemini; ~/.local/share/chezmoi/update.sh; gemini --yolo'
 # copilot コマンドのラッパー関数。
 # AI エージェント・chezmoi の更新を行い、カレントディレクトリに .copilot/mcp-config.json が
 # 存在する場合は --additional-mcp-config オプションを付与して実行する。
