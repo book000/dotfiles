@@ -1,6 +1,6 @@
 ---
 name: deep-review
-description: Deep code review of a GitHub PR or the local working diff. Runs independent, scoped sub-agent reviews (CLAUDE.md adherence, bugs, git history, security incl. AI-PR risks, performance, silent failures, type design, tests), scores each finding 0-100 for confidence, reports only findings with score >= 50, and for the user's own PRs auto-fixes, commits, pushes, and updates the PR body.
+description: Deep code review of a GitHub PR or the local working diff. Runs independent, scoped sub-agent reviews defined in reviewers/*.md (CLAUDE.md adherence, bugs, git history, security incl. AI-PR risks, performance, silent failures, type design, tests) plus any project-specific reviewers found under <repo-root>/.claude/deep-review-reviewers/, scores each finding 0-100 for confidence, reports only findings with score >= 50, and for the user's own PRs auto-fixes, commits, pushes, and updates the PR body.
 argument-hint: "[PR number or URL | omit to review the local working diff]"
 disable-model-invocation: false
 effort: high
@@ -44,9 +44,30 @@ Launch a Haiku sub-agent to retrieve and return:
 
 ### Step 4: Parallel perspective reviews
 
-**Launch the following 9 independent sub-agents (general-purpose) in parallel.**
+**Load reviewer definitions, then launch one independent general-purpose sub-agent per loaded reviewer, all in parallel.**
 
-Pass each agent: the diff, the change summary, and the list of CLAUDE.md / rules paths.
+1. Read every file under `~/.claude/skills/deep-review/reviewers/*.md` (the fixed reviewers, one file per perspective).
+2. Resolve the reviewed repository root with `git rev-parse --show-toplevel`. If `<root>/.claude/deep-review-reviewers/*.md` exists, read every file in it too (project-specific reviewers). If the directory does not exist, skip this step silently — no error.
+3. Filter by mode: in Local diff mode, exclude any reviewer file whose frontmatter `applies_to` is `pr-only`.
+4. If 4 or more project-specific reviewer files were found in step 2, print a one-line notice before proceeding, e.g.: "Note: N project-specific reviewers detected under .claude/deep-review-reviewers/; ~3 is the recommended guideline." This is advisory only — do not enforce a hard cap, proceed with all of them.
+5. Each reviewer file uses this format:
+
+   ```markdown
+   ---
+   id: <one-letter id, fixed reviewers only>
+   name: <slug>
+   title: <display title>
+   applies_to: all | pr-only
+   ---
+
+   ## Scope
+
+   <scope text, passed verbatim to the sub-agent>
+   ```
+
+   If `applies_to` is missing, empty, or not one of `all`/`pr-only`, treat it as `all`.
+
+6. Pass each sub-agent: the diff, the change summary, the list of CLAUDE.md / rules paths, the shared false-positive suppression instructions below, and the `## Scope` body of its reviewer file.
 Each agent returns findings as: *problem summary + evidence + file:line reference*.
 
 **Instructions passed to every agent (false-positive suppression):**
@@ -55,49 +76,13 @@ Do NOT report the following:
 - Pre-existing issues on lines not touched by this PR
 - Issues that linters, type checkers, or CI already catch (formatting, import errors, type errors, etc.)
 - Intentionally suppressed issues (lint-ignore comments, etc.)
-- General code quality concerns (test coverage, documentation) unless explicitly required in CLAUDE.md or explicitly listed as a specific agent's scope below (e.g. Agent e's redundant/stale-comment checks)
+- General code quality concerns (test coverage, documentation) unless explicitly required in CLAUDE.md or explicitly listed as a specific reviewer's scope (e.g. the `e-code-comment-quality.md` reviewer's redundant/stale-comment checks)
 - Functional changes that are clearly intentional given the broader context
 - Anything asserted without a concrete `file:line` citation
 
-**Agent scopes:**
+**Fixed reviewers:** see `~/.claude/skills/deep-review/reviewers/*.md` for the full list and scope of each (`a-claude-md-compliance`, `b-bugs-correctness`, `c-git-history`, `d-past-pr-comments` [PR mode only], `e-code-comment-quality`, `f-security`, `g-performance`, `h-error-handling`, `i-type-design-tests`).
 
-- **Agent a (CLAUDE.md compliance)**: Read the CLAUDE.md and rules files. Flag violations of instructions that are explicitly stated there. Remember: CLAUDE.md is guidance for Claude writing code, so not every rule applies during review. Only flag what CLAUDE.md explicitly calls out.
-
-- **Agent b (bugs / correctness)**: Shallow scan of the diff for large, obvious bugs. Avoid reading context beyond the changed lines. Skip nitpicks.
-
-- **Agent c (git history / blame)**: Check `git blame` and `git log` for changed files. Report issues only when historical context reveals a problem that is not visible from the diff alone.
-
-- **Agent d (past PR comments) [PR mode only]**: Find recently merged PRs that touched the same files (`gh pr list --state merged`). Check their review comments for concerns that may also apply here.
-
-- **Agent e (code-comment quality)**: Read code comments and docstrings in changed files. These checks are explicitly in scope for this agent, so the shared "general code quality concerns" suppression above does not apply to them. Flag:
-  - Cases where the implementation contradicts what a comment describes.
-  - Redundant comments that merely restate what the code already makes obvious (e.g. a comment saying "increment i by 1" directly above `i++`).
-  - Comments prone to becoming stale — descriptions of specific values, counts, enumerated lists, or implementation details duplicated from the code, which are likely to drift out of sync when the code changes.
-
-  If the same redundant/stale-prone pattern repeats many times in the diff, report it once with one or two representative `file:line` examples rather than listing every occurrence.
-
-- **Agent f (security)**: Check for:
-  - Missing input validation / sanitisation (XSS, SQL injection, etc.)
-  - Authorisation checks missing or at the wrong layer
-  - Hardcoded secrets, tokens, or API keys; sensitive data in logs
-  - **AI-PR specific risks:**
-    - Unvalidated external input interpolated into prompts (prompt injection)
-    - GitHub tokens with over-broad scopes
-    - Model output executed as shell commands without validation
-
-- **Agent g (performance)**: Check for:
-  - Unnecessary loops, duplicate queries (N+1), etc.
-  - Impact on hot paths or background jobs
-  - Synchronous operations that could easily be async
-
-- **Agent h (error handling / silent failures)**: Check for:
-  - Swallowed errors (empty catch blocks, `|| true`, etc.)
-  - Inappropriate fallbacks that hide real failures
-  - Loss of error information (discarded stack traces, etc.)
-
-- **Agent i (type design / tests)**: Check for:
-  - Type invariants not expressed correctly (null/undefined leaking into types, etc.)
-  - Missing tests for new features or critical paths — only when CLAUDE.md explicitly requires tests
+**Project-specific reviewers:** any repository can add up to roughly 3 additional reviewer files (soft guideline, not enforced) under `.claude/deep-review-reviewers/*.md` in its own repo root, using the same frontmatter format as above (`id` may be omitted for project-specific reviewers).
 
 ### Step 5: Confidence scoring
 
@@ -115,7 +100,7 @@ Score the issue on a scale of 0-100 based on your level of confidence that it is
 
 For issues sourced from CLAUDE.md, double-check that the CLAUDE.md actually mentions that specific issue before scoring high.
 
-Findings from an agent's explicitly listed scope (e.g. Agent e's redundant/stale-comment checks) are not "unscoped stylistic nitpicks" for the purpose of the 25-point band above — score them on the same real-world-impact basis as any other finding (how likely the comment is to mislead a future reader or drift from the code it describes).
+Findings from a reviewer's explicitly listed scope (e.g. the `e-code-comment-quality.md` reviewer's redundant/stale-comment checks) are not "unscoped stylistic nitpicks" for the purpose of the 25-point band above — score them on the same real-world-impact basis as any other finding (how likely the comment is to mislead a future reader or drift from the code it describes).
 
 Each agent must return the score in the format: `Score: <0-100>`
 (The Stop hook extracts scores using this exact format.)
