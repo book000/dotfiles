@@ -18,9 +18,12 @@ source ./.env
 
 # tmux セッション名から、対応する claude プロセスが書き込んでいる会話ログ (jsonl) の
 # パスを特定する。claude は CLAUDE_CONFIG_DIR ごと（例: ~/.claude と ~/.claude-work）に
-# sessions/<pid>.json（pid → sessionId/cwd の対応表）を別々に持つため両方を確認する。
+# sessions/<pid>.json（pid → sessionId の対応表）を別々に持つため両方を確認する。
+# jsonl のパスは projects/<encoded-cwd>/<sessionId>.jsonl だが、cwd のエンコード規則
+# （記号の置き換え方）は非公開かつ実装依存のため自前で再現せず、sessionId (UUID で一意)
+# を find で直接検索することでエンコード方式のずれによる特定失敗を避ける。
 resolve_jsonl_path() {
-    local session="$1" pane_pid claude_pid config_dir session_file dir session_id cwd encoded_cwd
+    local session="$1" pane_pid claude_pid config_dir session_file dir session_id
 
     pane_pid=$(tmux display-message -t "$session" -p '#{pane_pid}' 2>/dev/null) || return 1
     claude_pid=$(pgrep -P "$pane_pid" -f "^claude" | head -1)
@@ -38,12 +41,12 @@ resolve_jsonl_path() {
     [ -n "$session_file" ] || return 1
 
     session_id=$(jq -r '.sessionId // empty' "$session_file" 2>/dev/null)
-    cwd=$(jq -r '.cwd // empty' "$session_file" 2>/dev/null)
     [ -n "$session_id" ] || return 1
 
-    # プロジェクトディレクトリ名は cwd の "/" と "." を "-" に置き換えたもの
-    encoded_cwd=$(echo "$cwd" | sed 's/[\/.]/-/g')
-    echo "$HOME/.claude/projects/${encoded_cwd}/${session_id}.jsonl"
+    local jsonl
+    jsonl=$(find "$HOME/.claude/projects" -maxdepth 2 -name "${session_id}.jsonl" -print -quit 2>/dev/null)
+    [ -n "$jsonl" ] || return 1
+    echo "$jsonl"
 }
 
 # jsonl ファイルの直近の実メッセージ（assistant/user。system 等の内部イベントは無視する）を見て、
@@ -54,7 +57,9 @@ check_limit_status() {
 
     [ -f "$jsonl" ] || { echo -e "0\t-\t-"; return; }
 
-    last_msg=$(jq -c 'select(.type == "assistant" or .type == "user")' "$jsonl" 2>/dev/null | tail -1)
+    # jsonl は会話全体（数MB〜数十MBになりうる）だが直近の実メッセージが分かればよいため、
+    # 末尾のみを走査対象にして cron の定期実行での毎回フルパースを避ける
+    last_msg=$(tail -n 50 "$jsonl" | jq -c 'select(.type == "assistant" or .type == "user")' 2>/dev/null | tail -1)
     [ -n "$last_msg" ] || { echo -e "0\t-\t-"; return; }
 
     is_err=$(echo "$last_msg" | jq -r '((.isApiErrorMessage == true) and (.error == "rate_limit"))' 2>/dev/null)
@@ -66,6 +71,11 @@ check_limit_status() {
     text=$(echo "$last_msg" | jq -r '.message.content[0].text // ""' 2>/dev/null)
     ts=$(echo "$last_msg" | jq -r '.timestamp // ""' 2>/dev/null)
     msg_epoch=$(date -d "$ts" +%s 2>/dev/null)
+
+    # text は会話ログ由来の自由形式文字列。タブ・改行を含み得るため、そのまま
+    # 状態ファイル（タブ区切り 1 行 1 レコード）へ埋め込むとレコード構造が壊れる。
+    # 通知文言としての可読性は保ったまま、区切り文字だけを空白に置き換える
+    text=$(echo "$text" | tr '\t\n' '  ')
 
     reset_time=$(echo "$text" | grep -oiE '[0-9]{1,2}:[0-9]{2}[ap]m' | head -1)
     tz=$(echo "$text" | grep -oiE '\([^)]+\)' | head -1 | tr -d '()')
@@ -82,9 +92,9 @@ check_limit_status() {
         # 文言からの時刻抽出に失敗した場合のフォールバック。
         # weekly limit は 7 日、session limit は 5 時間で再開されるのが通例
         if echo "$text" | grep -qi "weekly"; then
-            fallback_seconds=604800
+            fallback_seconds=$((7 * 24 * 3600)) # 7 日
         else
-            fallback_seconds=18000
+            fallback_seconds=$((5 * 3600)) # 5 時間
         fi
         reset_epoch=$((msg_epoch + fallback_seconds))
     fi
@@ -98,7 +108,15 @@ detect_limited_sessions() {
 
     for session in $(tmux list-sessions -F "#{session_name}" 2>/dev/null); do
         local jsonl status_line is_limited reset_epoch reset_text cwd
-        jsonl=$(resolve_jsonl_path "$session") || continue
+        jsonl=$(resolve_jsonl_path "$session")
+        if [ -z "$jsonl" ]; then
+            # pgrep や /proc/<pid>/environ の読み取りは一時的に失敗しうる（他ツール実行中の
+            # 前面プロセス切り替わり等）。特定失敗を「リミット解除」と誤認しないよう、
+            # 前回記録があればそのまま引き継ぐ（本当にリミット中でなければ次回以降の
+            # 検出で正しく除外される）
+            awk -F'\t' -v s="$session" '$1 == s { print; exit }' "$STATE_FILE" >> "$NEW_STATE_FILE"
+            continue
+        fi
 
         status_line=$(check_limit_status "$jsonl")
         IFS=$'\t' read -r is_limited reset_epoch reset_text <<< "$status_line"
@@ -165,7 +183,7 @@ while IFS=$'\t' read -r session cwd reset_epoch reset_text; do
     # 再開に成功していれば、次回ポーリング時には会話ログの直近メッセージが
     # 送信した「続けてください」に置き換わり is_limited が自然に 0 になるため、
     # 再開済みかどうかを別途記録しなくても二重送信にはならない
-    if [ "$reset_epoch" != "-" ] && [ "$now" -ge "$reset_epoch" ]; then
+    if [[ "$reset_epoch" =~ ^[0-9]+$ ]] && [ "$now" -ge "$reset_epoch" ]; then
         echo "Resuming: $session ($cwd)"
         resume_session "$session"
     fi
