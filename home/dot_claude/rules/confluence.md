@@ -77,3 +77,6 @@ Git/GitHub artifacts — only to documents whose primary purpose is to be read b
 - If MCP resolution (cloudId, space, page) fails, report the error to the user and ask how
   to proceed rather than guessing.
 - Uploaded content is still subject to `rules/security.md` — never include secrets.
+- **No mid-sentence line breaks in body text**: within a single Markdown paragraph, do not insert a manual line break (hard-wrapping, e.g. at a fixed column width) in the middle of a sentence.
+  Write each sentence as one continuous line in the source Markdown; let the renderer wrap it.
+  This applies to prose paragraphs, not to intentionally structured content (bullet lists, code blocks, tables), where one item/line per line is expected.
