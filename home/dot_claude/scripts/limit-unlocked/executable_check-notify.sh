@@ -20,7 +20,15 @@ detect_limited_sessions() {
 
     for session in $(tmux list-sessions -F "#{session_name}" 2>/dev/null); do
         cmd=$(tmux display-message -t "$session" -p '#{pane_current_command}' 2>/dev/null || echo "unknown")
-        [ "$cmd" = "claude" ] || continue
+        if [ "$cmd" != "claude" ]; then
+            # Bash ツール実行中などは前面プロセスが一時的に claude 以外（bash 等）になる。
+            # この瞬間だけを見て「解除された」と誤判定すると、resume_session が誤発火して
+            # ユーザーの実ターミナルに誤ったキー入力を送ってしまうため、前回の記録があれば
+            # そのまま引き継ぎ、確実に claude 表示へ戻ったタイミングで再判定する
+            prev_line=$(awk -F'\t' -v s="$session" '$1 == s { print; exit }' "$STATE_FILE" 2>/dev/null)
+            [ -n "$prev_line" ] && echo "$prev_line" >> "$NEW_STATE_FILE"
+            continue
+        fi
 
         cwd=$(tmux display-message -t "$session" -p '#{pane_current_path}' 2>/dev/null || echo "unknown")
         # -S を指定せず現在の可視画面のみを対象にする。スクロールバック履歴まで含めると、
