@@ -235,7 +235,7 @@ Jira チケットを確認し、対応のためのブランチを作成して PR
 
 ### レビュー観点
 
-固定レビュアー9件は `home/dot_claude/skills/deep-review/reviewers/*.md` に1ファイル1観点で定義されており、`chezmoi apply` で `~/.claude/skills/deep-review/reviewers/*.md` にデプロイされる。
+固定レビュアー 9 件は `home/dot_claude/skills/deep-review/reviewers/*.md` に 1 ファイル 1 観点で定義されており、`chezmoi apply` で `~/.claude/skills/deep-review/reviewers/*.md` にデプロイされる。
 
 | 観点 | 内容 | 定義ファイル |
 |---|---|---|
@@ -251,7 +251,7 @@ Jira チケットを確認し、対応のためのブランチを作成して PR
 
 ### プロジェクト固有レビュアーの追加
 
-`deep-review` を使う各リポジトリは、固定9観点に加えて自リポジトリ独自のレビュー観点を追加できる。レビュー対象リポジトリのルート（`git rev-parse --show-toplevel` で解決）に `.claude/deep-review-reviewers/*.md` を配置すると、`/deep-review` 実行時に自動検出されて既存レビュアーと並列に起動される。
+`deep-review` を使う各リポジトリは、固定 9 観点に加えて自リポジトリ独自のレビュー観点を追加できる。レビュー対象リポジトリのルート（`git rev-parse --show-toplevel` で解決）に `.claude/deep-review-reviewers/*.md` を配置すると、`/deep-review` 実行時に自動検出されて既存レビュアーと並列に起動される。
 
 ```markdown
 ---
@@ -265,7 +265,7 @@ applies_to: all        # all | pr-only（省略時は all）
 このプロジェクト固有のレビュー観点をここに記述する。
 ```
 
-追加数に厳密な上限はないが、目安として +3 程度を推奨する（4件以上検出された場合は `/deep-review` 実行時に一言案内が表示されるのみで、処理は継続する）。
+追加数に厳密な上限はないが、目安として +3 程度を推奨する（4 件以上検出された場合は `/deep-review` 実行時に一言案内が表示されるのみで、処理は継続する）。
 
 ### 強制対応フック
 
