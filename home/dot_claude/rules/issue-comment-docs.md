@@ -31,7 +31,7 @@ comment_id=${url##*issuecomment-}
 
 ### Update
 
-Spec and plan documents are each posted as their own, separate comment. When revising one of them, update it by its own comment ID — **do not use `--edit-last`**. `--edit-last` targets "the last comment posted by the current user" on the whole Issue; if spec and plan are posted in sequence, using `--edit-last` for the plan would silently overwrite the spec's comment instead of updating the plan's own comment.
+Spec and plan documents are each posted as their own, separate comment. When revising one of them, update it by its own comment ID — **do not use `--edit-last`**. `--edit-last` targets "the last comment posted by the current user" on the whole Issue; if spec and plan are posted in sequence (spec first, then plan), the plan comment becomes the last one — so later using `--edit-last` to revise the spec would silently overwrite the plan's comment instead of updating the spec's own comment.
 
 ```bash
 gh api "repos/<owner>/<repo>/issues/comments/<comment_id>" -X PATCH -F body=@<path>
