@@ -1,7 +1,8 @@
 #!/bin/bash
 # EnterWorktree の PostToolUse フックスクリプト。
 # フック入力 JSON の cwd (EnterWorktree 実行後の新しい作業ディレクトリ) を
-# Claude Code のワークスペース信頼済みディレクトリとして ~/.claude.json に登録する。
+# Claude Code のワークスペース信頼済みディレクトリとして
+# ~/.claude.json（CLAUDE_CONFIG_DIR 設定時は $CLAUDE_CONFIG_DIR/.claude.json）に登録する。
 # EnterWorktree はシェルラッパー (claude コマンド) 経由で起動されないため、
 # 90-ai-alias.zsh/sh の _claude_trust_cwd() が実行されず、
 # Workspace Trust dialog が発生する問題 (Issue #166) への対策。
@@ -13,7 +14,7 @@ CWD=$(echo "$INPUT_JSON" | jq -r '.cwd // empty' 2> /dev/null)
 
 [ -n "$CWD" ] || exit 0
 
-CONFIG="$HOME/.claude.json"
+CONFIG="${CLAUDE_CONFIG_DIR:-$HOME}/.claude.json"
 [ -f "$CONFIG" ] || exit 0
 
 if [ "$(jq -r --arg p "$CWD" '.projects[$p].hasTrustDialogAccepted // false' "$CONFIG" 2> /dev/null)" != "true" ]; then
