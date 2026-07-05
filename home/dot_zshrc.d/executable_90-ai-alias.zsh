@@ -10,12 +10,12 @@
 # 既存セッションで旧エイリアスが残存している場合に備えて、関数定義前に unalias する。
 unalias claude 2>/dev/null
 # カレントディレクトリを Claude Code のワークスペース信頼済みディレクトリとして
-# ~/.claude.json に登録する。
+# ~/.claude.json（CLAUDE_CONFIG_DIR 設定時は $CLAUDE_CONFIG_DIR/.claude.json）に登録する。
 # Workspace Trust dialog の非永続化は --dangerously-skip-permissions 固有ではなく
 # Claude Code 全体の既知の問題（Issue #165 で検証済み）であり、hasTrustDialogAccepted が
 # 永続化されないと statusLine や hooks が無音でスキップされてしまう。auto モードでも同様に必要な対策。
 _claude_trust_cwd() {
-  local config="$HOME/.claude.json"
+  local config="${CLAUDE_CONFIG_DIR:-$HOME}/.claude.json"
   [ -f "$config" ] || return 0
   command -v jq > /dev/null 2>&1 || return 0
   if [ "$(jq -r --arg p "$PWD" '.projects[$p].hasTrustDialogAccepted // false' "$config" 2> /dev/null)" != "true" ]; then
