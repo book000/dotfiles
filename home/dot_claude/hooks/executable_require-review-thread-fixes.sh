@@ -16,6 +16,7 @@ STATE_FILE="$HOME/.claude/data/session-state.json"
 # stdin から JSON を読み込む
 INPUT=$(cat)
 TRANSCRIPT_PATH=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null)
+SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""' 2>/dev/null)
 
 # --- PR URL 解決 ---
 
@@ -24,13 +25,18 @@ PR_URL=""
 STATE_TTL=86400
 
 # 優先 1: ステートファイル（スキルが書き出した構造化データ）
-# セッション ID が一致、またはタイムスタンプが TTL 以内であれば有効と見なす
+# TTL 以内かつ session_id が一致（または一方が空なら後方互換で許容）の場合のみ信頼する
 if [[ -f "$STATE_FILE" ]]; then
+    STATE_SESSION=$(jq -r '.session_id // ""' "$STATE_FILE" 2>/dev/null)
     STATE_TIMESTAMP=$(jq -r '.timestamp // 0' "$STATE_FILE" 2>/dev/null)
     CURRENT_TIME=$(date +%s)
     STATE_AGE=$(( CURRENT_TIME - STATE_TIMESTAMP ))
     if [[ "$STATE_AGE" -le "$STATE_TTL" ]]; then
-        PR_URL=$(jq -r '.pr_url // ""' "$STATE_FILE" 2>/dev/null)
+        # session_id が両者とも取得できていて値が異なる場合は、TTL以内でも
+        # 他セッションのデータとみなして採用しない
+        if [[ -z "$SESSION_ID" || -z "$STATE_SESSION" || "$SESSION_ID" == "$STATE_SESSION" ]]; then
+            PR_URL=$(jq -r '.pr_url // ""' "$STATE_FILE" 2>/dev/null)
+        fi
     fi
 fi
 
