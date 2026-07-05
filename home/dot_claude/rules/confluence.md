@@ -69,8 +69,7 @@ Git/GitHub artifacts — only to documents whose primary purpose is to be read b
   ticket comment must contain the Confluence URL plus a short summary only — not the full
   document body. The phase number is deliberately not pinned here since the skill
   renumbers its own phases independently of this rule; see its own SKILL.md for the
-  current phase number (`ticket-pr`'s upload+comment step is its Phase 6 as of this
-  writing).
+  current phase number.
 - **`rules/superpowers.md` spec/plan review workflow**: for spec/plan documents not tied
   to a GitHub Issue, after the sub-agent review is complete, upload the reviewed document
   to Confluence before presenting it to the user, and give the user the Confluence URL
