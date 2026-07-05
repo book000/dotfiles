@@ -150,8 +150,18 @@ send_discord() {
 # 指定した tmux セッションに再開キーを送る。
 # ウィンドウ/ペイン番号を固定せずセッション名のみを指定し、tmux の base-index 設定
 # （0 始まりとは限らない）に依存せず常にアクティブなウィンドウ・ペインへ送信する
+#
+# リミット到達時、 Claude Code は "/rate-limit-options"
+# （"What do you want to do?" 選択メニュー）を自動的に開く。このメニューが残った
+# ままだと通常のテキスト入力を送っても再開に失敗する既知の挙動があるため、先に
+# Escape を送ってメニューを閉じてから再開メッセージを送る（既知の挙動の詳細は
+# anthropics/claude-code の Issue Tracker を参照）。メニューが表示されていない
+# 場合、 Escape の送信は実行中の応答を一時停止させる可能性があるが、この関数は
+# リミット中（＝応答生成中ではない）にのみ呼ばれるため無害
 resume_session() {
     local session="$1"
+    tmux send-keys -t "$session" Escape
+    sleep 0.5
     tmux send-keys -t "$session" "続けてください"
     sleep 1
     tmux send-keys -t "$session" Enter
