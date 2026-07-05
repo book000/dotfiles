@@ -29,12 +29,14 @@ STATE_TTL=86400
 CURRENT_TIME=$(date +%s)
 STATE_AGE=$(( CURRENT_TIME - STATE_TIMESTAMP ))
 
-# セッション ID が不一致 → 別セッションの古いデータ → TTL に関わらず信頼しない
-if [[ -n "$SESSION_ID" && -n "$STATE_SESSION" && "$SESSION_ID" != "$STATE_SESSION" ]]; then
+# セッション ID が一致しない、または SESSION_ID はあるのに STATE_SESSION が
+# 空（旧形式ファイル、他セッション由来の可能性あり）の場合は信頼しない
+if [[ -n "$SESSION_ID" && "$SESSION_ID" != "$STATE_SESSION" ]]; then
     exit 0
 fi
 
-# セッション ID が一致、または一方が空（後方互換）の場合は TTL のみで判定する
+# ここに到達するのは、SESSION_ID が一致した場合、または SESSION_ID 自体が
+# 空（stdin から取得できなかった後方互換ケース）の場合のみ。TTL で判定する
 if [[ "$STATE_AGE" -gt "$STATE_TTL" ]]; then
     exit 0
 fi

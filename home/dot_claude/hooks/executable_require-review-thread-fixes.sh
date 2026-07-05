@@ -32,9 +32,11 @@ if [[ -f "$STATE_FILE" ]]; then
     CURRENT_TIME=$(date +%s)
     STATE_AGE=$(( CURRENT_TIME - STATE_TIMESTAMP ))
     if [[ "$STATE_AGE" -le "$STATE_TTL" ]]; then
-        # session_id が両者とも取得できていて値が異なる場合は、TTL 以内でも
-        # 他セッションのデータとみなして採用しない
-        if [[ -z "$SESSION_ID" || -z "$STATE_SESSION" || "$SESSION_ID" == "$STATE_SESSION" ]]; then
+        # 双方が空（session_id 導入前の完全な後方互換ケース）、または値が一致する
+        # 場合のみ信頼する。SESSION_ID はあるのに STATE_SESSION が空（旧形式ファイル）
+        # の場合は他セッション由来の可能性があるため採用せず、transcript パースへ
+        # フォールバックする
+        if [[ ( -z "$SESSION_ID" && -z "$STATE_SESSION" ) || "$SESSION_ID" == "$STATE_SESSION" ]]; then
             PR_URL=$(jq -r '.pr_url // ""' "$STATE_FILE" 2>/dev/null)
         fi
     fi

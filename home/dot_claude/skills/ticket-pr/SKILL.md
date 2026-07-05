@@ -288,11 +288,22 @@ without parsing the transcript:
 ```bash
 mkdir -p ~/.claude/data && chmod 700 ~/.claude/data
 PR_URL=$(gh pr view --json url -q .url)
-jq -n --arg pr_url "$PR_URL" --arg session_id "${CLAUDE_CODE_SESSION_ID:-}" --argjson timestamp "$(date +%s)" \
+if [ -z "$PR_URL" ]; then
+  echo "ERROR: gh pr view returned an empty URL, not writing session-state.json" >&2
+  exit 1
+fi
+if ! jq -n --arg pr_url "$PR_URL" --arg session_id "${CLAUDE_CODE_SESSION_ID:-}" --argjson timestamp "$(date +%s)" \
     '{"pr_url": $pr_url, "session_id": $session_id, "timestamp": $timestamp}' \
-    > ~/.claude/data/session-state.json
+    > ~/.claude/data/session-state.json; then
+  echo "ERROR: failed to write session-state.json" >&2
+  exit 1
+fi
 chmod 600 ~/.claude/data/session-state.json
 ```
+
+If `PR_URL` comes back empty or the `jq` write fails, stop and report it
+instead of leaving a stale/empty state file — hooks read this file without
+parsing the transcript, so a silently broken write here breaks them too.
 
 ### After PR Creation
 
