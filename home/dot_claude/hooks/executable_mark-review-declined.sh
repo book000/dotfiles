@@ -6,14 +6,31 @@
 
 PR_NUMBER="${1:?Usage: mark-review-declined.sh <PR_NUMBER>}"
 SESSION_ID="${CLAUDE_CODE_SESSION_ID:?CLAUDE_CODE_SESSION_ID is not set}"
+
+# PR_NUMBER が数値でない場合、jq --argjson に渡すと不正な JSON として失敗する。
+# シェルリダイレクトは jq の成否に関わらずファイルを先に truncate してしまうため、
+# 検証を怠ると既存の declined_prs が失われる。
+if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+    echo "Error: PR_NUMBER must be a positive integer, got: ${PR_NUMBER}" >&2
+    exit 1
+fi
+
 DATA_DIR="$HOME/.claude/data"
 DECLINE_FILE="$DATA_DIR/review-declined-${SESSION_ID}.json"
+TMP_FILE="${DECLINE_FILE}.tmp.$$"
 
 mkdir -p "$DATA_DIR" && chmod 700 "$DATA_DIR"
 
 EXISTING=$(cat "$DECLINE_FILE" 2>/dev/null || echo '{"declined_prs":[]}')
-jq --argjson pr "$PR_NUMBER" '.declined_prs |= (. + [$pr] | unique)' <<< "$EXISTING" \
-    > "$DECLINE_FILE"
+# 一時ファイルに書き出してから mv することで、jq 失敗時に既存ファイルを
+# 空で上書きしてしまう事態を防ぐ（アトミックな置き換え）
+if ! jq --argjson pr "$PR_NUMBER" '.declined_prs |= (. + [$pr] | unique)' <<< "$EXISTING" \
+    > "$TMP_FILE"; then
+    echo "Error: failed to update ${DECLINE_FILE}" >&2
+    rm -f "$TMP_FILE"
+    exit 1
+fi
+mv "$TMP_FILE" "$DECLINE_FILE"
 chmod 600 "$DECLINE_FILE"
 
 echo "PR #${PR_NUMBER} marked as declined for this session (${SESSION_ID})."

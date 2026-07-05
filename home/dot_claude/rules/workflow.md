@@ -17,12 +17,7 @@ Rules and checklists for the full development workflow.
 **Rationale**: Unresolved threads silently block merge and create follow-up debt.  
 **Escape**: `SKIP_REVIEW_CHECK=1` for genuine false positives only.
 
-**Explicit decline handling**: If the user explicitly declines to address the Stop
-hook's unresolved-review-thread warning for a specific PR, run
-`bash ~/.claude/hooks/mark-review-declined.sh <PR_NUMBER>` before ending the
-turn. This suppresses re-warning for that PR within the current session only
-(it does not persist across sessions) and is distinct from the blanket
-`SKIP_REVIEW_CHECK=1` escape, which skips all checks every time.
+**Explicit decline handling**: If the user explicitly declines to address the Stop hook's unresolved-review-thread warning for a specific PR, run `bash ~/.claude/hooks/mark-review-declined.sh <PR_NUMBER>` before ending the turn. This suppresses re-warning for that PR within the current session only (it does not persist across sessions) and is distinct from the blanket `SKIP_REVIEW_CHECK=1` escape, which skips all checks every time.
 
 ## ADR-003: deep-review score ≥ 50 findings must be fixed before PR creation
 

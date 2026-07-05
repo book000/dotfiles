@@ -32,7 +32,7 @@ if [[ -f "$STATE_FILE" ]]; then
     CURRENT_TIME=$(date +%s)
     STATE_AGE=$(( CURRENT_TIME - STATE_TIMESTAMP ))
     if [[ "$STATE_AGE" -le "$STATE_TTL" ]]; then
-        # session_id が両者とも取得できていて値が異なる場合は、TTL以内でも
+        # session_id が両者とも取得できていて値が異なる場合は、TTL 以内でも
         # 他セッションのデータとみなして採用しない
         if [[ -z "$SESSION_ID" || -z "$STATE_SESSION" || "$SESSION_ID" == "$STATE_SESSION" ]]; then
             PR_URL=$(jq -r '.pr_url // ""' "$STATE_FILE" 2>/dev/null)
