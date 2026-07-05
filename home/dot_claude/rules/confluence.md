@@ -6,6 +6,10 @@ Rules for sharing user-facing Markdown deliverables via Confluence.
 
 ## When to Apply
 
+**Scope carve-out**: if the document is tied to a GitHub Issue (e.g. `issue-pr`
+execution, brainstorming conducted directly on a GitHub Issue), follow
+`rules/issue-comment-docs.md` instead — that case is out of scope for this file.
+
 Applies to Markdown documents created for the user to read or review as a deliverable:
 
 - Investigation results
@@ -22,9 +26,9 @@ Git/GitHub artifacts — only to documents whose primary purpose is to be read b
    hostname first, otherwise use `mcp__atlassian__getAccessibleAtlassianResources`.
 2. **Determine space and parent page automatically — do not ask the user except in the fallback cases below.**
    - **Repository name source**: use `ISSUE_OWNER`/`ISSUE_REPO` as already resolved by the
-     calling flow (`issue-pr`, `ticket-pr`, or the `rules/superpowers.md` spec/plan upload
-     step) — the repository the Issue/ticket actually belongs to. Do not derive this from
-     the local `git` `origin`/`upstream` remotes.
+     calling flow (`ticket-pr`, or the `rules/superpowers.md` spec/plan upload step for
+     documents not tied to a GitHub Issue) — the repository the Issue/ticket actually
+     belongs to. Do not derive this from the local `git` `origin`/`upstream` remotes.
    - **Repository space search**: call `mcp__atlassian__getConfluenceSpaces` and look for a
      space whose `name` or `key` contains the repository name (e.g. `dotfiles`),
      case-insensitive substring match.
@@ -61,16 +65,16 @@ Git/GitHub artifacts — only to documents whose primary purpose is to be read b
 
 ## Interaction with Other Skills
 
-- **`issue-pr` / `ticket-pr`**: after uploading a deliverable document (spec/plan for
-  `issue-pr`, the requirements document for `ticket-pr`) to Confluence, the GitHub Issue
-  comment / Jira ticket comment must contain the Confluence URL plus a short summary only
-  — not the full document body. Phase numbers are deliberately not pinned here since both
-  skills renumber their own phases independently of this rule; see each skill's own
-  SKILL.md for its current phase numbers (`ticket-pr`'s upload+comment step is its
-  Phase 6 as of this writing).
-- **`rules/superpowers.md` spec/plan review workflow**: after the sub-agent review is
-  complete, upload the reviewed document to Confluence before presenting it to the user, and
-  give the user the Confluence URL alongside the local file path.
+- **`ticket-pr`**: after uploading the requirements document to Confluence, the Jira
+  ticket comment must contain the Confluence URL plus a short summary only — not the full
+  document body. The phase number is deliberately not pinned here since the skill
+  renumbers its own phases independently of this rule; see its own SKILL.md for the
+  current phase number.
+- **`rules/superpowers.md` spec/plan review workflow**: for spec/plan documents not tied
+  to a GitHub Issue, after the sub-agent review is complete, upload the reviewed document
+  to Confluence before presenting it to the user, and give the user the Confluence URL
+  alongside the local file path. For documents tied to a GitHub Issue, follow
+  `rules/issue-comment-docs.md` instead.
 
 ## Notes
 

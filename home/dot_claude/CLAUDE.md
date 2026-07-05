@@ -52,3 +52,4 @@ Use the Todo tool for all multi-step work without omission.
 @RTK.md
 @rules/superpowers.md
 @rules/confluence.md
+@rules/issue-comment-docs.md

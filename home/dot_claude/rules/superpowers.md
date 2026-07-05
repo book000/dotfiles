@@ -33,9 +33,13 @@ you MUST dispatch a sub-agent to review the document and apply fixes.
    changes look correct.
 4. If the sub-agent reports ambiguities, resolve them with the user via
    AskUserQuestion before proceeding.
-5. Only after all issues are resolved, upload the document to Confluence
-   following `rules/confluence.md`, then present the user with the local
-   file path and the Confluence URL.
+5. Only after all issues are resolved, post or upload the document:
+   - If the document is tied to a GitHub Issue (e.g. `issue-pr` execution,
+     brainstorming conducted directly on a GitHub Issue), follow
+     `rules/issue-comment-docs.md` and present the user with the local file
+     path and the Issue comment URL.
+   - Otherwise, follow `rules/confluence.md` and present the user with the
+     local file path and the Confluence URL.
 
 ### Clarifying questions
 
