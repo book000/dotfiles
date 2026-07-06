@@ -175,7 +175,7 @@ resume_session() {
         sleep 0.5
     fi
 
-    tmux send-keys -t "$session" "続けてください"
+    tmux send-keys -t "$session" "<system-reminder>Claude Code's rate limit has been lifted. Continue the task you were working on before the interruption.</system-reminder>"
     sleep 1
     tmux send-keys -t "$session" Enter
 }
