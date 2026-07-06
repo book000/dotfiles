@@ -13,6 +13,10 @@ This only works while the current session stays alive — see Notes.
 
 ## Usage
 
+```
+/wait-for-pr-close <PR number> [--repo owner/repo]
+```
+
 Resolve `OWNER`, `REPO`, `PR_NUMBER` from the caller's context. Pass the
 repository explicitly whenever the target PR lives in a different
 repository than the local `origin` (the fork scenario from Issue #171 —
@@ -36,8 +40,20 @@ fi
 ### Step 0: Skip if the PR is already closed
 
 ```bash
-INITIAL_STATE=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json state -q .state)
+INITIAL_STATE=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json state -q .state 2>/tmp/wait-pr-close-step0-err.$$)
+rc=$?
+if [[ $rc -ne 0 || -z "$INITIAL_STATE" ]]; then
+  err_msg=$(tail -c 200 /tmp/wait-pr-close-step0-err.$$ 2>/dev/null)
+  echo "ERROR: initial state check failed (exit $rc) - last error: ${err_msg:-unknown}" >&2
+  rm -f /tmp/wait-pr-close-step0-err.$$
+  exit 1
+fi
+rm -f /tmp/wait-pr-close-step0-err.$$
 ```
+
+If this fails (auth, repo not found, rate limit), stop here and report the
+error — do not fall through and start monitoring as if the PR were open
+when the actual state couldn't be determined.
 
 If `INITIAL_STATE` is already `MERGED` or `CLOSED`, skip starting the
 monitor and go straight to Step 2 (`/pr-cleanup`).

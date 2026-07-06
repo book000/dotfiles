@@ -14,6 +14,10 @@ of an already-approved workflow step, not a new decision.
 
 ## Usage
 
+```
+/wait-for-copilot-review <PR number> [--repo owner/repo]
+```
+
 Resolve `OWNER`, `REPO`, `PR_NUMBER` from the caller's context (always pass
 `--repo <owner>/<repo>` equivalent explicitly when the PR lives in a
 different repository than the local `origin` — the fork scenario from
@@ -57,13 +61,21 @@ EXISTING=$(gh api graphql \
     | select(.author.__typename == "Bot"
         and (.author.login | contains("copilot"))
         and (.state == "COMMENTED" or .state == "APPROVED")
-        and .submittedAt != null)] | length' 2>/dev/null || true)
+        and .submittedAt != null)] | length' 2>/tmp/wait-copilot-review-step0-err.$$)
+rc=$?
+if [[ $rc -ne 0 || -z "$EXISTING" ]]; then
+  err_msg=$(tail -c 200 /tmp/wait-copilot-review-step0-err.$$ 2>/dev/null)
+  echo "WARNING: initial existing-review check failed (exit $rc) - last error: ${err_msg:-unknown}. Proceeding to start the monitor anyway." >&2
+fi
+rm -f /tmp/wait-copilot-review-step0-err.$$
 EXISTING="${EXISTING:-0}"
 ```
 
 If `EXISTING` is greater than 0, skip starting the monitor entirely and go
 straight to calling `/handle-pr-reviews` (Step 2) — a review is already
-there.
+there. If the check itself failed, the warning above explains why — do not
+silently treat a failed check the same as "no review yet" without surfacing
+it.
 
 ### Step 1: Start the Monitor
 
@@ -121,6 +133,7 @@ Monitor({
             '{embeds: [{title: $title, description: $desc, url: $url, color: 3447003}]}')
           printf '%s\\n' \"$payload\" | \"$SCRIPT_DIR/send-discord-notification.sh\"
         fi
+        break
       fi
       last_count=\"${count:-$last_count}\"
     done
@@ -142,6 +155,9 @@ Monitor({
   including the last captured error — to the Monitor's stdout, so a
   failure streak is never silent, then resets the counter and keeps
   polling.
+- The loop `break`s immediately after emitting `copilot_review_detected` —
+  it exists to catch the first Copilot review, not to keep re-triggering
+  `/handle-pr-reviews` for every later review or re-review on the same PR.
 
 ### Step 2: On Detection
 
