@@ -50,34 +50,62 @@ gh pr view "$PR_NUMBER" --json url --jq '.url'
 
 ## Step 1: Parallel Execution Phase
 
-**Use the Task tool to run all of the following in parallel.**
+**Use the Task tool to run all of the following in parallel.** Do not ask
+the user for confirmation before starting any of these — they are the
+mechanical follow-through of an already-approved PR creation, not new
+decisions.
 
-### Task A: Request Copilot Review → Background Wait
+### Task A: Request Copilot Review → Monitor-Based Wait
 
 ```bash
 # Request review from Copilot
 request-review-copilot "https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}"
-
-# Wait for Copilot review in the background
-# On detection, /handle-pr-reviews is automatically triggered via tmux
-# --repo is required here: without it the script falls back to the local
-# checkout's own origin, which is wrong whenever OWNER/REPO (resolved above)
-# differs from origin (the fork scenario from Issue #171).
-~/.claude/skills/wait-for-copilot-review/scripts/wait-for-copilot-review.sh "$PR_NUMBER" --repo "$OWNER/$REPO" &
-echo "Copilot review wait started (background)"
-echo "Log: ~/.claude/logs/wait-copilot-review-${PR_NUMBER}.log"
 ```
 
-### Task B: CI Check
+Then start the Copilot review monitor following `wait-for-copilot-review`'s
+own SKILL.md (Step 0 existence check, then `Monitor(..., persistent: true)`).
+On detection, call `/handle-pr-reviews` directly in this conversation — no
+tmux, no background process.
+
+### Task B: CI Check (Monitor-Based)
 
 ```bash
-gh pr checks "$PR_NUMBER" --watch
+Monitor({
+  command: "
+    prev=\"\"
+    fail_count=0
+    while true; do
+      s=$(gh pr checks \"$PR_NUMBER\" --json name,bucket 2>/dev/null || true)
+      if [[ -z \"$s\" ]]; then
+        fail_count=$((fail_count + 1))
+        if [[ \"$fail_count\" -ge 5 ]]; then
+          echo \"WARNING: gh pr checks failed 5 times in a row (auth or network issue?)\"
+          fail_count=0
+        fi
+      else
+        fail_count=0
+      fi
+      cur=$(jq -r '.[] | select(.bucket!=\"pending\") | \"\\(.name): \\(.bucket)\"' <<<\"$s\" 2>/dev/null | sort)
+      if [[ -n \"$cur\" && \"$cur\" != \"$prev\" ]]; then
+        comm -13 <(echo \"$prev\") <(echo \"$cur\")
+      fi
+      prev=\"$cur\"
+      jq -e 'all(.bucket!=\"pending\")' <<<\"$s\" >/dev/null 2>&1 && { echo \"ci_complete\"; break; }
+      sleep 30
+    done
+  ",
+  description: "CI checks on PR #<PR_NUMBER>",
+  persistent: true,
+})
 ```
 
-If CI fails:
+`fail_count` により、`gh pr checks` が5回連続（約2分半）で失敗した場合に
+Monitor の標準出力へ警告を1行出力する（同上の要件への対応）。
+
+If any emitted line shows a `fail` bucket:
 1. Check logs with `gh run view <RUN_ID> --log-failed`
 2. Identify the cause and fix it
-3. Commit, push, and wait until CI passes again
+3. Commit, push, and restart this Monitor to watch the re-run
 
 ### Task C: Conflict Check
 
@@ -114,27 +142,32 @@ Report the result of each task in the following format:
 ✅ CI: all checks passed
 ✅ Conflicts: none
 ✅ PR body: updated
-⏳ Copilot review wait: continuing in background
-   → /handle-pr-reviews will be triggered automatically on detection
-   → Log: ~/.claude/logs/wait-copilot-review-<PR_NUMBER>.log
+⏳ Copilot review: Monitor running in this session
+   → /handle-pr-reviews will be called directly in this conversation on detection
 ```
 
 ---
 
 ## Phase 2: After Copilot Review Detection (auto-triggered)
 
-When the background script detects a Copilot review, the following is automatically triggered via tmux:
+When the Copilot review Monitor (Task A) emits a `copilot_review_detected`
+event, call `/handle-pr-reviews` directly in this conversation:
 
 ```
 /handle-pr-reviews https://github.com/OWNER/REPO/pull/PR_NUMBER
 ```
 
-This automatically replies to all review threads, resolves them, and does a final CI check.
+This automatically replies to all review threads, resolves them, and does
+a final CI check. No tmux involved — the event and the follow-up call both
+happen in the same conversation.
 
 ---
 
 ## Notes
 
 - Skip `request-review-copilot` if the command does not exist
-- If no Copilot review arrives within 30 minutes, the script times out and sends a tmux notification
+- Both Copilot review and CI checks run as `Monitor(persistent: true)`
+  instances in this session — if the session ends before either completes,
+  the wait is lost and must be resumed manually later
 - CI can take a long time — always use the Task tool to run it in parallel
+  alongside the other Monitor-based waits
