@@ -460,37 +460,36 @@ because Phase 10 already approved the plan — this step just carries out the
 mechanical follow-through (fixing CI, resolving conflicts, addressing review
 feedback) without expanding scope beyond what was approved.
 
-If `pr-health-monitor` (or `issue-pr` itself, in a fork scenario) launches
-`wait-for-copilot-review` in the background, verify the launch actually
-succeeded before reporting completion — do not unconditionally state
-"Copilot レビューが届き次第自動的にトリガーされます". Check for the
-expected log file (`~/.claude/logs/wait-copilot-review-<PR 番号>.log`) and that the
-process is still running (`ps aux | grep wait-for-copilot-review`). If
-either check fails, report that the background monitor failed to start and
-that manual re-invocation may be needed, instead of promising automation
-that didn't actually start.
+`pr-health-monitor` starts the Copilot review wait as a `Monitor(persistent:
+true)` instance in this same session (see `wait-for-copilot-review`'s
+SKILL.md) — there is no separate background process or log file to verify.
+Report the monitor as running; `/handle-pr-reviews` is called directly in
+this conversation when the monitor detects a review.
 
-## Phase 18: Launch Background Monitoring
+## Phase 18: Start the PR Close Monitor
 
-Immediately after Phase 17, launch the merge/close monitor in the
-background so cleanup happens even if the user merges or closes the PR
-outside this session:
+Immediately after Phase 17, start the merge/close monitor so cleanup
+happens automatically once the PR closes, as long as this session stays
+alive:
 
 ```bash
 PR_NUMBER=$(gh pr view --repo "$ISSUE_OWNER/$ISSUE_REPO" --json number -q .number)
-~/.claude/skills/wait-for-pr-close/scripts/wait-for-pr-close.sh "$PR_NUMBER" --repo "$ISSUE_OWNER/$ISSUE_REPO" &
 ```
 
-Always pass `--repo "$ISSUE_OWNER/$ISSUE_REPO"` explicitly here, even in the
-non-fork case — omitting it makes `wait-for-pr-close.sh` fall back to the
-local `origin`, which is wrong whenever the fork scenario from Issue #171
-applies (the PR lives in `ISSUE_OWNER/ISSUE_REPO`, not `origin`).
+Then follow `wait-for-pr-close`'s own SKILL.md (Step 0 existence check,
+then `Monitor(..., persistent: true)`), always passing
+`--repo "$ISSUE_OWNER/$ISSUE_REPO"` explicitly — this matters even in the
+non-fork case, since the PR lives in `ISSUE_OWNER/ISSUE_REPO`, not
+necessarily the local `origin` (the fork scenario from Issue #171).
 
-This is a fire-and-forget background launch, matching how
-`wait-for-copilot-review` is used elsewhere — the `issue-pr` flow is
-considered complete once this is launched. Detection and cleanup
-(`/pr-cleanup`) happen outside this session, in a fresh tmux prompt, once
-the monitor detects the PR closing.
+This does not require tmux or a fresh session: when the monitor emits a
+`pr_closed` event, call `/pr-cleanup` directly in this same conversation.
+If this session ends before the PR is merged or closed, the wait is lost
+and the user must run `/pr-cleanup <PR number or URL>` manually later —
+this is an accepted limitation (see the design spec behind Issue #200 for
+rationale), not a regression from the previous tmux-based design.
+
+The `issue-pr` flow is considered complete once this monitor is running.
 
 ## Notes
 

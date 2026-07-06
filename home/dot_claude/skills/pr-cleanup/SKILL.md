@@ -1,6 +1,6 @@
 ---
 name: pr-cleanup
-description: Cleans up after a pull request is merged or closed — removes the worktree/branch, updates the local default branch, and syncs a fork if applicable. Triggered automatically by wait-for-pr-close, or run manually with /pr-cleanup <PR number or URL>.
+description: Cleans up after a pull request is merged or closed — removes the worktree/branch, updates the local default branch, and syncs a fork if applicable. Called directly by wait-for-pr-close on detection, or run manually with /pr-cleanup <PR number or URL>.
 argument-hint: "[PR number or URL]"
 disable-model-invocation: false
 ---
@@ -52,11 +52,12 @@ skill was invoked manually or by mistake.
 ## Step 2: Remove the Worktree or Branch
 
 `ExitWorktree` only operates on a worktree created by `EnterWorktree` **in
-the current session**, and is a no-op otherwise. Because `pr-cleanup` is
-mainly triggered from a fresh session (a new tmux prompt spawned by
-`wait-for-pr-close`, or a manual run days later), check whether the current
-session actually owns a matching worktree before deciding which removal
-path to use:
+the current session**, and is a no-op otherwise. `pr-cleanup` is called
+either directly in the same conversation as `wait-for-pr-close` (its
+`Monitor` detected the PR closing while this session was still alive) or in
+a genuinely fresh session (a manual run days later, or after the original
+session ended before detection). Check whether the current session actually
+owns a matching worktree before deciding which removal path to use:
 
 ```bash
 HEAD_REF=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json headRefName -q .headRefName)
@@ -73,8 +74,8 @@ HEAD_REF=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json headRefName -q .
   local branch looks like it has "uncommitted" changes relative to the
   squashed commit even though nothing is actually lost.
 
-- **Otherwise (the common case — a fresh session, e.g. triggered by
-  `wait-for-pr-close`'s tmux notification, or a manual run in a new
+- **Otherwise (a fresh session — e.g. this session's `wait-for-pr-close`
+  monitor never fired before it ended, or this is a manual run in a new
   session)**: `ExitWorktree` cannot see a worktree it did not create, so
   fall back to raw `git worktree` commands:
 
