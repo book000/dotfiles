@@ -172,9 +172,9 @@ send_discord() {
 resume_session() {
     local session="$1" pane_content
 
-    # "0" のような裸の数字セッション名は tmux に「未指定」とみなされ現在の
-    # セッションへフォールバックしてしまうため、末尾に ":" を付けてセッション名
-    # 指定であることを明示する（display-message と同様の理由）
+    # "0" のような裸の数字セッション名は tmux に「未指定」とみなされ
+    # 現在のセッションへフォールバックしてしまうため、末尾に ":" を付けて
+    # セッション名指定であることを明示する（display-message と同様の理由）
     pane_content=$(tmux capture-pane -t "${session}:" -p 2>/dev/null)
     if echo "$pane_content" | grep -q "What do you want to do"; then
         tmux send-keys -t "${session}:" Escape
