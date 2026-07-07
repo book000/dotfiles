@@ -25,7 +25,10 @@ source ./.env
 resolve_jsonl_path() {
     local session="$1" pane_pid claude_pid config_dir session_file dir session_id
 
-    pane_pid=$(tmux display-message -t "$session" -p '#{pane_pid}' 2>/dev/null) || return 1
+    # tmux はターゲットが "0" のような裸の数字だと、セッション名ではなく
+    # 「未指定」とみなして現在アクティブなセッションへフォールバックしてしまう
+    # ため、末尾に ":" を付けてセッション名指定であることを明示する
+    pane_pid=$(tmux display-message -t "${session}:" -p '#{pane_pid}' 2>/dev/null) || return 1
     claude_pid=$(pgrep -P "$pane_pid" -f "^claude" | head -1)
     [ -n "$claude_pid" ] || return 1
 
@@ -123,7 +126,7 @@ detect_limited_sessions() {
         IFS=$'\t' read -r is_limited reset_epoch reset_text <<< "$status_line"
         [ "$is_limited" = "1" ] || continue
 
-        cwd=$(tmux display-message -t "$session" -p '#{pane_current_path}' 2>/dev/null || echo "unknown")
+        cwd=$(tmux display-message -t "${session}:" -p '#{pane_current_path}' 2>/dev/null || echo "unknown")
         echo -e "${session}\t${cwd}\t${reset_epoch}\t${reset_text}" >> "$NEW_STATE_FILE"
     done
 
@@ -169,15 +172,18 @@ send_discord() {
 resume_session() {
     local session="$1" pane_content
 
-    pane_content=$(tmux capture-pane -t "$session" -p 2>/dev/null)
+    # "0" のような裸の数字セッション名は tmux に「未指定」とみなされ
+    # 現在のセッションへフォールバックしてしまうため、末尾に ":" を付けて
+    # セッション名指定であることを明示する（display-message と同様の理由）
+    pane_content=$(tmux capture-pane -t "${session}:" -p 2>/dev/null)
     if echo "$pane_content" | grep -q "What do you want to do"; then
-        tmux send-keys -t "$session" Escape
+        tmux send-keys -t "${session}:" Escape
         sleep 0.5
     fi
 
-    tmux send-keys -t "$session" "<system-reminder>Claude Code's rate limit has been lifted. Continue the task you were working on before the interruption.</system-reminder>"
+    tmux send-keys -t "${session}:" "<system-reminder>Claude Code's rate limit has been lifted. Continue the task you were working on before the interruption.</system-reminder>"
     sleep 1
-    tmux send-keys -t "$session" Enter
+    tmux send-keys -t "${session}:" Enter
 }
 
 # セッション名が対象ファイルに存在するか確認する
@@ -218,7 +224,7 @@ while IFS=$'\t' read -r session cwd reset_epoch reset_text; do
     [ -n "$session" ] || continue
     session_recorded_in "$session" "$NEW_STATE_FILE" && continue # まだリミット中
 
-    if tmux has-session -t "$session" 2>/dev/null; then
+    if tmux has-session -t "${session}:" 2>/dev/null; then
         echo "Limit unlocked: $session ($cwd)"
         send_discord \
             "Claude Code のリミット解除" \
