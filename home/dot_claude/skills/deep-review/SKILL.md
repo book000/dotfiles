@@ -42,12 +42,11 @@ Launch a Haiku sub-agent to retrieve and return:
 - **PR mode**: `gh pr view <PR> --json title,body,additions,deletions,files` and `gh pr diff <PR>`
 - **Local diff mode**: `git diff <base>..HEAD --stat` and `git diff <base>..HEAD`
 
-### Step 4: Explorer project and Consideration of project-specific reviewers
+### Step 4: Explore project and consider project-specific reviewers
 
-First, explore the project using the Explorer agent.
-If you already have a deep understanding of the project, skip the project exploration step.
+First, explore the project using the Explorer agent. If you already have a deep understanding of the project, skip this step.
 
-Then, using the exploration results and the diff information, use the haiku agent to consider up to three project-specific review perspectives.
+Then, using the exploration results and the diff information, use a Haiku sub-agent to consider up to three project-specific review perspectives.
 
 ### Step 5: Parallel perspective reviews
 
@@ -89,7 +88,7 @@ Do NOT report the following:
 
 ### Step 6: Confidence scoring
 
-For each finding returned by Step 4, **launch a parallel Haiku sub-agent** to assign a confidence score.
+For each finding returned by Step 5, **launch a parallel Haiku sub-agent** to assign a confidence score.
 Pass each agent: the issue description, the CLAUDE.md path list, and the relevant diff section.
 Use the following rubric **verbatim**:
 
@@ -122,7 +121,7 @@ Run `gh api user --jq '.login'` to get the current GitHub user login.
 Then run `gh pr view <PR> --json author --jq '.author.login'` to get the PR author.
 
 - Author matches the current user login, or is a bot created by the current user → proceed to Step 10 (autofix).
-- Any other author (Renovate, dependabot, external contributors) → skip to Step 12 (report only).
+- Any other author (Renovate, dependabot, external contributors) → skip to Step 13 (report only).
 
 ### Step 10: Autofix (own PRs only)
 
