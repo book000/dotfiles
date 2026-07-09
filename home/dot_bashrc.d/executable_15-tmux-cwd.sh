@@ -14,5 +14,6 @@ if declare -p PROMPT_COMMAND 2>/dev/null | grep -q '^declare -a'; then
     PROMPT_COMMAND+=(__bashrc_update_tmux_project_dir)
   fi
 elif [[ "${PROMPT_COMMAND:-}" != *"__bashrc_update_tmux_project_dir"* ]]; then
+  # shellcheck disable=SC2178,SC2128 # このブランチはPROMPT_COMMANDが配列でない場合のみ通る（上のif条件で排他）
   PROMPT_COMMAND="${PROMPT_COMMAND:+${PROMPT_COMMAND}; }__bashrc_update_tmux_project_dir"
 fi
