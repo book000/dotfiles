@@ -122,8 +122,9 @@ tmux_session_selector() {
 
         # TMUX_PROJECT_DIR が設定されていれば優先する。
         # pane_current_path はサブプロセスの影響で一時的に別ディレクトリを指すことがあるため信頼性が低い。
-        # 設定方法: tmux new-session -e TMUX_PROJECT_DIR="$(pwd)"
-        #           または tmux set-environment -t <session> TMUX_PROJECT_DIR "$(pwd)"
+        # 初期値は "Create New Session" 選択時に現在のディレクトリで設定され、
+        # 以降は ~/.zshrc.d/15-tmux-cwd.zsh・~/.bashrc.d/15-tmux-cwd.sh の
+        # precmd/PROMPT_COMMAND フックがプロンプト表示のたびに実際の cwd へ更新し続ける。
         local project_dir
         project_dir="$(tmux show-environment -t "${sname}" TMUX_PROJECT_DIR 2>/dev/null)"
         if [[ "$project_dir" == TMUX_PROJECT_DIR=* ]]; then
