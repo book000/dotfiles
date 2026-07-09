@@ -27,5 +27,4 @@ plugins/repos/
 !.gitignore
 !README.md
 !CLAUDE.md
-!RTK.md
 !private_settings.json
