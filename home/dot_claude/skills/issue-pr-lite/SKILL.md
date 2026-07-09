@@ -18,7 +18,7 @@ no approval gates. Implementation proceeds directly from the Issue body.
 ## Progress Tracking
 
 Before Phase 3, create one Todo task per phase in this file (Phase 3
-through the end) using the Task tool. Mark each `in_progress` immediately
+through the end) using the Todo tool. Mark each `in_progress` immediately
 before starting that phase and `completed` immediately after finishing it —
 do not batch updates at the end.
 

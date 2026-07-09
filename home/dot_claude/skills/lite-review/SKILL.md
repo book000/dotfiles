@@ -21,10 +21,12 @@ Same as `deep-review`:
 
 ## Steps
 
-Execute the following steps strictly in order. Steps 1-3 and 5-12 are
-identical to `deep-review`'s Steps 1-3 and 5-12 — see
-`~/.claude/skills/deep-review/SKILL.md` for their exact text; only Step 4
-below is specific to `lite-review`.
+Execute the following steps strictly in order. `lite-review`'s Steps 1-3
+are identical to `deep-review`'s Steps 1-3; `lite-review`'s Steps 5-12
+correspond to `deep-review`'s Steps 6-13 (see
+`~/.claude/skills/deep-review/SKILL.md` for their exact text) — only
+`lite-review`'s own Step 4 below replaces `deep-review`'s Steps 4-5
+(project-specific reviewer discovery and per-reviewer parallel review).
 
 ### Step 1: Eligibility check (PR mode only)
 
@@ -40,7 +42,7 @@ Same as `deep-review` Step 3.
 
 ### Step 4: Single-agent perspective review (3 fixed perspectives)
 
-Unlike `deep-review`'s Step 4 (one sub-agent per reviewer file), launch a
+Unlike `deep-review`'s Step 5 (one sub-agent per reviewer file), launch a
 **single** general-purpose sub-agent covering all 3 perspectives below in
 one call:
 
@@ -49,7 +51,7 @@ one call:
 2. Pass the sub-agent: the full diff, the change summary from Step 3, the
    CLAUDE.md/rules content from Step 2 (with the "already read, don't
    re-Read" instruction), the shared false-positive suppression
-   instructions (identical text to `deep-review` SKILL.md's Step 4
+   instructions (identical text to `deep-review` SKILL.md's Step 5
    suppression block), and all 3 reviewers' `## Scope` bodies together,
    instructing it to check the diff against all 3 perspectives in a
    single pass and return findings tagged with which perspective(s) they
@@ -59,38 +61,38 @@ Each agent returns findings as: *problem summary + evidence + file:line referenc
 
 ### Step 5: Confidence scoring (batched)
 
-Same as `deep-review` Step 5: one Haiku sub-agent call for all findings,
+Same as `deep-review` Step 6: one Haiku sub-agent call for all findings,
 same rubric, same `Finding <N>: Score: <0-100>` output format.
 
 ### Step 6: Score filtering
 
-Same as `deep-review` Step 6.
+Same as `deep-review` Step 7.
 
 ### Step 7: Re-check eligibility (PR mode only)
 
-Same as `deep-review` Step 7.
+Same as `deep-review` Step 8.
 
 ### Step 8: PR author check (PR mode only)
 
-Same as `deep-review` Step 8.
+Same as `deep-review` Step 9.
 
 ### Step 9: Autofix (own PRs only)
 
-Same as `deep-review` Step 9.
+Same as `deep-review` Step 10.
 
 ### Step 10: Commit (own PRs only)
 
-Same as `deep-review` Step 10.
+Same as `deep-review` Step 11.
 
 ### Step 11: Update PR body (own PRs only)
 
-Same as `deep-review` Step 11.
+Same as `deep-review` Step 12.
 
 ### Step 12: Report results
 
-Same as `deep-review` Step 12, with every occurrence of the report heading
+Same as `deep-review` Step 13, with every occurrence of the report heading
 changed from `### Deep Review` to `### Lite Review` (this applies across
-all of Step 12's report variants — autofixed-own-PR, non-own-PR, and
+all of Step 13's report variants — autofixed-own-PR, non-own-PR, and
 no-issues-found — not just one) and the "no issues found" line changed to:
 
 ```
@@ -99,6 +101,6 @@ no-issues-found — not just one) and the "no issues found" line changed to:
 No issues found. Checked for CLAUDE.md compliance, bugs/correctness, and security.
 ```
 
-Formatting rules are identical to `deep-review` Step 12 (full SHA +
+Formatting rules are identical to `deep-review` Step 13 (full SHA +
 `#L<line>` links, no emoji, `Score: <number>` per finding, cite both code
 and CLAUDE.md rule).
