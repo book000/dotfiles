@@ -26,9 +26,11 @@ fi
 # セッション ID を取得する
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""' 2>/dev/null)
 
-# ステートファイルはセッション毎に分割する（並行実行時の後勝ち上書きを防ぐ）。
-# SESSION_ID が空の場合は後方互換のため旧形式の固定パスにフォールバックする。
-if [[ -n "$SESSION_ID" ]]; then
+# セッション ID が英数字・ハイフン・アンダースコアのみで構成されているか検証する。
+# 空文字、または `/` や `..` を含む不正な値をファイルパスへ直接展開すると
+# 意図しないディレクトリへの書き込みや書き込み失敗を招くため、
+# 一致しない場合は後方互換のため旧形式の固定パスにフォールバックする。
+if [[ "$SESSION_ID" =~ ^[A-Za-z0-9_-]+$ ]]; then
     STATE_FILE="$STATE_DIR/deep-review-state-${SESSION_ID}.json"
 else
     STATE_FILE="$STATE_DIR/deep-review-state.json"
@@ -55,6 +57,12 @@ done
 # ディレクトリはオーナーのみアクセス可能 (700) で作成する
 # mkdir -p と -m の組み合わせは最深ディレクトリにしか適用されないため分割する（SC2174）
 mkdir -p "$STATE_DIR" && chmod 700 "$STATE_DIR"
+
+# セッション毎ファイルへの分割により書き込みのたびにファイルが増えるため、
+# TTL（24時間、Stop hook の STATE_TTL と同一）を超えた期限切れファイルを
+# 都度削除し、無制限な蓄積を防ぐ。旧形式の固定名ファイルは対象外。
+find "$STATE_DIR" -maxdepth 1 -name 'deep-review-state-*.json' -mmin +1440 -delete 2>/dev/null
+
 if ! jq -n \
     --arg session_id "$SESSION_ID" \
     --arg skill "$SKILL" \

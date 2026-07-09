@@ -13,9 +13,11 @@ INPUT=$(cat)
 # 現在のセッション ID を取得する
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""' 2>/dev/null)
 
-# ステートファイルはセッション毎に分割する。SESSION_ID が空の場合は
-# 後方互換のため旧形式の固定パスにフォールバックする。
-if [[ -n "$SESSION_ID" ]]; then
+# セッション ID が英数字・ハイフン・アンダースコアのみで構成されているか検証する
+# （immediate-fix.sh と同一の検証。書き込み側と読み込み側で判定がずれると
+# 常にステートファイルが見つからずブロックが機能しなくなるため揃える）。
+# 一致しない場合は後方互換のため旧形式の固定パスにフォールバックする。
+if [[ "$SESSION_ID" =~ ^[A-Za-z0-9_-]+$ ]]; then
     STATE_FILE="$STATE_DIR/deep-review-state-${SESSION_ID}.json"
 else
     STATE_FILE="$STATE_DIR/deep-review-state.json"

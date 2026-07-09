@@ -157,6 +157,15 @@ score back to its corresponding Step 4 finding by index. Discard all
 findings with score < 50. If no findings remain, report "No issues found"
 and stop.
 
+If the parsed indices don't cleanly cover every Step 4 finding exactly once
+(a missing index, a duplicate, an out-of-range index, or a parsed line count
+that doesn't match the input finding count), do not silently drop the
+unmatched findings as if they scored below 50. Re-dispatch a single Haiku
+sub-agent to re-score only the unmatched findings, using the same rubric.
+If a second parse also fails to cover them, treat each still-unmatched
+finding as score 50 (fail open into the report, not out of it) and note in
+the final report that its score could not be automatically confirmed.
+
 ### Step 7: Re-check eligibility (PR mode only)
 
 Launch a Haiku sub-agent to repeat the Step 1 eligibility check. Abort if the PR is now ineligible.
