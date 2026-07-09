@@ -50,11 +50,27 @@ Launch a Haiku sub-agent to retrieve and return:
 - **PR mode**: `gh pr view <PR> --json title,body,additions,deletions,files` and `gh pr diff <PR>`
 - **Local diff mode**: `git diff <base>..HEAD --stat` and `git diff <base>..HEAD`
 
+### Step 3.5: Lightweight precheck for docs-only changes
+
+Using the changed-file list already retrieved in Step 3, check whether
+every changed file path matches at least one of these patterns: `*.md`,
+`*.txt`, `docs/**`. Do this with plain pattern matching — do not launch an
+additional sub-agent for this check.
+
+- If **all** changed files match: in Step 4, run only
+  `a-claude-md-compliance` and `c-history-context`; skip
+  `b-bugs-correctness`, `e-code-comment-quality`, `f-security`,
+  `g-performance`, `h-error-handling`, `i-type-design-tests`.
+- If **any** changed file does not match: run all reviewers as usual (no
+  skipping).
+
+This applies in both PR mode and local diff mode.
+
 ### Step 4: Parallel perspective reviews
 
 **Load reviewer definitions, then launch one independent general-purpose sub-agent per loaded reviewer, all in parallel.**
 
-1. Read every file under `~/.claude/skills/deep-review/reviewers/*.md` (the fixed reviewers, one file per perspective).
+1. Read every file under `~/.claude/skills/deep-review/reviewers/*.md` (the fixed reviewers, one file per perspective), then apply Step 3.5's docs-only skip list if it triggered.
 2. Resolve the reviewed repository root with `git rev-parse --show-toplevel`. If `<root>/.claude/deep-review-reviewers/*.md` exists, read every file in it too (project-specific reviewers). If the directory does not exist, skip this step silently — no error.
 3. Filter by mode: in Local diff mode, exclude any reviewer file whose frontmatter `applies_to` is `pr-only`.
 4. If 4 or more project-specific reviewer files were found in step 2, print a one-line notice before proceeding, e.g.: "Note: N project-specific reviewers detected under .claude/deep-review-reviewers/; ~3 is the recommended guideline." This is advisory only — do not enforce a hard cap, proceed with all of them.
