@@ -34,18 +34,18 @@ do not proceed and hit the failure several phases later.
 
 ## Progress Tracking
 
-Before Phase 1, create one task per phase below with the Todo tool,
-subject = the phase title. This is a long, multi-phase flow spanning two
-approval gates and several delegated skills — track it explicitly so no
-phase gets skipped or forgotten mid-run, especially after a revise-and-repeat
-loop (Phase 6 or Phase 10) or a context compaction.
+Before Phase 1, create one task per phase below with the Todo tool
+(Phase 1, Phase 2, Phase 2.5), subject = the phase title. This dispatcher's
+own flow is short, but it hands off to a much longer delegated flow
+(`issue-pr-deep` or `issue-pr-lite`) — track these 3 phases explicitly so
+none gets skipped or forgotten mid-run, especially after a context
+compaction. Task tracking for the delegated skill's own phases (including
+any approval gates and revise-and-repeat loops) is that skill's own
+responsibility, not this file's.
 
 Mark each task `in_progress` immediately before starting that phase and
 `completed` immediately after finishing it — do not batch updates at the
-end. The task tool does not support reopening a completed task, so don't try
-to; if Phase 6 or Phase 10 sends you back to an earlier phase, create new
-tasks for the phases being repeated (e.g. "Phase 3: Write the Spec (revision
-2)") instead.
+end.
 
 ## Phase 1: Enter a Worktree
 
@@ -63,8 +63,10 @@ runs inside the worktree created here.
      `worktree-issue-<number>`, branched from `origin/<default-branch>` per
      `EnterWorktree`'s default `baseRef: fresh`).
    - Immediately after success, record the actual current branch name via
-     `git branch --show-current` — Phase 11 needs this exact value to know
-     which branch to rename, since the harness's naming convention for that
+     `git branch --show-current` — the invoked skill's Create Branch phase
+     (`issue-pr-deep`'s Phase 11, or `issue-pr-lite`'s Phase 4, depending on
+     which one Phase 2.5 selects) needs this exact value to know which
+     branch to rename, since the harness's naming convention for that
      branch is not a hard guarantee.
    - If `EnterWorktree` fails because the session is already inside another
      worktree (it does not support nesting), do not silently proceed. Stop
