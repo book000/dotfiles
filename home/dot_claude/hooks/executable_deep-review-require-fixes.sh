@@ -5,13 +5,21 @@
 # ステートファイル (~/.claude/data/deep-review-state.json) を優先参照する。
 # ステートファイルが存在しない場合はブロックしない（セッション内で deep-review 未実行）。
 
-STATE_FILE="$HOME/.claude/data/deep-review-state.json"
+STATE_DIR="$HOME/.claude/data"
 
 # stdin から JSON を読み込む（公式フック契約: stdin JSON）
 INPUT=$(cat)
 
 # 現在のセッション ID を取得する
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""' 2>/dev/null)
+
+# ステートファイルはセッション毎に分割する。SESSION_ID が空の場合は
+# 後方互換のため旧形式の固定パスにフォールバックする。
+if [[ -n "$SESSION_ID" ]]; then
+    STATE_FILE="$STATE_DIR/deep-review-state-${SESSION_ID}.json"
+else
+    STATE_FILE="$STATE_DIR/deep-review-state.json"
+fi
 
 # ステートファイルが存在しない → このセッションで deep-review 未実行 → ブロックしない
 if [[ ! -f "$STATE_FILE" ]]; then

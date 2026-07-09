@@ -7,7 +7,6 @@
 # パースせずステートファイルから確実に判定できる。
 
 STATE_DIR="$HOME/.claude/data"
-STATE_FILE="$STATE_DIR/deep-review-state.json"
 
 # stdin から JSON を読み込む（公式フック契約: stdin JSON）
 INPUT=$(cat)
@@ -26,6 +25,14 @@ fi
 
 # セッション ID を取得する
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""' 2>/dev/null)
+
+# ステートファイルはセッション毎に分割する（並行実行時の後勝ち上書きを防ぐ）。
+# SESSION_ID が空の場合は後方互換のため旧形式の固定パスにフォールバックする。
+if [[ -n "$SESSION_ID" ]]; then
+    STATE_FILE="$STATE_DIR/deep-review-state-${SESSION_ID}.json"
+else
+    STATE_FILE="$STATE_DIR/deep-review-state.json"
+fi
 
 # tool_response からスコアを抽出する
 # grep -oP（PCRE）は macOS の BSD grep では動かないため grep -E + sed で代替する
