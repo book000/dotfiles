@@ -27,13 +27,21 @@ Launch a Haiku sub-agent to verify the PR does not fall into any of these catego
 - Auto-generated (Renovate, dependabot, etc.) or trivially simple
 - The current GitHub user (run `gh api user --jq '.login'` to detect) has already posted a code-review comment
 
-### Step 2: Collect CLAUDE.md / rules paths
+### Step 2: Collect CLAUDE.md / rules content
 
-Launch a Haiku sub-agent to collect and return the following paths:
+Launch a Haiku sub-agent to collect the following files and return **both
+their paths and full file content** (not paths alone) — Step 4/5 sub-agents
+receive this content directly so they don't need to re-Read these files
+themselves:
 
 - Root `CLAUDE.md` of the repository
 - `CLAUDE.md` files in directories containing changed files
 - All `*.md` files under `~/.claude/rules/`
+
+Output format: for each file, its path followed by its full content (e.g. a
+`path: ...` / `content: ...` pair per file, or one Markdown section per
+file) — any format is fine as long as Step 4/5 can tell which content came
+from which path.
 
 ### Step 3: Summarise changes
 
