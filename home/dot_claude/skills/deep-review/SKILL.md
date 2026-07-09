@@ -75,7 +75,19 @@ Launch a Haiku sub-agent to retrieve and return:
 
    If `applies_to` is missing, empty, or not one of `all`/`pr-only`, treat it as `all`.
 
-6. Pass each sub-agent: the diff, the change summary, the list of CLAUDE.md / rules paths, the shared false-positive suppression instructions below, and the `## Scope` body of its reviewer file.
+6. Pass each sub-agent: the shared false-positive suppression instructions
+   below, the `## Scope` body of its reviewer file, and the CLAUDE.md /
+   rules content collected in Step 2 (the full file content, not just
+   paths — tell the sub-agent explicitly: "The CLAUDE.md/rules files below
+   have already been read; do not re-Read them yourself"). Additionally,
+   depending on whether the reviewer's scope depends on diff content:
+   - **Diff-dependent reviewers** (all fixed reviewers except
+     `c-history-context`, and any project-specific reviewer): pass the full
+     diff and the change summary from Step 3.
+   - **`c-history-context`** (its scope reads git history / PR history via
+     commands, not diff text): pass only the list of changed file paths
+     (from the Step 3 change summary), not the full diff.
+
 Each agent returns findings as: *problem summary + evidence + file:line reference*.
 
 **Instructions passed to every agent (false-positive suppression):**
