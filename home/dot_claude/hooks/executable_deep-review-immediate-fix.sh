@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# PostToolUse hook: deep-review スキル実行後に指摘事項の対応を促す。
+# PostToolUse hook: deep-review / lite-review スキル実行後に指摘事項の対応を促す。
 # スコア 50 以上の指摘が残っている場合に Claude の処理をブロックする。
 # 副作用として findings を ~/.claude/data/deep-review-state.json に書き出す。
 # これにより Stop hook (deep-review-require-fixes.sh) がトランスクリプトを
@@ -17,9 +17,9 @@ if [[ "$TOOL_NAME" != "Skill" ]]; then
     exit 0
 fi
 
-# deep-review スキル以外はスキップする
+# deep-review / lite-review スキル以外はスキップする
 SKILL=$(printf '%s' "$INPUT" | jq -r '.tool_input.skill_name // .tool_input.skill // ""' 2>/dev/null)
-if [[ "$SKILL" != "deep-review" ]]; then
+if [[ "$SKILL" != "deep-review" && "$SKILL" != "lite-review" ]]; then
     exit 0
 fi
 
@@ -57,11 +57,13 @@ done
 mkdir -p "$STATE_DIR" && chmod 700 "$STATE_DIR"
 if ! jq -n \
     --arg session_id "$SESSION_ID" \
+    --arg skill "$SKILL" \
     --argjson high_score_count "$HIGH_SCORE_COUNT" \
     --argjson max_score "$MAX_SCORE" \
     --argjson timestamp "$(date +%s)" \
     '{
         session_id: $session_id,
+        skill: $skill,
         timestamp: $timestamp,
         high_score_count: $high_score_count,
         max_score: $max_score
@@ -74,7 +76,7 @@ chmod 600 "$STATE_FILE" 2>/dev/null
 
 # スコア 50 以上の指摘がある場合はブロックして対応を促す
 if [[ "$HIGH_SCORE_COUNT" -gt 0 ]]; then
-    REASON="🔔 deep-review で ${HIGH_SCORE_COUNT} 件の重要な指摘事項が見つかりました（最高スコア: ${MAX_SCORE}）。
+    REASON="🔔 ${SKILL} で ${HIGH_SCORE_COUNT} 件の重要な指摘事項が見つかりました（最高スコア: ${MAX_SCORE}）。
 
 CLAUDE.md の規則により、スコア 50 以上の指摘事項に必ず対応してください。
 
@@ -83,7 +85,7 @@ CLAUDE.md の規則により、スコア 50 以上の指摘事項に必ず対応
 2. 各指摘に対して適切な修正を実施する
 3. 修正内容をコミット・プッシュする
 4. PR 本文を更新する
-5. 必要に応じて再度 /deep-review を実施する
+5. 必要に応じて再度 /${SKILL} を実施する
 
 対応漏れは禁止されています。"
     jq -n --arg reason "$REASON" '{"decision":"block","reason":$reason}'
@@ -93,7 +95,7 @@ fi
 # スコア情報はあるが全件 50 未満の場合
 TOTAL="${#SCORES[@]}"
 if [[ "$TOTAL" -gt 0 ]]; then
-    jq -n --argjson total "$TOTAL" '{"decision":"approve","reason":("deep-review: " + ($total | tostring) + " 件の指摘がありましたが、すべてスコア 50 未満です。")}'
+    jq -n --arg skill "$SKILL" --argjson total "$TOTAL" '{"decision":"approve","reason":($skill + ": " + ($total | tostring) + " 件の指摘がありましたが、すべてスコア 50 未満です。")}'
     exit 0
 fi
 
