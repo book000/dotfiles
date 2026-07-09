@@ -1,3 +1,9 @@
+---
+name: rtk
+description: Reference for rtk (Rust Token Killer) meta commands — rtk gain / gain --history / discover / proxy. Use when the user wants token-savings analytics, usage history, or to run a raw command without the transparent git/... rewrite hook.
+disable-model-invocation: false
+---
+
 # RTK - Rust Token Killer
 
 **Usage**: Token-optimized CLI proxy (60-90% savings on dev operations)
@@ -26,4 +32,5 @@ which rtk             # Verify correct binary
 All other commands are automatically rewritten by the Claude Code hook.
 Example: `git status` → `rtk git status` (transparent, 0 tokens overhead)
 
-Refer to CLAUDE.md for full command reference.
+This skill is the sole reference for `rtk` meta commands; it is loaded on
+demand instead of always being present in context.
