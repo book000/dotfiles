@@ -80,7 +80,7 @@ Do NOT report the following:
 - Functional changes that are clearly intentional given the broader context
 - Anything asserted without a concrete `file:line` citation
 
-**Fixed reviewers:** see `~/.claude/skills/deep-review/reviewers/*.md` for the full list and scope of each (`a-claude-md-compliance`, `b-bugs-correctness`, `c-git-history`, `d-past-pr-comments` [PR mode only], `e-code-comment-quality`, `f-security`, `g-performance`, `h-error-handling`, `i-type-design-tests`).
+**Fixed reviewers:** see `~/.claude/skills/deep-review/reviewers/*.md` for the full list and scope of each (`a-claude-md-compliance`, `b-bugs-correctness`, `c-history-context`, `e-code-comment-quality`, `f-security`, `g-performance`, `h-error-handling`, `i-type-design-tests`).
 
 **Project-specific reviewers:** any repository can add up to roughly 3 additional reviewer files (soft guideline, not enforced) under `.claude/deep-review-reviewers/*.md` in its own repo root, using the same frontmatter format as above (`id` may be omitted for project-specific reviewers).
 
