@@ -56,6 +56,8 @@ If a search result looks promising, use WebFetch to retrieve the page in detail.
 
 If the search fails (network error, etc.), continue Step 4 onward using only the static reference, and note this in the final report (Step 6).
 
+Only fold a delta item into the final `CLAUDE.md` if it is directly actionable for this specific project (e.g. a size/structure limit that the project actually risks hitting, a documented anti-pattern the project currently exhibits). Do not pad the output with generic advice that doesn't change what gets written for this project — the goal is a concise, project-specific document, not a copy of the search results.
+
 ## Step 4: Extract project-specific information
 
 From the existing `CLAUDE.md` (if any), extract project-specific information that must not be lost:
@@ -66,6 +68,8 @@ From the existing `CLAUDE.md` (if any), extract project-specific information tha
 - Team-specific operating rules
 
 Cross-check these against Step 1's exploration results, and verify whether the existing description has drifted from reality (e.g. whether a referenced command actually exists in `package.json`). Record any drifted descriptions (references to nonexistent commands, etc.) as input for Step 5's decision.
+
+If no `CLAUDE.md` exists yet, there is nothing to extract here — treat this step as a no-op and rely solely on Step 1's exploration results as the factual basis for Step 6.
 
 ## Step 5: Assess drift and decide the update approach
 
@@ -81,6 +85,8 @@ Using the results of Steps 2-4, assess how far the existing `CLAUDE.md` has drif
 Record the decision (wholesale rewrite / partial edit / new creation) and its rationale.
 
 ## Step 6: Apply changes and report
+
+Write `CLAUDE.md` in English as a rule. Only deviate from English when the existing `CLAUDE.md` (for a partial edit) is written in another language — in that case, keep that language for consistency rather than switching mid-document. This rule governs the language of the `CLAUDE.md` body itself; it is independent of whatever language you use to talk to the user in this conversation.
 
 Following Step 5's decision, rewrite `$TARGET_DIR/CLAUDE.md` with `Write` (for a wholesale rewrite or new creation) or `Edit` (for a partial edit).
 
