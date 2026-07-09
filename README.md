@@ -274,3 +274,25 @@ applies_to: all        # all | pr-only（省略時は all）
 スコア 50 以上の指摘が未対応の場合は Claude の処理を一時ブロックして対応を促す。
 
 これらのフックは公式フック契約（stdin JSON + `decision/reason` 出力）に準拠している。
+
+## `/claude-md-maintainer` スキル
+
+任意のプロジェクトの `CLAUDE.md` を、最新のベストプラクティスとプロジェクト固有情報の両方を踏まえて作成・更新するスキル。
+`home/dot_claude/skills/claude-md-maintainer/SKILL.md` として管理され、`chezmoi apply` で `~/.claude/skills/claude-md-maintainer/SKILL.md` にデプロイされる。
+
+### 使い方
+
+```bash
+# カレントディレクトリの CLAUDE.md を対象にする
+/claude-md-maintainer
+
+# 対象ディレクトリを指定する
+/claude-md-maintainer /path/to/project
+```
+
+### 特徴
+
+- **ハイブリッド調査**: `references/best-practices.md` に静的なベストプラクティス集を保持しつつ、実行のたびに WebSearch/WebFetch で最新動向の差分を補完する
+- **乖離度に応じた判断**: 既存 `CLAUDE.md` とベストプラクティスとの乖離が大きい場合は全面的に書き直し、小さい場合は部分修正にとどめる（既存ファイルがない場合は新規作成）
+- **承認フローなし**: 対象ディレクトリが git 管理下であることを前提に、変更内容は `git diff`（新規作成時は `git status`）で事後確認する運用とし、実行前の承認は求めない
+- **対象は CLAUDE.md のみ**: `AGENTS.md` 等の他のエージェント設定ファイルは対象外（将来の拡張候補）
