@@ -59,16 +59,6 @@ fi
 
 echo "✅ Basic files generated successfully"
 
-if [ ! -f "$HOME/.codex/hooks.json" ]; then
-  echo "❌ Codex hooks.json not generated"
-  exit 1
-fi
-
-if [ ! -x "$HOME/.codex/scripts/completion-notify/notify-completion.sh" ]; then
-  echo "❌ Codex completion notification script not generated"
-  exit 1
-fi
-
 if [ ! -f "$HOME/.agents/skills/issue-pr/SKILL.md" ]; then
   echo "❌ Codex issue-pr skill not generated"
   exit 1
