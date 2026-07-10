@@ -272,6 +272,62 @@ fi
 
 rm -rf "$TEST_HOME" "$TEST_BIN_DIR"
 
+echo "Testing usage_check_allowed / record_usage_checked throttling..."
+TEST_HOME=$(mktemp -d)
+
+RESULT=$(
+  HOME="$TEST_HOME" bash -c '
+    source "'"$PWD"'/home/dot_claude/scripts/limit-unlocked/executable_check-notify.sh"
+    if usage_check_allowed "/fake/config-dir"; then
+      echo "allowed_initially=yes"
+    else
+      echo "allowed_initially=no"
+    fi
+
+    record_usage_checked "/fake/config-dir"
+
+    if usage_check_allowed "/fake/config-dir"; then
+      echo "allowed_immediately_after=yes"
+    else
+      echo "allowed_immediately_after=no"
+    fi
+
+    # 最終チェック時刻を31分前に書き換える
+    file=$(usage_last_checked_file)
+    old_epoch=$(( $(date +%s) - 1860 ))
+    printf "/fake/config-dir\t%s\n" "$old_epoch" > "$file"
+
+    if usage_check_allowed "/fake/config-dir"; then
+      echo "allowed_after_31min=yes"
+    else
+      echo "allowed_after_31min=no"
+    fi
+  '
+)
+
+if ! grep -q '^allowed_initially=yes$' <<< "$RESULT"; then
+  echo "❌ usage_check_allowed did not allow the first check for a new config_dir"
+  FAILED=1
+else
+  echo "✅ usage_check_allowed allowed the first check for a new config_dir"
+fi
+
+if ! grep -q '^allowed_immediately_after=no$' <<< "$RESULT"; then
+  echo "❌ usage_check_allowed did not throttle an immediate re-check"
+  FAILED=1
+else
+  echo "✅ usage_check_allowed throttled an immediate re-check"
+fi
+
+if ! grep -q '^allowed_after_31min=yes$' <<< "$RESULT"; then
+  echo "❌ usage_check_allowed did not allow a re-check after 31 minutes"
+  FAILED=1
+else
+  echo "✅ usage_check_allowed allowed a re-check after 31 minutes"
+fi
+
+rm -rf "$TEST_HOME"
+
 if [ $FAILED -eq 0 ]; then
   echo "✅ All notification script tests passed"
 else

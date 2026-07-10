@@ -98,6 +98,37 @@ fetch_usage_status() {
     echo -e "${five_hour}\t${seven_day}"
 }
 
+# Usage API 照会のスロットリング状態を保持するファイルのパス
+usage_last_checked_file() {
+    echo "$HOME/.claude/scripts/limit-unlocked/data/usage_last_checked.txt"
+}
+
+# config_dir に対して直近30分以内にUsage APIを照会済みでないかを判定する。
+# 許可する場合は終了コード0、スロットリング対象なら終了コード1を返す。
+usage_check_allowed() {
+    local config_dir="$1" file last_checked now
+    file=$(usage_last_checked_file)
+    [ -f "$file" ] || return 0
+    last_checked=$(awk -F'\t' -v d="$config_dir" '$1 == d { print $2; exit }' "$file")
+    [ -n "$last_checked" ] || return 0
+    now=$(date +%s)
+    [ $((now - last_checked)) -ge 1800 ]
+}
+
+# config_dir に対するUsage API照会の最終実行時刻を記録する。
+# 成功・失敗に関わらず「試行した」時点で呼び出すことで、認証エラーや
+# ネットワーク障害が続く間の連続リトライを防ぐ。
+record_usage_checked() {
+    local config_dir="$1" file tmp_file now
+    file=$(usage_last_checked_file)
+    mkdir -p "$(dirname "$file")"
+    touch "$file"
+    now=$(date +%s)
+    tmp_file="${file}.tmp.$$"
+    { awk -F'\t' -v d="$config_dir" '$1 != d { print }' "$file"; printf '%s\t%s\n' "$config_dir" "$now"; } > "$tmp_file"
+    mv "$tmp_file" "$file"
+}
+
 # tmux セッション名から、対応する claude プロセスが書き込んでいる会話ログ (jsonl) の
 # パスを特定する。claude は CLAUDE_CONFIG_DIR ごと（例: ~/.claude と ~/.claude-work）に
 # sessions/<pid>.json（pid → sessionId の対応表）を別々に持つため両方を確認する。
