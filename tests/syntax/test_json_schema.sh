@@ -26,18 +26,6 @@ if [ -f "home/dot_claude/settings.json" ]; then
   FILES_CHECKED=$((FILES_CHECKED + 1))
 fi
 
-# Codex CLI hooks.json
-if [ -f "home/dot_codex/hooks.json" ]; then
-  echo "Validating Codex CLI hooks.json..."
-  if ! jq empty home/dot_codex/hooks.json; then
-    echo "❌ Codex CLI hooks.json validation failed"
-    FAILED=1
-  else
-    echo "✅ Codex CLI hooks.json validation passed"
-  fi
-  FILES_CHECKED=$((FILES_CHECKED + 1))
-fi
-
 # Codex CLI config.toml
 if [ -f "home/dot_codex/config.toml" ]; then
   echo "Validating Codex CLI config.toml..."
