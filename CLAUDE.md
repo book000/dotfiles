@@ -65,7 +65,7 @@ chezmoi はソース側のプレフィックスを解釈してデプロイする
   - `tests/syntax/`: `test_bash_syntax.sh` / `test_shellcheck.sh` / `test_json_schema.sh`(構文・shellcheck・JSON スキーマ)。
   - `tests/unit/`: `test_install.sh` / `test_notifications.sh` / `test_hooks.sh`(単体テスト)。
   - `tests/integration/`: `test_chezmoi_apply.sh`(`chezmoi apply` の統合テスト)。
-- CI は `.github/workflows/` の `unit-test.yml` / `integration-test.yml` / `pr-checks.yml` で pull_request・push 時に自動実行される。
+- CI は `.github/workflows/` の `unit-test.yml` / `integration-test.yml` / `pr-checks.yml` で pull_request 時に自動実行される(`unit-test.yml` / `integration-test.yml` は master への push 時にも実行)。
 - 通知・フック関連スクリプト(`home/dot_claude/scripts/`、`home/dot_claude/hooks/`、`home/dot_codex/` 等)や `home/bin/` のヘルパーを変更・削除した場合、対応するテストの参照が古くなっていないか確認する。
 - 変更後はローカルでも Docker 上で `chezmoi apply` を実行して結果を確認する。
 

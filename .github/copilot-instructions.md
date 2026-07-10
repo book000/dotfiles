@@ -6,7 +6,7 @@
 ## プロジェクト概要
 
 - 目的: chezmoi でシェル設定・tmux 設定・通知設定・AI エージェント設定をテンプレート化して管理する。
-- `tests/` 配下のシェルスクリプトで構文チェック・単体テスト・統合テストを行い、`.github/workflows/` (unit-test.yml / integration-test.yml / pr-checks.yml) により pull_request・push 時に CI で自動実行される。ローカルでは Docker 上で `chezmoi apply` を実行して結果を確認する。
+- `tests/` 配下のシェルスクリプトで構文チェック・単体テスト・統合テストを行い、`.github/workflows/` (unit-test.yml / integration-test.yml / pr-checks.yml) により pull_request 時に CI で自動実行される。ローカルでは Docker 上で `chezmoi apply` を実行して結果を確認する。
 
 ## レビューで特に確認すること
 
