@@ -1,52 +1,43 @@
 # GitHub Copilot Instructions
 
+このリポジトリは chezmoi で管理する dotfiles および AI エージェント設定リポジトリです。
+コードレビュー時は以下の観点を優先的に確認してください。
+
 ## プロジェクト概要
 
-- 目的: chezmoi で dotfiles と AI エージェント設定を管理する。
-- 主な機能: シェル設定、tmux 設定、通知設定のテンプレート化。
-- 対象ユーザー: 自分用の開発環境を管理するユーザー。
+- 目的: chezmoi でシェル設定・tmux 設定・通知設定・AI エージェント設定をテンプレート化して管理する。
+- `tests/` 配下のシェルスクリプトで構文チェック・単体テスト・統合テストを行い、`.github/workflows/` (unit-test.yml / integration-test.yml / pr-checks.yml) により pull_request 時に CI で自動実行される。ローカルでは Docker 上で `chezmoi apply` を実行して結果を確認する。
 
-## 共通ルール
+## レビューで特に確認すること
 
-- 会話は日本語で行う。
-- コード内コメントは日本語で記載する。
-- エラーメッセージは英語で記載する。
+### chezmoi のファイル命名規則(誤りやすい)
+
+- `executable_foo.sh` はデプロイ後 `foo.sh` になり、`executable_` は除去される。`settings.json` など外部からパスを参照する設定で `executable_` を含めたパスを書いていないか確認する。
+- `dot_foo` はデプロイ後 `.foo` になる。
+- `symlink_foo` はシンボリックリンクになり、ファイル内容がリンク先を表す。
+- `symlink_executable_` のような回避策パターンは使用しない。
+
+### 秘密情報
+
+- トークン・Webhook URL・パスワード等を平文でコミットしていないか確認する。
+- `~/.env` や `~/.gitconfig.local` はリポジトリ管理外。`.env.example` / `.gitconfig.local.example` などサンプルのみを含める。
+
+### テストの追随
+
+- `home/dot_codex/`、`home/dot_claude/scripts/` など通知・フック関連スクリプトを変更・削除した場合、`tests/unit/`、`tests/integration/`、`tests/syntax/` 配下の対応するテストが古い参照を残していないか確認する。
+
+## コーディング規約
+
+- コミットメッセージは Conventional Commits に従い、`<description>` は日本語で記載する。
+- コード内コメントは日本語、エラーメッセージは英語で記載する。
 - 日本語と英数字の間には半角スペースを挿入する。
-- コミットメッセージは Conventional Commits に従う（description は日本語）。
+- 既存ファイルの構成・命名パターンに合わせる。
 
 ## 技術スタック
 
 - 言語: Bash / Zsh
 - ツール: chezmoi, git, tmux, jq
 
-## コーディング規約
+## ドキュメント整合性
 
-- 既存ファイルの構成に合わせる。
-- `.env` は `~/.env.example` をコピーして手動で作成する（chezmoi 管理外）。
-- Git 設定は `~/.gitconfig.local.example` をコピーして手動で作成する（chezmoi 管理外）。
-- 機密情報は平文でコミットしない。
-
-## 開発コマンド
-
-- `package.json` は存在しないため該当コマンドはない。
-- 必要に応じて Docker 上で `chezmoi apply` を実行する。
-
-## テスト方針
-
-- 自動テストはない。
-- 変更後は Docker 上で `chezmoi apply` を実行して結果を確認する。
-
-## セキュリティ / 機密情報
-
-- Discord Webhook や API キーは暗号化またはローカル設定で管理する。
-- ログに機密情報を出力しない。
-
-## ドキュメント更新
-
-- `README.md`
-- `CLAUDE.md` / `AGENTS.md` / `.github/copilot-instructions.md`
-
-## リポジトリ固有
-
-- `home/` 配下が chezmoi のソースであり、`dot_` プレフィックスでファイルを管理する。
-- エージェント固有の指示やワークフローは、それぞれの prompt ファイルにのみ記載する。
+- 変更内容が `README.md` / `CLAUDE.md` に記載のルールと矛盾していないか確認する。

@@ -2,7 +2,7 @@
 name: claude-md-maintainer
 description: Analyze a project's CLAUDE.md against curated best practices plus a live web-search delta, then either rewrite it wholesale or apply targeted edits depending on how far it has drifted. Also creates a CLAUDE.md from scratch when none exists.
 argument-hint: "[directory | omit to use the current directory]"
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # claude-md-maintainer skill
