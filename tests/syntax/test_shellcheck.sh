@@ -10,7 +10,7 @@ FAILED=0
 # シェル断片 (shebang なし) を含む全スクリプトを検査
 # -print0 と while read でパス名の空白を安全に処理
 while IFS= read -r -d '' script; do
-  # シェバンの有無にかかわらず bash として検査する
+  # シェバンの種類に応じて呼び出し方を切り替えるが、いずれも bash として検査する
   if head -n 1 "$script" | grep -qE '^#!(.*/)?(bash|sh)'; then
     # bash / sh の shebang がある場合
     if ! shellcheck "$script"; then
