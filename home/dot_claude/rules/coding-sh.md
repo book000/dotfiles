@@ -2,7 +2,6 @@
 paths:
   - "**/*.sh"
   - "**/*.bash"
-  - "**/*.zsh"
 ---
 
 # Shell Script Coding Rules
