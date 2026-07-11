@@ -1,6 +1,6 @@
 ## 目的
 
-`.bashrc.d` / `.bash_profile.d` / `.zshrc.d` / `.zprofile.d` の各ディレクトリに
+`.bashrc.d` / `.bash_profile.d` の各ディレクトリに
 追加設定を分割して配置します。
 
 ## 読み込み順

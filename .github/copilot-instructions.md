@@ -35,7 +35,7 @@
 
 ## 技術スタック
 
-- 言語: Bash / Zsh
+- 言語: Bash
 - ツール: chezmoi, git, tmux, jq
 
 ## ドキュメント整合性

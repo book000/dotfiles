@@ -19,7 +19,6 @@ paths:
   - "**/*.php"
   - "**/*.sh"
   - "**/*.bash"
-  - "**/*.zsh"
 ---
 
 # Common Coding Rules

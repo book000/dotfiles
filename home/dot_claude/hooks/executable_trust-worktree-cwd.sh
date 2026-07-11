@@ -4,7 +4,7 @@
 # Claude Code のワークスペース信頼済みディレクトリとして
 # ~/.claude.json（CLAUDE_CONFIG_DIR 設定時は $CLAUDE_CONFIG_DIR/.claude.json）に登録する。
 # EnterWorktree はシェルラッパー (claude コマンド) 経由で起動されないため、
-# 90-ai-alias.zsh/sh の _claude_trust_cwd() が実行されず、
+# 90-ai-alias.sh の _claude_trust_cwd() が実行されず、
 # Workspace Trust dialog が発生する問題 (Issue #166) への対策。
 
 command -v jq > /dev/null 2>&1 || exit 0

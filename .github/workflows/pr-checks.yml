@@ -40,9 +40,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install zsh for syntax checking
-        run: sudo apt-get update && sudo apt-get install -y zsh
-
       - name: Check bash syntax
         run: bash tests/syntax/test_bash_syntax.sh
 
