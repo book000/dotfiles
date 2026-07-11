@@ -123,18 +123,20 @@ Create in the following format:
 5. Whether other agents can review
 ```
 
-### Phase 6: Upload to Confluence and Post Comment to Jira Ticket
+### Phase 6: Upload to opengist and Post Comment to Jira Ticket
 
-Upload the requirements document to Confluence following `rules/confluence.md`.
+Invoke the `opengist` skill (via the Skill tool) to upload the requirements document.
+Use slug `requirements-<ticket-key>` (lowercase; normalize any non `[a-z0-9-]`
+character to `-`) and a title derived from the ticket title.
 
-Then post a short summary plus the Confluence URL as the ticket comment — not the full
-document body — with the MCP tool `mcp__atlassian__addCommentToJiraIssue`.
+Then post a short summary plus the returned gist URL as the ticket comment — not the
+full document body — with the MCP tool `mcp__atlassian__addCommentToJiraIssue`.
 
 ```
 mcp__atlassian__addCommentToJiraIssue({
   cloudId: "<cloud-id>",
   issueIdOrKey: "<ticket-key>",
-  commentBody: "<short summary>[newline][newline]Details: <Confluence URL>",
+  commentBody: "<short summary>[newline][newline]Details: <gist URL>",
   contentFormat: "markdown"
 })
 ```
