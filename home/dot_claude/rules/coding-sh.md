@@ -8,7 +8,7 @@ paths:
 
 ## Documentation
 
-- Write function description comments. Language: follow the project CLAUDE.md if it specifies one; otherwise Japanese
+- Write function description comments. Language: follow the project CLAUDE.md if it specifies one; otherwise English
 
 ## Error Messages
 

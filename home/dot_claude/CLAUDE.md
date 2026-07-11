@@ -12,7 +12,7 @@
 ## Language
 
 - Respond in Japanese. Intermediate steps in English to save context.
-- Code comments: follow project CLAUDE.md; default Japanese. Error messages: English.
+- Code comments: follow project CLAUDE.md; default English. Error messages: English.
 - Half-width space between Japanese and alphanumeric characters.
 - **All Markdown under `~/.claude/` must be written in English.**
 

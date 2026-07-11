@@ -85,7 +85,7 @@ paths:
   between using groups
 - Prefer expression-bodied members (`=>`) when the body fits on one line; prefer
   pattern matching, switch expressions, and target-typed `new()`
-- XML doc comments on public/exposed members, written in Japanese unless the
+- XML doc comments on public/exposed members, written in English unless the
   project's own CLAUDE.md says otherwise
 - Suppress a specific, justified diagnostic with
   `[SuppressMessage("Category", "RuleId:Name", Justification = "...")]` rather than a

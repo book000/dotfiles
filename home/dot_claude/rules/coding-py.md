@@ -21,4 +21,4 @@ paths:
 
 ## Documentation
 
-- Write docstrings for all functions and classes. Language: follow the project CLAUDE.md if it specifies one; otherwise Japanese
+- Write docstrings for all functions and classes. Language: follow the project CLAUDE.md if it specifies one; otherwise English

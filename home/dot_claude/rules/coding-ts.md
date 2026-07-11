@@ -16,13 +16,13 @@ paths:
 
 ## Documentation
 
-- Write and maintain JSDoc (docstring) for all functions, interfaces, and classes. Language: follow the project CLAUDE.md if it specifies one; otherwise Japanese
+- Write and maintain JSDoc (docstring) for all functions, interfaces, and classes. Language: follow the project CLAUDE.md if it specifies one; otherwise English
 
   ```typescript
   /**
-   * ユーザーの認証状態を確認する。
-   * @param userId - 確認するユーザーの ID
-   * @returns 認証済みなら true、未認証なら false
+   * Checks whether the user is authenticated.
+   * @param userId - The ID of the user to check
+   * @returns true if authenticated, false otherwise
    */
   function isAuthenticated(userId: string): boolean { ... }
   ```

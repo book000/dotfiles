@@ -45,7 +45,7 @@ After posting or updating, report **the URL only** — do not paste the document
 
 ## Document Language
 
-Confluence pages were viewed only by the user, so they followed the user's private language setting. GitHub Issue comments are **public**, and the target project's main language may differ from the user's private setting. Documents posted here must follow **the language specified by the target project's CLAUDE.md (or AGENTS.md, etc.)** — not the user's private language preference. Default to Japanese only if the project specifies no language. Code blocks, commands, and identifiers stay in their original form regardless of the body language.
+Confluence pages were viewed only by the user, so they followed the user's private language setting. GitHub Issue comments are **public**, and the target project's main language may differ from the user's private setting. Documents posted here must follow **the language specified by the target project's CLAUDE.md (or AGENTS.md, etc.)** — not the user's private language preference. Default to English only if the project specifies no language. Code blocks, commands, and identifiers stay in their original form regardless of the body language.
 
 This matches the instruction `issue-pr` already gives when invoking `superpowers:brainstorming`/`superpowers:writing-plans` to write the spec/plan documents ("the language required by the target project's CLAUDE.md").
 
