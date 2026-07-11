@@ -46,7 +46,7 @@ Not auto-loaded. Read the relevant file only when the situation applies:
 | Writing/reviewing code, comments, tests, commits | `rules/coding-common.md` |
 | Writing a spec or plan document | `rules/superpowers.md` |
 | Posting a spec/plan/investigation doc to a GitHub Issue | `rules/issue-comment-docs.md` |
-| Posting a spec/plan/investigation doc to Confluence | `rules/confluence.md` |
+| Posting a spec/plan/investigation doc not tied to a GitHub Issue | `opengist` skill (invoke via Skill tool) |
 | Using an `rtk` meta command (`gain`, `discover`, `proxy`) | `rtk` skill |
 
 ## Tracking
