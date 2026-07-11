@@ -16,7 +16,7 @@
 
 ## 技術スタック
 
-- 言語: Bash / Zsh
+- 言語: Bash
 - ツール: chezmoi, git, tmux, jq
 
 ## コーディング規約

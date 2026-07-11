@@ -59,7 +59,7 @@ vim ~/.env
 
 ### 3. PATH の設定
 
-`~/.local/bin` が PATH に含まれていない場合は、シェル設定ファイル（`~/.bashrc` または `~/.zshrc`）に以下を追加してください:
+`~/.local/bin` が PATH に含まれていない場合は、シェル設定ファイル（`~/.bashrc`）に以下を追加してください:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
