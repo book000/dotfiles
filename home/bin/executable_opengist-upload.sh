@@ -18,10 +18,10 @@ if [ ! -f "$file" ]; then
   exit 1
 fi
 
-# ~/.env を読み込む(既存スクリプトと同じパターン)。新規作成(HTTP push)にのみ必要。
-script_dir=$(cd "$(dirname "$0")" && pwd)
+# ~/.env を読み込む(トップレベルの横断的環境変数、home/dot_env.example 参照)。
+# 新規作成(HTTP push)にのみ必要。
 # shellcheck source=/dev/null
-source "$script_dir/../.env"
+source "$HOME/.env"
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
