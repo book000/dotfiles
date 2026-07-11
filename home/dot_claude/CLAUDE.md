@@ -43,6 +43,7 @@ Not auto-loaded. Read the relevant file only when the situation applies:
 | When | Read |
 |---|---|
 | Checklists / Jira rules needed | `rules/workflow.md` |
+| Writing/reviewing code, comments, tests, commits | `rules/coding-common.md` |
 | Writing a spec or plan document | `rules/superpowers.md` |
 | Posting a spec/plan/investigation doc to a GitHub Issue | `rules/issue-comment-docs.md` |
 | Posting a spec/plan/investigation doc to Confluence | `rules/confluence.md` |
