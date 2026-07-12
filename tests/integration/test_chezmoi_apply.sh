@@ -76,6 +76,18 @@ fi
 
 echo "✅ Codex files generated successfully"
 
+if [ ! -f "$HOME/.claude/agents/spec-reviewer.md" ]; then
+  echo "❌ spec-reviewer agent definition not generated"
+  exit 1
+fi
+
+if [ ! -f "$HOME/.claude/agents/plan-reviewer.md" ]; then
+  echo "❌ plan-reviewer agent definition not generated"
+  exit 1
+fi
+
+echo "✅ spec-reviewer / plan-reviewer agent definitions generated successfully"
+
 # Idempotency テスト: 2 回目の apply で差分がないことを確認
 echo "Testing idempotency..."
 # .chezmoiscripts/ ディレクトリの変更は無視 (chezmoi の内部管理ファイル)
