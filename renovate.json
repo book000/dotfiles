@@ -1,0 +1,12 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>book000/templates//renovate/base-public"],
+  "regexManagers": [
+    {
+      "fileMatch": ["^home/dot_claude/private_settings\\.json$"],
+      "matchStrings": ["ccstatusline@(?<currentValue>[0-9.]+)"],
+      "depNameTemplate": "ccstatusline",
+      "datasourceTemplate": "npm"
+    }
+  ]
+}
