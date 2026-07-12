@@ -1,13 +1,14 @@
 # ghq helpers.
 
-# ghqで管理されているリポジトリを選択して移動する関数
+# ghqで管理されているリポジトリ(roots 経由でモノレポ内のルートも含む)を選択して移動する関数
 gcd() {
   command -v ghq >/dev/null 2>&1 || { echo "ghq not found." >&2; return 1; }
+  command -v roots >/dev/null 2>&1 || { echo "roots not found." >&2; return 1; }
   command -v fzf >/dev/null 2>&1 || { echo "fzf not found." >&2; return 1; }
 
   local dir
-  # fzfを使ってリポジトリを選択
-  dir="$(ghq list -p | fzf)" || return 1
+  # ghq 管理下の各リポジトリを起点に roots でモノレポ内のルートディレクトリも列挙し、fzf で選択
+  dir="$(ghq list --full-path | roots | fzf)" || return 1
   # 選択されたディレクトリが存在すれば移動
   [[ -n "$dir" ]] && { cd "$dir" || return; }
 }
