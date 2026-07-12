@@ -126,7 +126,7 @@
   "enableWorkflows": false,
   "statusLine": {
     "type": "command",
-    "command": "npx -y ccstatusline@latest"
+    "command": "npx -y --offline ccstatusline@2.2.23 || npx -y ccstatusline@2.2.23"
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
