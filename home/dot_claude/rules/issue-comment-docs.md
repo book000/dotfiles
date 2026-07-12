@@ -15,7 +15,7 @@ Applies to Markdown documents created for the user to read or review as a delive
 
 Does not apply to:
 
-- Work not tied to a GitHub Issue (Jira-linked `ticket-pr` work, standalone investigations, pre-Issue discussions) — follow `rules/confluence.md` instead.
+- Work not tied to a GitHub Issue (Jira-linked `ticket-pr` work, standalone investigations, pre-Issue discussions) — invoke the `trilium` skill instead.
 - Commit messages, PR bodies, code comments, or other routine Git/GitHub artifacts.
 
 ## Procedure
@@ -41,15 +41,15 @@ gh api "repos/<owner>/<repo>/issues/comments/<comment_id>" -X PATCH -F body=@<pa
 
 ### Reporting
 
-After posting or updating, report **the URL only** — do not paste the document body again in chat or in another comment (same policy as `rules/confluence.md`).
+After posting or updating, report **the URL only** — do not paste the document body again in chat or in another comment (same policy as the `trilium` skill).
 
 ## Document Language
 
-Confluence pages were viewed only by the user, so they followed the user's private language setting. GitHub Issue comments are **public**, and the target project's main language may differ from the user's private setting. Documents posted here must follow **the language specified by the target project's CLAUDE.md (or AGENTS.md, etc.)** — not the user's private language preference. Default to English only if the project specifies no language. Code blocks, commands, and identifiers stay in their original form regardless of the body language.
+Trilium notes were viewed only by the user, so they followed the user's private language setting. GitHub Issue comments are **public**, and the target project's main language may differ from the user's private setting. Documents posted here must follow **the language specified by the target project's CLAUDE.md (or AGENTS.md, etc.)** — not the user's private language preference. Default to English only if the project specifies no language. Code blocks, commands, and identifiers stay in their original form regardless of the body language.
 
 This matches the instruction `issue-pr` already gives when invoking `superpowers:brainstorming`/`superpowers:writing-plans` to write the spec/plan documents ("the language required by the target project's CLAUDE.md").
 
 ## Notes
 
-- Verify no sensitive information (tokens, passwords, internal URLs, credentials) is included before posting — same check required before any Confluence/Jira post (see `rules/security.md`).
+- Verify no sensitive information (tokens, passwords, internal URLs, credentials) is included before posting — same check required before any Trilium/Jira post (see `rules/security.md`).
 - If `gh issue comment` / `gh api` fails (auth, network, permission), report it to the user rather than silently continuing — a missing comment breaks the link between the Issue and its spec/plan.
