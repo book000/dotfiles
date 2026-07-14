@@ -80,17 +80,25 @@ if [ "$get_status" = "200" ]; then
 elif [ "$get_status" = "404" ]; then
   # 新規作成: "_share" の直下に、noteId を明示指定して作成する。
   # → "_share" の子孫に配置されたノートは自動的に共有(公開閲覧可能)になる。
-  # マーカーラベルも同時に付与し、次回更新時の所有権確認に使う。
+  # NOTE: ETAPI の create-note は "attributes" プロパティを受け付けない
+  # (PROPERTY_NOT_ALLOWED) ため、マーカーラベルはノート作成後に
+  # 別途 POST /etapi/attributes で付与する。
   payload=$(jq -n \
     --arg noteId "$note_id" \
     --arg title "$title" \
     --arg content "$(cat "$html_file")" \
-    --arg markerLabel "$marker_label" \
-    '{parentNoteId: "_share", noteId: $noteId, title: $title, type: "text", content: $content,
-      attributes: [{type: "label", name: $markerLabel, value: "1"}]}')
+    '{parentNoteId: "_share", noteId: $noteId, title: $title, type: "text", content: $content}')
   curl -sf -X POST -H "$auth_header" -H "Content-Type: application/json" \
     --data "$payload" \
     "$TRILIUM_HTTP_URL/etapi/create-note" >/dev/null
+
+  label_payload=$(jq -n \
+    --arg noteId "$note_id" \
+    --arg markerLabel "$marker_label" \
+    '{noteId: $noteId, type: "label", name: $markerLabel, value: "1"}')
+  curl -sf -X POST -H "$auth_header" -H "Content-Type: application/json" \
+    --data "$label_payload" \
+    "$TRILIUM_HTTP_URL/etapi/attributes" >/dev/null
 else
   echo "ERROR: unexpected status $get_status from Trilium existence check ($TRILIUM_HTTP_URL/etapi/notes/$note_id)" >&2
   exit 1
