@@ -516,7 +516,9 @@ install_ghq() {
   temp_dir=$(mktemp -d)
 
   # 一時ディレクトリのクリーンアップを設定
-  trap 'rm -rf "$temp_dir"' RETURN
+  # ${temp_dir:-} は将来この関数がリファクタリングされ trap 登録より前で return するなど
+  # temp_dir 未定義のまま trap が発火し得る構成に変わっても set -u で落ちないようにする防御策
+  trap 'rm -rf "${temp_dir:-}"' RETURN
 
   if [[ ! -d "$temp_dir" ]]; then
     log_error "Failed to create temporary directory"
@@ -607,7 +609,9 @@ install_roots() {
 
   local temp_dir
   temp_dir=$(mktemp -d)
-  trap 'rm -rf "$temp_dir"' RETURN
+  # ${temp_dir:-} は将来この関数がリファクタリングされ trap 登録より前で return するなど
+  # temp_dir 未定義のまま trap が発火し得る構成に変わっても set -u で落ちないようにする防御策
+  trap 'rm -rf "${temp_dir:-}"' RETURN
 
   if [[ ! -d "$temp_dir" ]]; then
     log_error "Failed to create temporary directory"
