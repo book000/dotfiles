@@ -56,15 +56,17 @@ auth_header="Authorization: $TRILIUM_ETAPI_TOKEN"
 marker_label="triliumUploadTool"
 
 # 既存ノートかどうかを確認する。
+note_json=$(curl -s -H "$auth_header" \
+  "$TRILIUM_HTTP_URL/etapi/notes/$note_id")
 get_status=$(curl -s -o /dev/null -w '%{http_code}' -H "$auth_header" \
   "$TRILIUM_HTTP_URL/etapi/notes/$note_id")
 
 if [ "$get_status" = "200" ]; then
   # 衝突防止: マーカーラベルを持たないノートは他用途のノートとみなし、上書きを拒否する。
-  attributes=$(curl -sf -H "$auth_header" \
-    "$TRILIUM_HTTP_URL/etapi/notes/$note_id/attributes")
-  if ! printf '%s' "$attributes" | jq -e --arg name "$marker_label" \
-      'any(.[]; .type == "label" and .name == $name)' >/dev/null; then
+  # NOTE: ETAPI に単独の GET /etapi/notes/{id}/attributes エンドポイントは存在しない
+  # (404 Router not found) ため、ノート本体のレスポンスに含まれる "attributes" フィールドを見る。
+  if ! printf '%s' "$note_json" | jq -e --arg name "$marker_label" \
+      '.attributes | any(.[]; .type == "label" and .name == $name)' >/dev/null; then
     echo "ERROR: note $note_id exists but lacks the $marker_label marker; refusing to overwrite a note this script did not create" >&2
     exit 1
   fi
