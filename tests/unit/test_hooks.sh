@@ -12,6 +12,7 @@ HOOKS=(
   "home/dot_claude/hooks/executable_code-review-immediate-fix.sh"
   "home/dot_claude/hooks/executable_require-code-review-fixes.sh"
   "home/dot_claude/hooks/executable_require-review-thread-fixes.sh"
+  "home/dot_claude/hooks/executable_git-config-guard.sh"
 )
 
 # 各フックの構文チェック
@@ -168,6 +169,44 @@ else
   fi
 fi
 rm -rf "$TEST_HOME" "$TEST_BIN_DIR" "$TEST_CAPTURE_DIR"
+
+echo "Testing git-config-guard hook behavior..."
+GIT_CONFIG_GUARD="home/dot_claude/hooks/executable_git-config-guard.sh"
+
+run_git_config_guard() {
+  local cmd="$1"
+  jq -n --arg cmd "$cmd" '{"tool_input": {"command": $cmd}}' | bash "$GIT_CONFIG_GUARD"
+}
+
+# 読み取り系: 常に許可される(標準出力なし)
+for cmd in \
+  'git config --get user.name' \
+  'git config --list' \
+  'git config user.name' \
+  'git status'; do
+  OUTPUT=$(run_git_config_guard "$cmd")
+  if [[ -n "$OUTPUT" ]]; then
+    echo "❌ git-config-guard denied a command that should be allowed: $cmd"
+    FAILED=1
+  else
+    echo "✅ git-config-guard allowed: $cmd"
+  fi
+done
+
+# 書き込み系: permissionDecision: deny が出力される
+for cmd in \
+  'git config user.name "Foo"' \
+  'git config --global user.email foo@example.com' \
+  'git config --unset user.name'; do
+  OUTPUT=$(run_git_config_guard "$cmd")
+  DECISION=$(echo "$OUTPUT" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+  if [[ "$DECISION" != "deny" ]]; then
+    echo "❌ git-config-guard did not deny a write command: $cmd"
+    FAILED=1
+  else
+    echo "✅ git-config-guard denied: $cmd"
+  fi
+done
 
 if [ $FAILED -eq 0 ]; then
   echo "✅ All hook tests passed"
