@@ -403,7 +403,6 @@ install_apt_packages() {
   local packages=(
     "curl"
     "git"
-    "unzip"
     "bash"
     "tmux"
     "vim"
@@ -449,240 +448,29 @@ install_mise() {
   log_info "mise が正常にインストールされました ($("$HOME/.local/bin/mise" --version))"
 }
 
-# gh CLI のインストール
-install_gh_cli() {
+# mise 経由でのツールインストール (gh, ghq, roots)
+# home/dot_config/mise/config.toml の宣言に従い、chezmoi apply 後に実行する
+install_mise_tools() {
   if [[ "$SKIP_GH" == "1" ]]; then
     log_info "gh CLI のインストールをスキップします (--skip-gh)"
-    return 0
-  fi
-
-  log_info "GitHub CLI (gh) をインストールしています..."
-
-  if command -v gh &> /dev/null; then
-    log_warn "gh は既にインストールされています ($(gh --version | head -n1))"
-    return 0
-  fi
-
-  # GitHub CLI 公式リポジトリの追加
-  if ! command -v curl &> /dev/null; then
-    run_command sudo apt update
-    run_command sudo apt install curl -y
-  fi
-
-  run_command curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /tmp/githubcli-archive-keyring.gpg
-  run_command sudo dd if=/tmp/githubcli-archive-keyring.gpg of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-  run_command sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-
-  if [[ "$DRY_RUN" == "1" ]]; then
-    log_info "[DRY RUN] echo \"deb [arch=\$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | sudo tee /etc/apt/sources.list.d/github-cli.list"
   else
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+    log_info "gh CLI を mise 経由でインストールしています..."
+    run_command mise install gh
   fi
 
-  run_command sudo apt update
-  run_command sudo apt install gh -y
-
-  if [[ "$DRY_RUN" != "1" ]]; then
-    log_info "gh が正常にインストールされました ($(gh --version | head -n1))"
-  fi
-}
-
-# ghq のインストール
-install_ghq() {
   if [[ "$SKIP_GHQ" == "1" ]]; then
     log_info "ghq のインストールをスキップします (--skip-ghq)"
-    return 0
-  fi
-
-  log_info "ghq をインストールしています..."
-
-  if command -v ghq &> /dev/null; then
-    log_warn "ghq は既にインストールされています"
-    return 0
-  fi
-
-  # パッケージマネージャで試行
-  if command -v apt &> /dev/null; then
-    log_info "apt で ghq をインストールしています..."
-    if [[ "$DRY_RUN" == "1" ]]; then
-      log_info "[DRY RUN] apt で ghq のインストールをスキップし、GitHub Release からのインストールに進みます"
-    else
-      if run_command sudo apt install -y ghq 2>/dev/null; then
-        log_info "ghq が apt からインストールされました"
-        return 0
-      else
-        log_warn "apt で ghq が見つかりませんでした。GitHub Release からダウンロードします"
-      fi
-    fi
-  fi
-
-  # GitHub Release から最新版を取得
-  log_info "GitHub Release から最新版を取得しています..."
-
-  local version
-  local api_response
-  api_response=$(curl -fsSL https://api.github.com/repos/x-motemen/ghq/releases/latest)
-
-  # jq が利用可能なら JSON を安全にパースする
-  if command -v jq &> /dev/null; then
-    version=$(printf '%s\n' "$api_response" | jq -r '.tag_name' | sed -E 's/^v//')
   else
-    # jq が利用できない場合は従来の grep / sed にフォールバックする
-    log_warn "jq is not installed. Falling back to grep/sed for version parsing"
-    version=$(printf '%s\n' "$api_response" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+    log_info "ghq を mise 経由でインストールしています..."
+    run_command mise install ghq
   fi
 
-  if [[ -z "$version" || "$version" == "null" ]]; then
-    log_error "Failed to parse latest version from GitHub API"
-    return 1
-  fi
-
-  log_info "最新バージョン: v$version"
-
-  # ダウンロード URL
-  local os
-  os=$(uname -s | tr '[:upper:]' '[:lower:]')
-  local download_url="https://github.com/x-motemen/ghq/releases/download/v${version}/ghq_${os}_${ARCH}.zip"
-
-  log_info "ダウンロード URL: $download_url"
-
-  # 一時ディレクトリでダウンロード
-  local temp_dir
-  temp_dir=$(mktemp -d)
-
-  # 一時ディレクトリのクリーンアップを設定
-  # ${temp_dir:-} は将来この関数がリファクタリングされ trap 登録より前で return するなど
-  # temp_dir 未定義のまま trap が発火し得る構成に変わっても set -u で落ちないようにする防御策
-  trap 'rm -rf "${temp_dir:-}"' RETURN
-
-  if [[ ! -d "$temp_dir" ]]; then
-    log_error "Failed to create temporary directory"
-    return 1
-  fi
-
-  cd "$temp_dir" || {
-    log_error "Failed to change directory to temporary directory"
-    return 1
-  }
-
-  # ghq のアーカイブをダウンロード
-  if ! curl -L -o ghq.zip "$download_url"; then
-    log_error "Failed to download ghq archive"
-    cd - > /dev/null || true
-    return 1
-  fi
-
-  # ダウンロードしたアーカイブを展開
-  if ! unzip -q ghq.zip; then
-    log_error "Failed to unzip ghq archive"
-    cd - > /dev/null || true
-    return 1
-  fi
-
-  # 展開後の ghq バイナリを特定
-  local ghq_binary
-  ghq_binary=$(find . -maxdepth 2 -type f -name ghq -print -quit)
-
-  if [[ -z "$ghq_binary" ]]; then
-    log_error "ghq binary not found after extraction"
-    cd - > /dev/null || true
-    return 1
-  fi
-
-  # ~/.local/bin にインストール
-  mkdir -p "$HOME/.local/bin"
-  mv "$ghq_binary" "$HOME/.local/bin/ghq"
-  chmod +x "$HOME/.local/bin/ghq"
-
-  cd - > /dev/null
-
-  log_info "ghq が正常にインストールされました"
-}
-
-# roots のインストール
-install_roots() {
   if [[ "$SKIP_ROOTS" == "1" ]]; then
     log_info "roots のインストールをスキップします (--skip-roots)"
-    return 0
-  fi
-
-  log_info "roots をインストールしています..."
-
-  if command -v roots &> /dev/null; then
-    log_warn "roots は既にインストールされています"
-    return 0
-  fi
-
-  if [[ "$DRY_RUN" == "1" ]]; then
-    log_info "[DRY RUN] roots の GitHub Release からのダウンロード・インストールをスキップします"
-    return 0
-  fi
-
-  log_info "GitHub Release から最新版を取得しています..."
-
-  local version
-  local api_response
-  api_response=$(curl -fsSL https://api.github.com/repos/k1LoW/roots/releases/latest)
-
-  if command -v jq &> /dev/null; then
-    version=$(printf '%s\n' "$api_response" | jq -r '.tag_name')
   else
-    log_warn "jq is not installed. Falling back to grep/sed for version parsing"
-    version=$(printf '%s\n' "$api_response" | grep '"tag_name":' | sed -E 's/.*"(v[^"]+)".*/\1/')
+    log_info "roots を mise 経由でインストールしています..."
+    run_command mise install ubi:k1LoW/roots
   fi
-
-  if [[ -z "$version" || "$version" == "null" ]]; then
-    log_error "Failed to parse latest version from GitHub API"
-    return 1
-  fi
-
-  log_info "最新バージョン: $version"
-
-  local download_url="https://github.com/k1LoW/roots/releases/download/${version}/roots_${version}_linux_${ARCH}.tar.gz"
-
-  log_info "ダウンロード URL: $download_url"
-
-  local temp_dir
-  temp_dir=$(mktemp -d)
-  # ${temp_dir:-} は将来この関数がリファクタリングされ trap 登録より前で return するなど
-  # temp_dir 未定義のまま trap が発火し得る構成に変わっても set -u で落ちないようにする防御策
-  trap 'rm -rf "${temp_dir:-}"' RETURN
-
-  if [[ ! -d "$temp_dir" ]]; then
-    log_error "Failed to create temporary directory"
-    return 1
-  fi
-
-  cd "$temp_dir" || { log_error "Failed to change directory to temporary directory"; return 1; }
-
-  if ! curl -fsSL -o roots.tar.gz "$download_url"; then
-    log_error "Failed to download roots archive"
-    cd - > /dev/null || true
-    return 1
-  fi
-
-  if ! tar -xzf roots.tar.gz; then
-    log_error "Failed to extract roots archive"
-    cd - > /dev/null || true
-    return 1
-  fi
-
-  local roots_binary
-  roots_binary=$(find . -maxdepth 1 -type f -name roots -print -quit)
-
-  if [[ -z "$roots_binary" ]]; then
-    log_error "roots binary not found after extraction"
-    cd - > /dev/null || true
-    return 1
-  fi
-
-  mkdir -p "$HOME/.local/bin"
-  mv "$roots_binary" "$HOME/.local/bin/roots"
-  chmod +x "$HOME/.local/bin/roots"
-
-  cd - > /dev/null
-
-  log_info "roots が正常にインストールされました"
 }
 
 # mkwork のインストール
@@ -957,14 +745,13 @@ main() {
   backup_ssh_config
   install_chezmoi
   install_apt_packages
-  install_gh_cli
-  install_ghq
-  install_roots
+  install_mise
   install_mkwork
   setup_gitconfig_local
   setup_env
   copy_env_if_needed  # chezmoi apply 前に .env をコピー（テンプレート展開エラー回避）
   apply_chezmoi
+  install_mise_tools  # config.toml 配置後に mise 経由で gh/ghq/roots をインストール
 
   log_info ""
   log_info "✅ インストールが正常に完了しました!"
