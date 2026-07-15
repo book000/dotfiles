@@ -76,6 +76,67 @@ fi
 
 echo "✅ Codex files generated successfully"
 
+# シークレットスキャン pre-commit フックの検証
+if [ ! -x "$HOME/.config/git/hooks/pre-commit" ]; then
+  echo "❌ pre-commit hook not generated or not executable"
+  exit 1
+fi
+
+if [ ! -f "$HOME/.gitleaks.toml" ]; then
+  echo "❌ .gitleaks.toml not generated"
+  exit 1
+fi
+
+# git config --get はストア済みの生文字列を返し、~ はここでは展開されない (git 内部で
+# フック解決時にのみ展開される) ため、リテラル文字列 "~/.config/git/hooks" と比較する
+HOOKS_PATH_VALUE=$(git config --file "$HOME/.config/git/config" --get core.hooksPath || true)
+# shellcheck disable=SC2088
+if [ "$HOOKS_PATH_VALUE" != "~/.config/git/hooks" ]; then
+  echo "❌ core.hooksPath not set to \$HOME/.config/git/hooks (got: $HOOKS_PATH_VALUE)"
+  exit 1
+fi
+
+echo "✅ Secret scan pre-commit hook and hooksPath generated successfully"
+
+# エンドツーエンド検証: 実際の git commit が core.hooksPath 経由でこのフックを起動すること
+# (ユニットテストはフックスクリプトを bash 経由で直接呼び出すのみで、
+# core.hooksPath の名前解決・実行権限を含む git 自身の起動経路は検証していないため)
+HOOK_TEST_REPO=$(mktemp -d)
+HOOK_MOCK_BIN=$(mktemp -d)
+HOOK_INVOKED_MARKER=$(mktemp -u)
+cat > "$HOOK_MOCK_BIN/gitleaks" << EOF
+#!/bin/bash
+touch "$HOOK_INVOKED_MARKER"
+exit 0
+EOF
+chmod +x "$HOOK_MOCK_BIN/gitleaks"
+
+(
+  cd "$HOOK_TEST_REPO" || exit 1
+  git init -q
+  git config user.name "Test User"
+  git config user.email "test@example.com"
+  echo "content" > file.txt
+  git add file.txt
+  PATH="$HOOK_MOCK_BIN:$PATH" git commit -q -m "test commit"
+)
+HOOK_COMMIT_EXIT=$?
+
+if [ "$HOOK_COMMIT_EXIT" -ne 0 ]; then
+  echo "❌ git commit failed unexpectedly (exit $HOOK_COMMIT_EXIT)"
+  rm -rf "$HOOK_TEST_REPO" "$HOOK_MOCK_BIN"
+  exit 1
+fi
+
+if [ ! -f "$HOOK_INVOKED_MARKER" ]; then
+  echo "❌ pre-commit hook was not invoked by git via core.hooksPath"
+  rm -rf "$HOOK_TEST_REPO" "$HOOK_MOCK_BIN"
+  exit 1
+fi
+
+rm -rf "$HOOK_TEST_REPO" "$HOOK_MOCK_BIN" "$HOOK_INVOKED_MARKER"
+echo "✅ pre-commit hook invoked by git via core.hooksPath end-to-end"
+
 if [ ! -f "$HOME/.claude/agents/spec-reviewer.md" ]; then
   echo "❌ spec-reviewer agent definition not generated"
   exit 1

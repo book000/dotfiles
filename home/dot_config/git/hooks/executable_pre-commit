@@ -1,0 +1,26 @@
+#!/bin/bash
+# pre-commit フック: git commit 時にステージ済み差分内のシークレット漏洩を gitleaks で検知する
+# chezmoi 管理下の core.hooksPath (~/.config/git/hooks) に配置され、dotfiles 導入マシン上の
+# 全 Git リポジトリで有効になる (home/dot_config/git/config の [core] hooksPath 設定を参照)
+
+set -u
+
+# gitleaks が見つからない場合は fail-open とする
+# (dotfiles 未導入・導入途中のマシンでコミットが一律ブロックされる事態を避けるため)
+if ! command -v gitleaks > /dev/null 2>&1; then
+    echo "⚠️  gitleaks not found in PATH. Secret scan skipped." >&2
+    echo "⚠️  Install gitleaks to enable secret scanning: https://github.com/gitleaks/gitleaks#installing" >&2
+    exit 0
+fi
+
+# リポジトリ自身の .gitleaks.toml があればそちらを gitleaks の自動検出に任せ、
+# 無ければグローバルのフォールバック設定 (~/.gitleaks.toml) を明示的に指定する。
+# pre-commit フックは git により作業ツリーのルートを cwd として起動されるため
+# (githooks(5))、追加の git rev-parse 呼び出しは不要
+GIT_ROOT="$PWD"
+CONFIG_ARGS=()
+if [[ ! -f "$GIT_ROOT/.gitleaks.toml" ]] && [[ -f "$HOME/.gitleaks.toml" ]]; then
+    CONFIG_ARGS=(--config "$HOME/.gitleaks.toml")
+fi
+
+gitleaks protect --staged --redact -v "${CONFIG_ARGS[@]}"
