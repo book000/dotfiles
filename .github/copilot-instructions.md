@@ -21,6 +21,7 @@
 
 - トークン・Webhook URL・パスワード等を平文でコミットしていないか確認する。
 - `~/.env` や `~/.gitconfig.local` はリポジトリ管理外。`.env.example` / `.gitconfig.local.example` などサンプルのみを含める。
+- pre-commit フック(`home/dot_config/git/hooks/executable_pre-commit`)や `home/dot_gitleaks.toml` の allowlist を変更する場合、誤検知抑制が広すぎて実際のシークレット検知を無効化していないか確認する。
 
 ### テストの追随
 

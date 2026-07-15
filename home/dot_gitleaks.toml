@@ -1,0 +1,15 @@
+title = "dotfiles gitleaks config (global fallback)"
+
+[extend]
+useDefault = true
+
+[allowlist]
+# このファイルはリポジトリ自身の .gitleaks.toml を持たない全リポジトリで
+# グローバルフォールバック設定 (~/.gitleaks.toml) として使われるため、
+# パスは dotfiles 自身の具体的なファイル名に限定し、他リポジトリの
+# *.example ファイルまで誤って除外しないようにする
+description = "Exclude dotfiles' own example/placeholder files from false positives"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)\.gitconfig\.local\.example$''',
+]

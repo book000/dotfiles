@@ -18,6 +18,7 @@
 #     --skip-ghq         ghq のインストールをスキップ
 #     --skip-mkwork      mkwork のインストールをスキップ
 #     --skip-roots       roots のインストールをスキップ
+#     --skip-gitleaks    gitleaks のインストールをスキップ
 #     --skip-interactive 対話的な確認をスキップ (CI 用、 /dev/tty が利用できない場合も自動的に非対話モードになります)
 #     --help             ヘルプを表示
 # ==============================================================================
@@ -33,6 +34,7 @@ SKIP_GH=0
 SKIP_GHQ=0
 SKIP_MKWORK=0
 SKIP_ROOTS=0
+SKIP_GITLEAKS=0
 SKIP_INTERACTIVE=0
 
 # ヘルプメッセージを表示する関数
@@ -48,6 +50,7 @@ OPTIONS:
   --skip-ghq         ghq のインストールをスキップ
   --skip-mkwork      mkwork のインストールをスキップ
   --skip-roots       roots のインストールをスキップ
+  --skip-gitleaks    gitleaks のインストールをスキップ
   --skip-interactive 対話的な確認をスキップ (CI 用、 /dev/tty が利用できない場合も自動的に非対話モードになります)
   --help             このヘルプを表示
 
@@ -88,6 +91,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-roots)
       SKIP_ROOTS=1
+      shift
+      ;;
+    --skip-gitleaks)
+      SKIP_GITLEAKS=1
       shift
       ;;
     --skip-interactive)
@@ -650,6 +657,115 @@ install_roots() {
   log_info "roots が正常にインストールされました"
 }
 
+# gitleaks のインストール
+install_gitleaks() {
+  if [[ "$SKIP_GITLEAKS" == "1" ]]; then
+    log_info "gitleaks のインストールをスキップします (--skip-gitleaks)"
+    return 0
+  fi
+
+  log_info "gitleaks をインストールしています..."
+
+  if command -v gitleaks &> /dev/null; then
+    log_warn "gitleaks は既にインストールされています"
+    return 0
+  fi
+
+  if [[ "$DRY_RUN" == "1" ]]; then
+    log_info "[DRY RUN] gitleaks の GitHub Release からのダウンロード・インストールをスキップします"
+    return 0
+  fi
+
+  log_info "GitHub Release から最新版を取得しています..."
+
+  local version
+  local api_response
+  api_response=$(curl -fsSL https://api.github.com/repos/gitleaks/gitleaks/releases/latest)
+
+  if command -v jq &> /dev/null; then
+    version=$(printf '%s\n' "$api_response" | jq -r '.tag_name' | sed -E 's/^v//')
+  else
+    log_warn "jq is not installed. Falling back to grep/sed for version parsing"
+    version=$(printf '%s\n' "$api_response" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+  fi
+
+  if [[ -z "$version" || "$version" == "null" ]]; then
+    log_error "Failed to parse latest version from GitHub API"
+    return 1
+  fi
+
+  log_info "最新バージョン: v$version"
+
+  # gitleaks のリリースアーカイブはアーキテクチャ名に amd64 ではなく x64 を使用する
+  local gitleaks_arch="$ARCH"
+  if [[ "$ARCH" == "amd64" ]]; then
+    gitleaks_arch="x64"
+  fi
+
+  local archive_filename="gitleaks_${version}_linux_${gitleaks_arch}.tar.gz"
+  local download_url="https://github.com/gitleaks/gitleaks/releases/download/v${version}/${archive_filename}"
+
+  log_info "ダウンロード URL: $download_url"
+
+  local temp_dir
+  temp_dir=$(mktemp -d)
+  # ${temp_dir:-} は将来この関数がリファクタリングされ trap 登録より前で return するなど
+  # temp_dir 未定義のまま trap が発火し得る構成に変わっても set -u で落ちないようにする防御策
+  trap 'rm -rf "${temp_dir:-}"' RETURN
+
+  if [[ ! -d "$temp_dir" ]]; then
+    log_error "Failed to create temporary directory"
+    return 1
+  fi
+
+  cd "$temp_dir" || { log_error "Failed to change directory to temporary directory"; return 1; }
+
+  if ! curl -fsSL -o "$archive_filename" "$download_url"; then
+    log_error "Failed to download gitleaks archive"
+    cd - > /dev/null || true
+    return 1
+  fi
+
+  # 改ざん・アセット差し替えを検知するため、gitleaks が公開するチェックサムファイルと突合する
+  # (sha256sum -c はチェックサム行に記載されたファイル名で cwd を照合するため、
+  # ダウンロードしたアーカイブはリリースアセットと同じファイル名で保存する必要がある)
+  local checksums_url="https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_checksums.txt"
+  if ! curl -fsSL -o checksums.txt "$checksums_url"; then
+    log_error "Failed to download gitleaks checksums file"
+    cd - > /dev/null || true
+    return 1
+  fi
+
+  if ! grep -- "$archive_filename" checksums.txt | sha256sum -c - > /dev/null; then
+    log_error "gitleaks archive checksum verification failed"
+    cd - > /dev/null || true
+    return 1
+  fi
+
+  if ! tar -xzf "$archive_filename"; then
+    log_error "Failed to extract gitleaks archive"
+    cd - > /dev/null || true
+    return 1
+  fi
+
+  local gitleaks_binary
+  gitleaks_binary=$(find . -maxdepth 1 -type f -name gitleaks -print -quit)
+
+  if [[ -z "$gitleaks_binary" ]]; then
+    log_error "gitleaks binary not found after extraction"
+    cd - > /dev/null || true
+    return 1
+  fi
+
+  mkdir -p "$HOME/.local/bin"
+  mv "$gitleaks_binary" "$HOME/.local/bin/gitleaks"
+  chmod +x "$HOME/.local/bin/gitleaks"
+
+  cd - > /dev/null
+
+  log_info "gitleaks が正常にインストールされました"
+}
+
 # mkwork のインストール
 install_mkwork() {
   if [[ "$SKIP_MKWORK" == "1" ]]; then
@@ -926,6 +1042,7 @@ main() {
   install_ghq
   install_roots
   install_mkwork
+  install_gitleaks
   setup_gitconfig_local
   setup_env
   copy_env_if_needed  # chezmoi apply 前に .env をコピー（テンプレート展開エラー回避）

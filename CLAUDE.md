@@ -94,3 +94,9 @@ Claude Code のフックは `home/dot_claude/private_settings.json` で設定さ
 - **レビュー強制など**: `home/dot_claude/hooks/` 配下のスクリプト(deep-review、レビュースレッド未解決チェック、rtk 書き換え、git config ガード等)。
 
 フックのコマンドや対象スクリプトを変更したときは、`tests/unit/test_hooks.sh` / `test_notifications.sh` の参照が古くなっていないか確認する。
+
+## Git フック(シークレットスキャン)
+
+`home/dot_config/git/hooks/executable_pre-commit`(デプロイ後 `~/.config/git/hooks/pre-commit`)が `core.hooksPath` 経由でグローバル pre-commit フックとして登録され、`gitleaks` によるステージ済み差分のシークレットスキャンを行う。フォールバック設定は `home/dot_gitleaks.toml`(デプロイ後 `~/.gitleaks.toml`)。
+
+このフックや `install.sh` の `install_gitleaks` を変更した場合、`tests/unit/test_hooks.sh` / `tests/unit/test_install.sh` / `tests/integration/test_chezmoi_apply.sh` の参照が古くなっていないか確認する。

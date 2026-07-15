@@ -81,6 +81,16 @@ macOS と Windows は現在サポートされていません。
 
 より安全にインストールするには、3 ステップインストール（ダウンロード、確認、実行）を推奨します。
 
+## コミット時のシークレットスキャン
+
+`git commit` 実行時に、ステージ済み差分内のシークレット(API キー、トークンなど)を [gitleaks](https://github.com/gitleaks/gitleaks) で検知し、検知した場合はコミットをブロックします。`git config --global core.hooksPath` を `~/.config/git/hooks` に設定することで、dotfiles を導入した全 Git リポジトリで有効になります。
+
+**既知の制約:**
+
+- リポジトリ側で `core.hooksPath` がローカル設定として上書きされている場合、このグローバルフックは効きません(Git の標準仕様)。
+- `gitleaks` コマンドが見つからない場合は fail-open(警告を表示した上でコミットを続行)します。`install.sh` が `gitleaks` を自動インストールしますが、`--skip-gitleaks` でスキップした環境や、dotfiles 導入前の環境ではスキャンが行われません。
+- 誤検知が発生した場合は、対象リポジトリに独自の `.gitleaks.toml` を配置するか、`git commit --no-verify` でバイパスしてください。
+
 ## Claude Code 通知機能
 
 Claude Code がユーザー操作を必要とする場合に、Discord Webhook を使用して通知する機能が実装されています。
