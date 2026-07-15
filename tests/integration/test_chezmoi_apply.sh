@@ -76,6 +76,28 @@ fi
 
 echo "✅ Codex files generated successfully"
 
+# シークレットスキャン pre-commit フックの検証
+if [ ! -x "$HOME/.config/git/hooks/pre-commit" ]; then
+  echo "❌ pre-commit hook not generated or not executable"
+  exit 1
+fi
+
+if [ ! -f "$HOME/.gitleaks.toml" ]; then
+  echo "❌ .gitleaks.toml not generated"
+  exit 1
+fi
+
+# git config --get はストア済みの生文字列を返し、~ はここでは展開されない (git 内部で
+# フック解決時にのみ展開される) ため、リテラル文字列 "~/.config/git/hooks" と比較する
+HOOKS_PATH_VALUE=$(git config --file "$HOME/.config/git/config" --get core.hooksPath || true)
+# shellcheck disable=SC2088
+if [ "$HOOKS_PATH_VALUE" != "~/.config/git/hooks" ]; then
+  echo "❌ core.hooksPath not set to \$HOME/.config/git/hooks (got: $HOOKS_PATH_VALUE)"
+  exit 1
+fi
+
+echo "✅ Secret scan pre-commit hook and hooksPath generated successfully"
+
 if [ ! -f "$HOME/.claude/agents/spec-reviewer.md" ]; then
   echo "❌ spec-reviewer agent definition not generated"
   exit 1
