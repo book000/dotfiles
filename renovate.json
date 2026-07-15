@@ -7,6 +7,12 @@
       "matchStrings": ["ccstatusline@(?<currentValue>[0-9.]+)"],
       "depNameTemplate": "ccstatusline",
       "datasourceTemplate": "npm"
+    },
+    {
+      "fileMatch": ["^install\\.sh$"],
+      "matchStrings": ["MISE_VERSION=\"(?<currentValue>v[0-9.]+)\""],
+      "depNameTemplate": "jdx/mise",
+      "datasourceTemplate": "github-releases"
     }
   ]
 }

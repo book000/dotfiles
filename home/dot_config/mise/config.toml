@@ -4,6 +4,10 @@ java = "25"
 node = "24"
 python = "3.14"
 pnpm = "latest"
+ghq = "latest"
+gh = "latest"
+"ubi:k1LoW/roots" = "latest"
+gitleaks = "latest"
 
 [settings]
 idiomatic_version_file_enable_tools = ["node"]

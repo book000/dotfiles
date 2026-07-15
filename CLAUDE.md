@@ -84,7 +84,7 @@ chezmoi はソース側のプレフィックスを解釈してデプロイする
 - `.env.example` と `.gitconfig.local.example` をサンプルとして提供。
 - wakatime は別途管理するため、dotfiles での暗号化管理は行わない。
 - PR 作成先は `upstream` remote があればそれを既定とし、`home/bin/executable_gh-pr-target-repo.sh`（デプロイ後 `~/bin/gh-pr-target-repo.sh`）で解決する。
-- 依存バージョンの更新は `renovate.json` の Renovate (GitHub App) で管理する。`home/dot_claude/private_settings.json` の `statusLine.command` に埋め込まれた `ccstatusline` の npm バージョンなど、通常の `package.json` では追跡できない箇所は `regexManagers` で個別に対象化する。
+- 依存バージョンの更新は `renovate.json` の Renovate (GitHub App) で管理する。`home/dot_claude/private_settings.json` の `statusLine.command` に埋め込まれた `ccstatusline` の npm バージョンや、`install.sh` に固定記述された mise 本体のバージョンなど、通常の `package.json` では追跡できない箇所は `regexManagers` で個別に対象化する。`gh`/`ghq`/`roots`/`gitleaks` など mise 管理下のツールバージョンは `home/dot_config/mise/config.toml` への宣言により Renovate のネイティブな mise サポートで自動追跡される(`regexManagers` の追加設定は不要)。
 
 ## Claude Code フック / 通知機能
 
@@ -99,4 +99,4 @@ Claude Code のフックは `home/dot_claude/private_settings.json` で設定さ
 
 `home/dot_config/git/hooks/executable_pre-commit`(デプロイ後 `~/.config/git/hooks/pre-commit`)が `core.hooksPath` 経由でグローバル pre-commit フックとして登録され、`gitleaks` によるステージ済み差分のシークレットスキャンを行う。フォールバック設定は `home/dot_gitleaks.toml`(デプロイ後 `~/.gitleaks.toml`)。
 
-このフックや `install.sh` の `install_gitleaks` を変更した場合、`tests/unit/test_hooks.sh` / `tests/unit/test_install.sh` / `tests/integration/test_chezmoi_apply.sh` の参照が古くなっていないか確認する。
+このフックや `gitleaks` コマンド自体のインストール方法(`home/dot_config/mise/config.toml` 経由の mise 管理、`install.sh` の `install_mise_tools`)を変更した場合、`tests/unit/test_hooks.sh` / `tests/unit/test_install.sh` / `tests/integration/test_chezmoi_apply.sh` の参照が古くなっていないか確認する。

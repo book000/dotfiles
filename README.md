@@ -72,6 +72,10 @@ export PATH="$HOME/.local/bin:$PATH"
 
 macOS と Windows は現在サポートされていません。
 
+## ツールバージョン管理
+
+`mise`（https://mise.jdx.dev/）を使用して、`gh`・`ghq`・`roots`・`gitleaks` などの CLI ツールおよび言語ランタイムのバージョンを管理しています。バージョンの宣言は `home/dot_config/mise/config.toml` で行い、Renovate が自動的に更新 PR を作成します。
+
 ## セキュリティに関する注意事項
 
 `curl | bash` 方式には以下のリスクがあります:
@@ -88,7 +92,7 @@ macOS と Windows は現在サポートされていません。
 **既知の制約:**
 
 - リポジトリ側で `core.hooksPath` がローカル設定として上書きされている場合、このグローバルフックは効きません(Git の標準仕様)。
-- `gitleaks` コマンドが見つからない場合は fail-open(警告を表示した上でコミットを続行)します。`install.sh` が `gitleaks` を自動インストールしますが、`--skip-gitleaks` でスキップした環境や、dotfiles 導入前の環境ではスキャンが行われません。
+- `gitleaks` コマンドが見つからない場合は fail-open(警告を表示した上でコミットを続行)します。`install.sh` が mise 経由で `gitleaks` を自動インストールしますが、`--skip-gitleaks` でスキップした環境や、dotfiles 導入前の環境ではスキャンが行われません。
 - 誤検知が発生した場合は、対象リポジトリに独自の `.gitleaks.toml` を配置するか、`git commit --no-verify` でバイパスしてください。
 
 ## Claude Code 通知機能
