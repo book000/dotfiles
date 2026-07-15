@@ -1,6 +1,6 @@
 ---
 name: lite-review
-description: Lightweight code review of a GitHub PR or the local working diff. Runs a single sub-agent covering 3 fixed perspectives (CLAUDE.md compliance, bugs/correctness, security), scores findings 0-100, reports only score >= 50, and for the user's own PRs auto-fixes, commits, pushes, and updates the PR body.
+description: Lightweight code review of a GitHub PR or the local working diff. Runs a single sub-agent covering 4 fixed perspectives (CLAUDE.md compliance, bugs/correctness, code comment quality, security), scores findings 0-100, reports only score >= 50, and for the user's own PRs auto-fixes, commits, pushes, and updates the PR body.
 argument-hint: "[PR number or URL | omit to review the local working diff]"
 disable-model-invocation: false
 effort: medium
@@ -40,20 +40,20 @@ Same as `deep-review` Step 2.
 
 Same as `deep-review` Step 3.
 
-### Step 4: Single-agent perspective review (3 fixed perspectives)
+### Step 4: Single-agent perspective review (4 fixed perspectives)
 
 Unlike `deep-review`'s Step 5 (one sub-agent per reviewer file), launch a
-**single** general-purpose sub-agent covering all 3 perspectives below in
+**single** general-purpose sub-agent covering all 4 perspectives below in
 one call:
 
-1. Read `~/.claude/skills/deep-review/reviewers/a-claude-md-compliance.md`, `b-bugs-correctness.md`, and `f-security.md` directly (reuse their
+1. Read `~/.claude/skills/deep-review/reviewers/a-claude-md-compliance.md`, `b-bugs-correctness.md`, `e-code-comment-quality.md`, and `f-security.md` directly (reuse their
    `## Scope` bodies verbatim — do not duplicate the text into this file).
 2. Pass the sub-agent: the full diff, the change summary from Step 3, the
    CLAUDE.md/rules content from Step 2 (with the "already read, don't
    re-Read" instruction), the shared false-positive suppression
    instructions (identical text to `deep-review` SKILL.md's Step 5
-   suppression block), and all 3 reviewers' `## Scope` bodies together,
-   instructing it to check the diff against all 3 perspectives in a
+   suppression block), and all 4 reviewers' `## Scope` bodies together,
+   instructing it to check the diff against all 4 perspectives in a
    single pass and return findings tagged with which perspective(s) they
    belong to.
 
@@ -98,7 +98,7 @@ no-issues-found — not just one) and the "no issues found" line changed to:
 ```
 ### Lite Review
 
-No issues found. Checked for CLAUDE.md compliance, bugs/correctness, and security.
+No issues found. Checked for CLAUDE.md compliance, bugs/correctness, code comment quality, and security.
 ```
 
 Formatting rules are identical to `deep-review` Step 13 (full SHA +
