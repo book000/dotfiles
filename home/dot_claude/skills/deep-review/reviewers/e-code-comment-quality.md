@@ -9,7 +9,7 @@ applies_to: all
 
 Read code comments and docstrings in changed files. These checks are explicitly in scope for this agent, so the shared "general code quality concerns" suppression in SKILL.md does not apply to them.
 
-Judge each comment against `~/.claude/rules/coding-common.md`'s Content layer "Code comments" allow/deny conditions — read that file rather than assuming its content. Flag any comment that does not satisfy an allow condition, or that matches a deny condition, for example:
+Judge each comment against the Content layer "Code comments" allow/deny conditions in `~/.claude/rules/coding-common.md` — that file's content is already provided in your context, so apply those conditions as given rather than assuming what they say from memory. Flag any comment that does not satisfy an allow condition, or that matches a deny condition, for example:
 
 - Redundant comments that merely restate what the code already makes obvious (e.g. a comment saying "increment i by 1" directly above `i++`).
 - Obvious descriptions or comments that can be removed without issue.
