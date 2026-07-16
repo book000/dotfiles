@@ -119,8 +119,15 @@ onto the correct base immediately, before any spec/plan/implementation work
 begins:
 
 ```bash
-ORIGIN_OWNER=$(gh repo view --json owner -q .owner.login)
-ORIGIN_REPO=$(gh repo view --json name -q .name)
+# Resolve directly from the `origin` remote's URL, not via unqualified
+# `gh repo view` — when both `origin` and `upstream` remotes exist (this
+# fork scenario itself), `gh repo view` with no repository argument
+# resolves ambiguously and can silently return `upstream`'s owner/repo
+# instead of `origin`'s, which would make the comparison below wrongly
+# conclude there's no fork mismatch and skip the rebase entirely.
+ORIGIN_URL=$(git remote get-url origin)
+ORIGIN_OWNER=$(echo "$ORIGIN_URL" | sed -E 's#^(git@[^:]+:|https://[^/]+/)##; s#\.git$##' | cut -d/ -f1)
+ORIGIN_REPO=$(echo "$ORIGIN_URL" | sed -E 's#^(git@[^:]+:|https://[^/]+/)##; s#\.git$##' | cut -d/ -f2)
 if [ "$ISSUE_OWNER/$ISSUE_REPO" != "$ORIGIN_OWNER/$ORIGIN_REPO" ]; then
   # Reuse an existing remote pointing at ISSUE_OWNER/ISSUE_REPO, or add one.
   REMOTE_NAME=$(git remote -v | grep -F "github.com/$ISSUE_OWNER/$ISSUE_REPO" | head -1 | cut -f1)

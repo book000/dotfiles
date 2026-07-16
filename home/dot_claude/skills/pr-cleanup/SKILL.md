@@ -28,13 +28,25 @@ can be invoked manually for any PR, or automatically by `wait-for-pr-close`.
 ```bash
 # grep -oP (PCRE) doesn't work on macOS's BSD grep, so use sed -E for a portable form
 PR_ARG="$ARGUMENTS"
+
+# Always resolve the local `origin` remote's owner/repo directly from its
+# URL, not via unqualified `gh repo view`. When both `origin` and `upstream`
+# remotes exist (the fork scenario), `gh repo view` with no repository
+# argument resolves ambiguously and can silently return `upstream`'s
+# owner/repo instead of `origin`'s — this previously broke the Step 4 fork
+# check (it read `upstream`'s own `parent`, which is `null`, and concluded
+# `origin` wasn't a fork when it actually was).
+ORIGIN_URL=$(git remote get-url origin)
+ORIGIN_OWNER=$(echo "$ORIGIN_URL" | sed -E 's#^(git@[^:]+:|https://[^/]+/)##; s#\.git$##' | cut -d/ -f1)
+ORIGIN_REPO=$(echo "$ORIGIN_URL" | sed -E 's#^(git@[^:]+:|https://[^/]+/)##; s#\.git$##' | cut -d/ -f2)
+
 if echo "$PR_ARG" | grep -q 'github\.com'; then
   OWNER=$(echo "$PR_ARG" | sed -E 's#.*github\.com/([^/]+)/.*#\1#')
   REPO=$(echo "$PR_ARG" | sed -E 's#.*github\.com/[^/]+/([^/]+)/pull/.*#\1#')
   PR_NUMBER=$(echo "$PR_ARG" | sed -E 's#.*/pull/([0-9]+).*#\1#')
 else
-  OWNER=$(gh repo view --json owner --jq '.owner.login')
-  REPO=$(gh repo view --json name --jq '.name')
+  OWNER="$ORIGIN_OWNER"
+  REPO="$ORIGIN_REPO"
   PR_NUMBER="$PR_ARG"
 fi
 ```
@@ -101,7 +113,7 @@ git branch -D "$HEAD_REF"
 ## Step 3: Update the Local Default Branch
 
 ```bash
-DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)
+DEFAULT_BRANCH=$(gh repo view "$ORIGIN_OWNER/$ORIGIN_REPO" --json defaultBranchRef -q .defaultBranchRef.name)
 git checkout "$DEFAULT_BRANCH"
 git pull
 ```
@@ -119,13 +131,16 @@ the local checkout, which is always `origin`.
 ## Step 4: Sync the Fork (if applicable)
 
 ```bash
-if gh repo view --json parent -q .parent 2>/dev/null | grep -qv '^null$'; then
-  gh repo sync
+if gh repo view "$ORIGIN_OWNER/$ORIGIN_REPO" --json parent -q .parent 2>/dev/null | grep -qv '^null$'; then
+  gh repo sync "$ORIGIN_OWNER/$ORIGIN_REPO"
 fi
 ```
 
-`gh repo view --json parent` returns `null` for non-fork repositories;
-`gh repo sync` is only run when a parent exists (i.e. `origin` is a fork).
+`gh repo view "$ORIGIN_OWNER/$ORIGIN_REPO" --json parent` returns `null` for
+non-fork repositories; `gh repo sync` is only run when a parent exists
+(i.e. `origin` is a fork). Both calls explicitly target `$ORIGIN_OWNER/$ORIGIN_REPO`
+(resolved in Step 0) rather than relying on `gh`'s ambiguous no-argument
+resolution — see the comment in Step 0 for why.
 
 ## Step 5: Report Completion
 

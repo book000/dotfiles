@@ -23,9 +23,14 @@ if echo "$PR_ARG" | grep -q 'github\.com'; then
   REPO=$(echo "$PR_ARG" | grep -oP 'github\.com/[^/]+/\K[^/]+(?=/pull)')
   PR_NUMBER=$(echo "$PR_ARG" | grep -oP '/pull/\K\d+')
 else
-  # Number only: get from current repository
-  OWNER=$(gh repo view --json owner --jq '.owner.login')
-  REPO=$(gh repo view --json name --jq '.name')
+  # Number only: get from current repository. Resolve directly from the
+  # `origin` remote's URL, not via unqualified `gh repo view` — when both
+  # `origin` and `upstream` remotes exist (the fork scenario), `gh repo
+  # view` with no repository argument resolves ambiguously and can
+  # silently return `upstream`'s owner/repo instead of `origin`'s.
+  ORIGIN_URL=$(git remote get-url origin)
+  OWNER=$(echo "$ORIGIN_URL" | sed -E 's#^(git@[^:]+:|https://[^/]+/)##; s#\.git$##' | cut -d/ -f1)
+  REPO=$(echo "$ORIGIN_URL" | sed -E 's#^(git@[^:]+:|https://[^/]+/)##; s#\.git$##' | cut -d/ -f2)
   PR_NUMBER="$PR_ARG"
 fi
 
