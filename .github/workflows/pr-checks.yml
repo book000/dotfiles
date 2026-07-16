@@ -14,6 +14,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run shellcheck with action
+        id: run-shellcheck-with-action
+        background: true
         uses: reviewdog/action-shellcheck@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -29,9 +31,16 @@ jobs:
           shellcheck_flags: '-s bash'
 
       - name: Run custom shellcheck tests
+        id: run-custom-shellcheck-tests
+        background: true
         run: |
           sudo apt-get update && sudo apt-get install -y shellcheck
           bash tests/syntax/test_shellcheck.sh
+
+      - name: Wait for shellcheck steps
+        wait:
+          - run-shellcheck-with-action
+          - run-custom-shellcheck-tests
 
   syntax:
     name: Bash Syntax Check

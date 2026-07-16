@@ -17,10 +17,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run install.sh unit test
+        id: run-install-sh-unit-test
+        background: true
         run: bash tests/unit/test_install.sh
 
       - name: Run notification unit test
+        id: run-notification-unit-test
+        background: true
         run: bash tests/unit/test_notifications.sh
 
       - name: Run hooks unit test
+        id: run-hooks-unit-test
+        background: true
         run: bash tests/unit/test_hooks.sh
+
+      - name: Wait for unit tests
+        wait:
+          - run-install-sh-unit-test
+          - run-notification-unit-test
+          - run-hooks-unit-test
