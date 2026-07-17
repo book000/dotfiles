@@ -85,6 +85,7 @@ chezmoi はソース側のプレフィックスを解釈してデプロイする
 - wakatime は別途管理するため、dotfiles での暗号化管理は行わない。
 - PR 作成先は `upstream` remote があればそれを既定とし、`home/bin/executable_gh-pr-target-repo.sh`（デプロイ後 `~/bin/gh-pr-target-repo.sh`）で解決する。
 - 依存バージョンの更新は `renovate.json` の Renovate (GitHub App) で管理する。`home/dot_claude/private_settings.json` の `statusLine.command` に埋め込まれた `ccstatusline` の npm バージョンや、`install.sh` に固定記述された mise 本体のバージョンなど、通常の `package.json` では追跡できない箇所は `regexManagers` で個別に対象化する。`gh`/`ghq`/`roots`/`gitleaks` など mise 管理下のツールバージョンは `home/dot_config/mise/config.toml` への宣言により Renovate のネイティブな mise サポートで自動追跡される(`regexManagers` の追加設定は不要)。
+- chezmoi によるデプロイ先 (`~/.claude/` 配下など、`home/dot_*` から展開される全ての実体) を直接編集してはならない。必ず対応する `home/dot_*` 配下のソースファイルを編集し、動作確認が必要な場合は `chezmoi apply` (または `chezmoi diff`) で反映すること。デプロイ先を直接編集すると、その後の `chezmoi apply`/`chezmoi update` (自動実行される場合を含む) によってソース側の内容で無言のまま上書き・巻き戻しされる。
 
 ## Claude Code フック / 通知機能
 

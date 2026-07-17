@@ -37,6 +37,8 @@ Parent session's job: define the task, pass along any research/decisions already
 
 The agent has no memory of this rule file, so the dispatch prompt must restate the concrete scope and task inline — not just reference "this carve-out" by name.
 
+When the prompt files being edited live under a chezmoi-managed dotfiles repo (source at `home/dot_*`, deployed to e.g. `~/.claude/`), always edit the chezmoi SOURCE path, never the deployed target path directly — direct edits to the deployed path get silently overwritten by the next `chezmoi apply`/`chezmoi update` (including automatic/scheduled runs), discarding the edit without warning.
+
 ## When to delegate ✅
 
 1. **True parallelism** — independent threads that can run simultaneously.
