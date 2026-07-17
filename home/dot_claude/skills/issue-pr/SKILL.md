@@ -12,9 +12,13 @@ judges the change's scale, and hands off to either `issue-pr-deep` (full
 spec/plan approval flow) or `issue-pr-lite` (direct implementation, no
 spec/plan) — see Phase 2.5. It has no Phase 3-onward logic of its own.
 
-Approval here is done via **AskUserQuestion**, not Claude Code's native Plan
-Mode — Plan Mode only allows a single read-only-until-ExitPlanMode gate, and
-blocks the Write/Bash/MCP calls this skill needs starting at Phase 1.
+Where approval is needed further down this flow (e.g. `issue-pr-deep`'s
+spec/plan sign-off), it is done via **AskUserQuestion**, not Claude Code's
+native Plan Mode — Plan Mode only allows a single
+read-only-until-ExitPlanMode gate, and blocks the Write/Bash/MCP calls this
+skill needs starting at Phase 1. This dispatcher's own Phase 2.5 scale
+judgment is not one of those approval points — it is made automatically,
+without asking the user (see Phase 2.5 below).
 
 **Do not call ExitPlanMode to work around this.** It exists to get sign-off
 on a concrete plan, not to escape Plan Mode. If Plan Mode is active when this
@@ -163,13 +167,12 @@ Judge "small-scale" only if **all** of the following hold:
 When unsure, do **not** judge it small-scale — default to the safe
 (`issue-pr-deep`) side.
 
-Confirm the judgment with the user via **AskUserQuestion** — never invoke
-`issue-pr-lite` on your own judgment alone:
+Make the call yourself — do not stop to confirm this judgment with the
+user via AskUserQuestion. Briefly state which path was chosen and why
+(one or two sentences) before invoking it, so the decision is visible, but
+do not turn that statement into a question.
 
-- If judged small-scale, options: "issue-pr-lite で進める(spec/planを省略し、直接実装)" (recommended) / "issue-pr-deep で進める(通常のspec/planフル承認フロー)"
-- If not judged small-scale, options: "issue-pr-deep で進める(推奨)" / "issue-pr-lite で進める"
-
-Based on the user's choice, invoke the chosen skill via the Skill tool
+Based on the judgment, invoke the chosen skill via the Skill tool
 (`issue-pr-deep` or `issue-pr-lite`). The worktree, `ISSUE_OWNER`,
 `ISSUE_REPO`, and the Issue body are already in this conversation's
 context — the invoked skill starts at its own Phase 3 without redoing

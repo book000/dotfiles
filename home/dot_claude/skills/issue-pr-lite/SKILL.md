@@ -1,6 +1,6 @@
 ---
 name: issue-pr-lite
-description: Lightweight path for small-scale Issues. Invoked by the `issue-pr` dispatcher after Phase 2.5 judges the change small-scale and the user confirms. Skips spec/plan; implements directly.
+description: Lightweight path for small-scale Issues. Invoked by the `issue-pr` dispatcher after Phase 2.5 judges the change small-scale. Skips spec/plan; implements directly.
 disable-model-invocation: false
 ---
 
