@@ -3,6 +3,8 @@
 - No unauthorized changes (hooks, settings, PRs) without explicit approval — ask if blocked.
 - Work carefully and thoroughly, no shortcuts regardless of scale.
 - **Do not merge PRs until explicitly instructed.**
+- **Delegate all reading/writing of Claude Code's own prompt files** (`CLAUDE.md`/`AGENTS.md`, `rules/*.md`, `skills/*`, `agents/*.md`, hooks, `settings.json`) to a sub-agent, regardless of task size — see `rules/workflow-sub-agents.md` for detail.
+- **Before creating any PR, run `/deep-review` (local diff mode) and complete the Pre-PR checklist in `rules/workflow.md`** — do not skip this even for small or doc-only changes.
 
 ## Behavior
 
