@@ -44,6 +44,7 @@ Not auto-loaded. Read the relevant file only when the situation applies:
 | When | Read |
 |---|---|
 | Checklists / Jira rules needed | `rules/workflow.md` |
+| Deciding whether to delegate to a sub-agent (esp. any work touching Claude Code's own prompt files: `CLAUDE.md`/`AGENTS.md`, `rules/*.md`, `skills/*`, `agents/*.md`, hooks, `settings.json`) | `rules/workflow-sub-agents.md` |
 | Writing/reviewing code, comments, tests, commits | `rules/coding-common.md` |
 | Writing a spec or plan document | `rules/superpowers.md` |
 | Posting a spec/plan/investigation doc to a GitHub Issue | `rules/issue-comment-docs.md` |
