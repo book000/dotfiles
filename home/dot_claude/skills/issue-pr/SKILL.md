@@ -176,10 +176,23 @@ Judge "small-scale" only if **all** of the following hold:
 When unsure, do **not** judge it small-scale — default to the safe
 (`issue-pr-deep`) side.
 
-Make the call yourself — do not stop to confirm this judgment with the
-user via AskUserQuestion. Briefly state which path was chosen and why
-(one or two sentences) before invoking it, so the decision is visible, but
-do not turn that statement into a question.
+**Make the call yourself. Do not confirm this judgment with the user via
+AskUserQuestion, under any circumstance** — there is no exception for "the
+judgment feels uncertain" or "the user might want a say." Briefly state
+which path was chosen and why (one or two sentences) before invoking it,
+so the decision is visible, but do not turn that statement into a
+question.
+
+If you find yourself drafting an AskUserQuestion call with options
+resembling "issue-pr-lite で進める" / "issue-pr-deep で進める" (or any
+English equivalent, e.g. "Proceed with issue-pr-lite" / "Proceed with
+issue-pr-deep"), stop — that is exactly the anti-pattern this rule
+forbids, not a legitimate checkpoint.
+
+This judgment is not the kind of "clarifying question" the global
+CLAUDE.md's "Use AskUserQuestion for all clarifying questions directed at
+the user" rule refers to — that rule governs genuine ambiguity in what
+the user wants, not this dispatcher's own internal scale assessment.
 
 Based on the judgment, invoke the chosen skill via the Skill tool
 (`issue-pr-deep` or `issue-pr-lite`). The worktree, `ISSUE_OWNER`,
