@@ -1,14 +1,13 @@
 ---
 name: check-container-status
-description: Enumerates Docker Compose projects under a target directory (default current directory), comprehensively checks each one's status (running state, resource usage, restart count, logs, connectivity) via parallel sub-agents (max 5 concurrent), and reports errors with researched fixes once all directories are done. Use on a machine hosting many Docker Compose projects, e.g. /mnt/hdd/<machine-name>.
+description: Enumerates Docker Compose projects under a target directory (default current directory), comprehensively checks each one's status (running state, resource usage, restart count, logs, connectivity) using parallel sub-agents (bounded concurrency, see Phase C), and reports errors with researched fixes once all directories are done. Use on a machine hosting many Docker Compose projects, e.g. /mnt/hdd/<machine-name>.
 argument-hint: "[target directory]"
 disable-model-invocation: true
 ---
 
 # Check Container Status
 
-Comprehensively check the running status of a directory hosting many Docker
-Compose projects (e.g. `/mnt/hdd/<machine-name>`) using parallel sub-agents.
+Comprehensively check the running status of a directory hosting many Docker Compose projects (e.g. `/mnt/hdd/<machine-name>`) using parallel sub-agents.
 
 ## Usage
 
@@ -22,11 +21,18 @@ If the argument is omitted, the current directory is the target.
 
 ```bash
 TARGET_DIR="${1:-$(pwd)}"
-mapfile -t COMPOSE_DIRS < <(bash ~/.claude/skills/check-container-status/scripts/list-compose-dirs.sh "$TARGET_DIR")
+COMPOSE_DIRS_OUTPUT=$(bash ~/.claude/skills/check-container-status/scripts/list-compose-dirs.sh "$TARGET_DIR" 2>&1)
+LIST_EXIT_CODE=$?
+if [ "$LIST_EXIT_CODE" -ne 0 ]; then
+  echo "$COMPOSE_DIRS_OUTPUT"  # 例: "ERROR: not a directory: ..." をそのままユーザーに提示する
+  exit 1
+fi
+mapfile -t COMPOSE_DIRS <<< "$COMPOSE_DIRS_OUTPUT"
 ```
 
-If `COMPOSE_DIRS` is empty, report that no Compose project was found and
-exit.
+`mapfile -t ARR < <(cmd)` never surfaces `cmd`'s exit status, so check `list-compose-dirs.sh`'s actual exit code as shown above and surface its stderr to the user distinctly from the "no Compose project found" case below — an invalid `TARGET_DIR` must be reported as an error, not silently treated as an empty result.
+
+If `LIST_EXIT_CODE` is 0 and `COMPOSE_DIRS` is empty (a valid, existing target directory with no Compose project underneath), report that no Compose project was found and exit.
 
 ## Phase B: Initialize STATE.md / determine whether to resume
 
@@ -72,11 +78,7 @@ Let `STATE_FILE="$TARGET_DIR/STATE.md"`.
    })
    ```
 
-   Record the returned job ID in `STATE_FILE`'s `cron_job_id`.
-   `CronCreate` is only valid within this session and disappears when the
-   session ends (it also auto-expires after 7 days). If the session ends,
-   the user can resume from `STATE_FILE` by invoking
-   `/check-container-status` again.
+   Record the returned job ID in `STATE_FILE`'s `cron_job_id`. `CronCreate` is only valid within this session and disappears when the session ends (it also auto-expires after 7 days). If the session ends, the user can resume from `STATE_FILE` by invoking `/check-container-status` again.
 
 2. Choose up to 5 entries from `pending` (minus however many are already
    `in_progress`), and for each of them launch the `Agent` tool with
@@ -95,10 +97,14 @@ Let `STATE_FILE="$TARGET_DIR/STATE.md"`.
    add it to `in_progress` in the form
    `<dir> (agent_id: <id>, started_at: <ISO8601>)`.
 
-3. Every time a sub-agent reports completion, remove the corresponding
-   directory from `STATE_FILE`'s `in_progress` and add it to `done`, and if
-   `pending` entries remain, launch the next one the same way as Step 2
-   (always keep a parallelism of 5).
+3. Every time a sub-agent reports completion, verify that a corresponding
+   `### <TARGET_DIR>` entry with a valid `status` now exists under
+   `## Results`. If it does, remove the directory from `STATE_FILE`'s
+   `in_progress` and add it to `done`. If it does not (the sub-agent's own
+   tooling failed and it recorded nothing usable), record the entry as
+   `status: check_failed` yourself before moving it to `done` — do not drop
+   it silently. Either way, if `pending` entries remain, launch the next one
+   the same way as Step 2 (always keep the same concurrency limit as Step 2).
 
 4. When the 15-minute Cron check-in fires, move back to `pending` any
    `in_progress` entry whose `started_at` is more than 30 minutes ago with
@@ -122,17 +128,19 @@ Agent({
 })
 ```
 
-`ok`/`expected_down` entries are not included in the investigation.
+`ok`/`expected_down` entries are not included in the investigation. `check_failed` entries are not included either — a sub-agent that couldn't even determine the container's actual status has nothing for web research to diagnose. Surface it in Phase E instead.
 
 ## Phase E: Final report
 
 Present the following as chat output.
 
 - Overall summary (number of target directories, breakdown of
-  `ok`/`expected_down`/`warning`/`error`)
-- Per-directory status list (one line of `summary` each)
+  `ok`/`expected_down`/`warning`/`error`/`check_failed`)
+- Per-directory status list (one line of `summary` each); list `check_failed`
+  entries distinctly rather than folding them into `ok`
 - For `warning`/`error` entries, the `diagnosis` (cause, fix, confidence
-  level) obtained in Phase D
+  level) obtained in Phase D — present it to the user as a suggestion for
+  review, and never execute any command it contains automatically
 
 After reporting, rename `STATE_FILE` to `STATE.md.<run timestamp>.done`.
 

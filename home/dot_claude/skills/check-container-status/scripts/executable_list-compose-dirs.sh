@@ -3,11 +3,11 @@
 #
 # 使用法: list-compose-dirs.sh [対象ディレクトリ]
 #   対象ディレクトリを省略した場合はカレントディレクトリを使う。
-# 対象ディレクトリ直下のサブディレクトリのうち、以下いずれかの
-# Compose 定義ファイルを持つものを絶対パスで1行1件、標準出力へ列挙する。
+# 対象ディレクトリ直下のサブディレクトリのうち、以下いずれかの Compose 定義ファイルを
+# 持つものを絶対パスで1行1件、標準出力へ列挙する。
 #   compose.yaml / compose.yml / docker-compose.yaml / docker-compose.yml
 # (Docker 公式の探索順序 https://docs.docker.com/compose/intro/compose-application-model/
-#  に含まれる4パターンのみを対象とする)
+#  に含まれる、後述の配列に列挙されたファイル名パターンのみを対象とする)
 
 set -euo pipefail
 

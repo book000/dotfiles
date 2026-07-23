@@ -326,3 +326,25 @@ rtk gain --history     # コマンド使用履歴と削減量を表示
 rtk discover           # Claude Code の履歴から見逃された削減機会を分析
 rtk proxy <cmd>        # フィルタなしで生コマンドを実行(デバッグ用)
 ```
+
+## `check-container-status` スキル
+
+多数の Docker Compose プロジェクトが同居するディレクトリ(例: `/mnt/hdd/<マシン名>`)の稼働状況を並列サブエージェントで網羅的に確認するスキル。
+`home/dot_claude/skills/check-container-status/SKILL.md` として管理され、`chezmoi apply` で `~/.claude/skills/check-container-status/SKILL.md` にデプロイされる。
+
+### 使い方
+
+```bash
+# カレントディレクトリを対象にする
+/check-container-status
+
+# 対象ディレクトリを指定する
+/check-container-status /mnt/hdd/<マシン名>
+```
+
+### 特徴
+
+- **並列サブエージェントによる網羅確認**: `container-status-checker` サブエージェントを Compose プロジェクトごとに並列起動し、稼働状態・リソース使用量・再起動回数・ログ・疎通確認を確認する(並列度は Phase C 参照)
+- **長時間実行への対応**: `STATE.md` に進捗を記録しつつ、Cron による定期チェックインで長時間放置されたセッションの再開・停止中エージェントの再起動を行う
+- **エラー調査の一括実行**: 全ディレクトリのチェック完了後、`warning`/`error` と判定されたものだけを `container-error-investigator` サブエージェントが Web 調査し、原因・対処案・確信度をまとめて最終レポートで提示する
+- **読み取り専用**: 本体・サブエージェントともに `docker compose restart`/`down`/`up` などの破壊的コマンドは実行しない

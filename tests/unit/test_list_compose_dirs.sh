@@ -20,7 +20,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# 4種類の Compose ファイル名パターンをそれぞれ持つディレクトリ
+# 後述の配列に列挙されたファイル名パターンをそれぞれ単独で持つディレクトリ
 mkdir -p "$TEST_DIR/proj-compose-yaml"
 touch "$TEST_DIR/proj-compose-yaml/compose.yaml"
 
@@ -37,6 +37,11 @@ touch "$TEST_DIR/proj-docker-compose-yml/docker-compose.yml"
 mkdir -p "$TEST_DIR/proj-no-compose"
 touch "$TEST_DIR/proj-no-compose/README.md"
 
+# 複数の Compose ファイル名パターンを同時に持つディレクトリ(重複出力しないことの確認)
+mkdir -p "$TEST_DIR/proj-duplicate-compose"
+touch "$TEST_DIR/proj-duplicate-compose/compose.yaml"
+touch "$TEST_DIR/proj-duplicate-compose/docker-compose.yml"
+
 # サブディレクトリを持たない空の対象ディレクトリのテスト用
 EMPTY_DIR=$(mktemp -d)
 
@@ -46,7 +51,8 @@ EXPECTED=$(printf '%s\n' \
   "$TEST_DIR/proj-compose-yaml" \
   "$TEST_DIR/proj-compose-yml" \
   "$TEST_DIR/proj-docker-compose-yaml" \
-  "$TEST_DIR/proj-docker-compose-yml" | sort)
+  "$TEST_DIR/proj-docker-compose-yml" \
+  "$TEST_DIR/proj-duplicate-compose" | sort)
 
 if [ "$ACTUAL" = "$EXPECTED" ]; then
   echo "✅ explicit target directory argument test passed"
@@ -89,6 +95,15 @@ else
     echo "❌ nonexistent target directory test failed (missing error message): $OUTPUT"
     FAILED=1
   fi
+fi
+
+echo "Test 5: directory with multiple Compose filename patterns at once"
+ACTUAL=$(bash "$SCRIPT" "$TEST_DIR" | grep -c "^$TEST_DIR/proj-duplicate-compose\$")
+if [ "$ACTUAL" = "1" ]; then
+  echo "✅ duplicate compose filenames test passed"
+else
+  echo "❌ duplicate compose filenames test failed (expected exactly 1 line, got: $ACTUAL)"
+  FAILED=1
 fi
 
 exit $FAILED
