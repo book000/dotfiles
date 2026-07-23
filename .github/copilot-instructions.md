@@ -33,6 +33,10 @@
 - `gh`・`ghq`・`roots`・`gitleaks` などの CLI ツールは `home/dot_config/mise/config.toml` の宣言に基づき `mise` 経由でインストールする。`install.sh` に直接インストールロジックを追加していないか確認する。
 - `install.sh` に固定記述された mise 本体のバージョン(`MISE_VERSION`)を変更する場合、`renovate.json` の対応する `regexManagers` エントリと矛盾していないか確認する。
 
+### エージェント定義
+
+- 新規追加されたエージェント定義 (`home/dot_claude/agents/*.md`) は、`tools` フィールドで許可するツールを必要最小限に絞っているか (例: 読み取り専用の状況確認エージェントに書き込み系ツールを不必要に許可していないか)。
+
 ## コーディング規約
 
 - コミットメッセージは Conventional Commits に従い、`<description>` は日本語で記載する。

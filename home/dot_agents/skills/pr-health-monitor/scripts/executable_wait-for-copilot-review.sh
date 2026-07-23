@@ -125,7 +125,7 @@ REPO_SLUG="${OWNER}-${REPO}"
 LOG_FILE="$LOG_DIR/wait-copilot-review-${REPO_SLUG}-${PR_NUMBER}.log"
 LOCK_FILE="$LOCK_DIR/wait-copilot-review-${REPO_SLUG}-${PR_NUMBER}.lock"
 
-# shellcheck disable=SC2317
+# shellcheck disable=SC2317,SC2329
 cleanup() {
   rm -f "$LOCK_FILE"
 }
