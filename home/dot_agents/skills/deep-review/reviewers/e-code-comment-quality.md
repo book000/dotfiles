@@ -16,6 +16,7 @@ Judge each comment against the Content layer "Code comments" allow/deny conditio
 - "What" comments and temporary progress-report comments left in the diff.
 - A comment justified by a GitHub Issue/PR number or a spec/plan file path instead of the code itself — flag this even if the reference still resolves, since it ties the comment's meaning to an external system that can change independently of the code.
 - A "why not" comment that includes the quantitative process behind its conclusion (sample counts, percentages, corpus sizes, benchmark numbers, verification steps) rather than stating only the conclusion.
+- A comment sentence that needs more than one line break to fit — flag this as a signal that the sentence itself should be shortened (split into shorter sentences), not merely rewrapped. This is independent of the "line dramatically longer than surrounding comments" escape hatch used for the mid-sentence-break-placement check below — that escape hatch concerns where a break falls, not whether the sentence needed splitting in the first place.
 
 Also flag the following mechanical defects, independent of the allow/deny judgment above — these are about a comment's accuracy or formatting, not about whether it should exist:
 
