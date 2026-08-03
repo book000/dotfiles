@@ -14,6 +14,8 @@ Judge each comment against the Content layer "Code comments" allow/deny conditio
 - Redundant comments that merely restate what the code already makes obvious (e.g. a comment saying "increment i by 1" directly above `i++`).
 - Obvious descriptions or comments that can be removed without issue.
 - "What" comments and temporary progress-report comments left in the diff.
+- A comment justified by a GitHub Issue/PR number or a spec/plan file path instead of the code itself — flag this even if the reference still resolves, since it ties the comment's meaning to an external system that can change independently of the code.
+- A "why not" comment that includes the quantitative process behind its conclusion (sample counts, percentages, corpus sizes, benchmark numbers, verification steps) rather than stating only the conclusion.
 
 Also flag the following mechanical defects, independent of the allow/deny judgment above — these are about a comment's accuracy or formatting, not about whether it should exist:
 

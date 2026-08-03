@@ -1,6 +1,6 @@
 # Coding and Security Rules
 
-- Keep each artifact to one information layer: code explains how, tests explain behavior, comments explain only non-obvious rationale or constraints, and commits explain motivation. Remove comments that restate code and never leave edit-history notes.
+- Keep each artifact to one information layer: code explains how, tests explain behavior, comments explain only non-obvious rationale or constraints, and commits explain motivation. Remove comments that restate code, never leave edit-history notes, never justify a comment with a GitHub Issue/PR number or a spec/plan file path, and state only the why-not conclusion — drop the sample counts, percentages, or verification steps behind it.
 - Match existing naming and error-message conventions. Keep a file's existing emoji convention consistent. Insert a half-width space between Japanese and alphanumeric text.
 - Never commit, log, or publish API keys, tokens, passwords, or internal URLs. If a secret is staged, stop and rotate it. Keep personal secrets outside chezmoi-managed files.
 - Avoid destructive commands without explicit user approval and a recovery plan; use dry-run options first. Do not run destructive database commands without a confirmed backup.
