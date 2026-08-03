@@ -12,4 +12,5 @@
 {{- $_ := unset (index $config "features") "codex_hooks" -}}
 {{- $config = $config | setValueAtPath "features.unified_exec" true -}}
 {{- $config = $config | setValueAtPath "features.shell_snapshot" true -}}
+{{- $config = $config | setValueAtPath "features.default_mode_request_user_input" true -}}
 {{- $config | toToml -}}
