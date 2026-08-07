@@ -158,11 +158,20 @@
     "type": "command",
     "command": "npx -y --offline ccstatusline@2.2.23 || npx -y ccstatusline@2.2.23"
   },
+  "extraKnownMarketplaces": {
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
+    }
+  },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "commit-commands@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true
+    "superpowers@claude-plugins-official": true,
+    "ponytail@ponytail": true
   },
   "language": "Use Japanese for interaction with humans and creating plans. Write the Markdown below .claude in English.",
   "feedbackSurveyRate": 0,
