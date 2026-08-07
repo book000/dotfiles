@@ -1,18 +1,30 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>book000/templates//renovate/base-public"],
-  "regexManagers": [
+  "customManagers": [
     {
-      "fileMatch": ["^home/dot_claude/private_settings\\.json$"],
+      "customType": "regex",
+      "managerFilePatterns": ["/^home/dot_claude/private_settings\\.json$/"],
       "matchStrings": ["ccstatusline@(?<currentValue>[0-9.]+)"],
       "depNameTemplate": "ccstatusline",
       "datasourceTemplate": "npm"
     },
     {
-      "fileMatch": ["^install\\.sh$"],
+      "customType": "regex",
+      "managerFilePatterns": ["/^install\\.sh$/"],
       "matchStrings": ["MISE_VERSION=\"(?<currentValue>v[0-9.]+)\""],
       "depNameTemplate": "jdx/mise",
       "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "jsonata",
+      "fileFormat": "json",
+      "managerFilePatterns": ["/^home/dot_claude/private_settings\\.json$/"],
+      "matchStrings": [
+        "extraKnownMarketplaces.ponytail.source.{ \"packageName\": repo, \"currentValue\": ref }"
+      ],
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver-coerced"
     }
   ]
 }
