@@ -83,6 +83,26 @@ assert config["notice"]["model_migrations"]["gpt_5_4"] == "gpt-5.6"
   FILES_CHECKED=$((FILES_CHECKED + 1))
 fi
 
+# Renovate が chezmoi source state の mise config を対象にすること
+if [ -f "renovate.json" ]; then
+  echo "Validating Renovate mise manager file pattern..."
+  if ! python3 - <<'PYRENOVATE'
+import json
+from pathlib import Path
+
+config = json.loads(Path("renovate.json").read_text())
+patterns = config.get("mise", {}).get("managerFilePatterns", [])
+assert r'/^home/dot_config/mise/config\.toml$/' in patterns
+PYRENOVATE
+  then
+    echo "❌ Renovate mise manager does not include chezmoi source config"
+    FAILED=1
+  else
+    echo "✅ Renovate mise manager includes chezmoi source config"
+  fi
+  FILES_CHECKED=$((FILES_CHECKED + 1))
+fi
+
 # 検証対象のファイルが存在しない場合はエラー
 if [ $FILES_CHECKED -eq 0 ]; then
   echo "❌ No AI agent configuration files found to validate"

@@ -26,5 +26,8 @@
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "semver-coerced"
     }
-  ]
+  ],
+  "mise": {
+    "managerFilePatterns": ["/^home/dot_config/mise/config\\.toml$/"]
+  }
 }
