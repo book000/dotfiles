@@ -76,6 +76,8 @@ macOS と Windows は現在サポートされていません。
 
 `mise`（https://mise.jdx.dev/）を使用して、`gh`・`ghq`・`roots`・`gitleaks`・`maven`・`ripgrep`・`yq`・`actionlint`・`hadolint`・`shfmt`・`devcontainer-cli`・`delta` などの CLI ツールおよび言語ランタイムのバージョンを管理しています。バージョンの宣言は `home/dot_config/mise/config.toml` で行います。CLI ツールは再現性のため exact version に固定し、Renovate が更新 PR を作成します。言語ランタイムは `node = "24"` のように意図したバージョン系列を宣言します。
 
+`mise.lock` は現時点では使用しません。CLI は config 自体で exact version に固定してバージョン再現性を確保し、Renovate の更新 PR で CI の CLI smoke test を通してから更新します。将来、download URL や checksum まで固定する必要が生じた場合は lockfile の導入を別途検討します。
+
 ## セキュリティに関する注意事項
 
 `curl | bash` 方式には以下のリスクがあります:

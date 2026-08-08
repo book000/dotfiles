@@ -63,6 +63,14 @@ if grep -Eq '= "latest"$' "$MISE_CONFIG"; then
 fi
 echo "✅ mise config has no latest versions"
 
+# テスト 2.7.2: mise 管理 CLI の smoke test が Integration Test で実行されること
+echo "Test 2.7.2: integration workflow runs mise CLI smoke test"
+if ! grep -Fq "bash tests/integration/test_mise_tools.sh" .github/workflows/integration-test.yml; then
+  echo "❌ integration workflow does not run mise CLI smoke test"
+  exit 1
+fi
+echo "✅ integration workflow runs mise CLI smoke test"
+
 # テスト 2.8: install フローが開発用 CLI を mise 経由で導入すること
 echo "Test 2.8: install flow installs development tools via mise"
 MISE_DRY_RUN=$(bash install.sh --dry-run --skip-interactive --skip-apt --skip-gh --skip-ghq --skip-mkwork --skip-roots --skip-gitleaks 2>&1 | sed 's/\x1b\[[0-9;]*m//g')

@@ -22,6 +22,9 @@ jobs:
       - name: Run gitleaks regression test
         run: bash tests/integration/test_gitleaks.sh
 
+      - name: Run mise CLI smoke test
+        run: bash tests/integration/test_mise_tools.sh
+
   docker-integration-test:
     name: Test chezmoi apply in Docker
     runs-on: ubuntu-latest
