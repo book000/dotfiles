@@ -8,6 +8,14 @@ ghq = "latest"
 gh = "latest"
 "github:k1LoW/roots" = "latest"
 gitleaks = "8.22.1"
+maven = "latest"
+ripgrep = "latest"
+yq = "latest"
+actionlint = "latest"
+hadolint = "latest"
+shfmt = "latest"
+devcontainer-cli = "latest"
+delta = "latest"
 
 [settings]
 idiomatic_version_file_enable_tools = ["node"]

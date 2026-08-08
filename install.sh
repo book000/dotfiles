@@ -494,6 +494,27 @@ install_mise_tools() {
     log_info "gitleaks を mise 経由でインストールしています..."
     run_command mise install gitleaks
   fi
+
+  local development_tools=(
+    "maven"
+    "ripgrep"
+    "yq"
+    "actionlint"
+    "hadolint"
+    "shfmt"
+    "delta"
+  )
+  local tool
+  for tool in "${development_tools[@]}"; do
+    log_info "$tool を mise 経由でインストールしています..."
+    run_command mise install "$tool"
+  done
+
+  # devcontainer-cli は npm backend を使うため、mise 管理の Node.js を先に用意する。
+  log_info "devcontainer-cli 用の Node.js を mise 経由でインストールしています..."
+  run_command mise install node
+  log_info "devcontainer-cli を mise 経由でインストールしています..."
+  run_command mise exec node -- mise install devcontainer-cli
 }
 
 # mkwork のインストール
