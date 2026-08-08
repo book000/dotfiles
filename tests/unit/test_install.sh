@@ -54,6 +54,15 @@ for tool in "${MISE_TOOLS[@]}"; do
 done
 echo "✅ mise config includes development tools"
 
+# テスト 2.7.1: mise 管理ツールに latest 指定が残っていないこと
+echo "Test 2.7.1: mise config has no latest versions"
+if grep -Eq '= "latest"$' "$MISE_CONFIG"; then
+  echo "❌ mise config contains unpinned latest versions"
+  grep -En '= "latest"$' "$MISE_CONFIG"
+  exit 1
+fi
+echo "✅ mise config has no latest versions"
+
 # テスト 2.8: install フローが開発用 CLI を mise 経由で導入すること
 echo "Test 2.8: install flow installs development tools via mise"
 MISE_DRY_RUN=$(bash install.sh --dry-run --skip-interactive --skip-apt --skip-gh --skip-ghq --skip-mkwork --skip-roots --skip-gitleaks 2>&1 | sed 's/\x1b\[[0-9;]*m//g')

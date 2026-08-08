@@ -74,7 +74,7 @@ macOS と Windows は現在サポートされていません。
 
 ## ツールバージョン管理
 
-`mise`（https://mise.jdx.dev/）を使用して、`gh`・`ghq`・`roots`・`gitleaks`・`maven`・`ripgrep`・`yq`・`actionlint`・`hadolint`・`shfmt`・`devcontainer-cli`・`delta` などの CLI ツールおよび言語ランタイムのバージョンを管理しています。バージョンの宣言は `home/dot_config/mise/config.toml` で行い、Renovate が自動的に更新 PR を作成します。
+`mise`（https://mise.jdx.dev/）を使用して、`gh`・`ghq`・`roots`・`gitleaks`・`maven`・`ripgrep`・`yq`・`actionlint`・`hadolint`・`shfmt`・`devcontainer-cli`・`delta` などの CLI ツールおよび言語ランタイムのバージョンを管理しています。バージョンの宣言は `home/dot_config/mise/config.toml` で行います。CLI ツールは再現性のため exact version に固定し、Renovate が更新 PR を作成します。言語ランタイムは `node = "24"` のように意図したバージョン系列を宣言します。
 
 ## セキュリティに関する注意事項
 
