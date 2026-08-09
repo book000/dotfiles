@@ -853,6 +853,83 @@ else
 fi
 rm -rf "$TEST_HOME"
 
+echo "Testing Codex goal_resume_required fails safely when the rollout window contains malformed JSON..."
+TEST_HOME=$(mktemp -d)
+FIXTURE_JSONL_GOAL_PARSE_ERROR="$TEST_HOME/fixture-rollout-goal-parse-error.jsonl"
+cat > "$FIXTURE_JSONL_GOAL_PARSE_ERROR" <<'EOF'
+{"timestamp":"2026-08-08T05:00:00.000Z","type":"event_msg","payload":{"type":"thread_goal_updated","threadId":"thread-1","goal":{"threadId":"thread-1","objective":"finish the task","status":"usageLimited","tokensUsed":100,"timeUsedSeconds":60,"createdAt":1,"updatedAt":2}}}
+{not-json
+EOF
+
+RESULT_GOAL_PARSE_ERROR=$(
+  HOME="$TEST_HOME" bash -c '
+    source "'"$PWD"'/home/dot_codex/scripts/limit-unlocked/executable_check-notify.sh"
+    if goal_resume_required "'"$FIXTURE_JSONL_GOAL_PARSE_ERROR"'"; then
+      printf "%s\n" required
+    else
+      printf "%s\n" not-required
+    fi
+  '
+)
+if [[ "$RESULT_GOAL_PARSE_ERROR" != "not-required" ]]; then
+  echo "❌ goal_resume_required treated a malformed rollout as safely resumable (got: '$RESULT_GOAL_PARSE_ERROR')"
+  FAILED=1
+else
+  echo "✅ goal_resume_required failed safely on malformed rollout JSON"
+fi
+rm -rf "$TEST_HOME"
+
+echo "Testing Codex resume_session keeps the generic resume message for a non-goal session..."
+TEST_HOME=$(mktemp -d)
+FIXTURE_JSONL_NON_GOAL="$TEST_HOME/fixture-rollout-non-goal.jsonl"
+cat > "$FIXTURE_JSONL_NON_GOAL" <<'EOF'
+{"timestamp":"2026-08-08T05:00:00.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1","last_agent_message":null,"error":{"message":"usage limit hit","codex_error_info":"usage_limit_exceeded"},"started_at":1,"completed_at":2,"duration_ms":1000}}
+EOF
+
+RESULT_NON_GOAL_RESUME=$(
+  HOME="$TEST_HOME" bash -c '
+    source "'"$PWD"'/home/dot_codex/scripts/limit-unlocked/executable_check-notify.sh"
+    resolve_rollout_path() { printf "%s\n" "'"$FIXTURE_JSONL_NON_GOAL"'"; }
+    sleep() { :; }
+    tmux() { printf "%s\n" "$*"; }
+    resume_session "sess-1"
+  '
+)
+EXPECTED_NON_GOAL_RESUME="send-keys -t sess-1: <system-reminder>Codex's rate limit has been lifted. Continue the task you were working on before the interruption.</system-reminder>"
+EXPECTED_NON_GOAL_RESUME="${EXPECTED_NON_GOAL_RESUME}"$'\n'"send-keys -t sess-1: Enter"
+if [[ "$RESULT_NON_GOAL_RESUME" != "$EXPECTED_NON_GOAL_RESUME" ]]; then
+  echo "❌ resume_session changed the non-goal resume input unexpectedly (got: '$RESULT_NON_GOAL_RESUME')"
+  FAILED=1
+else
+  echo "✅ resume_session kept the generic resume message for a non-goal session"
+fi
+rm -rf "$TEST_HOME"
+
+echo "Testing Codex resume_session sends /goal resume when the current goal is usage limited..."
+TEST_HOME=$(mktemp -d)
+FIXTURE_JSONL_GOAL_LIMITED="$TEST_HOME/fixture-rollout-goal-limited.jsonl"
+cat > "$FIXTURE_JSONL_GOAL_LIMITED" <<'EOF'
+{"timestamp":"2026-08-08T05:00:00.000Z","type":"event_msg","payload":{"type":"thread_goal_updated","threadId":"thread-1","goal":{"threadId":"thread-1","objective":"finish the task","status":"usageLimited","tokensUsed":100,"timeUsedSeconds":60,"createdAt":1,"updatedAt":2}}}
+EOF
+
+RESULT_GOAL_RESUME=$(
+  HOME="$TEST_HOME" bash -c '
+    source "'"$PWD"'/home/dot_codex/scripts/limit-unlocked/executable_check-notify.sh"
+    resolve_rollout_path() { printf "%s\n" "'"$FIXTURE_JSONL_GOAL_LIMITED"'"; }
+    sleep() { :; }
+    tmux() { printf "%s\n" "$*"; }
+    resume_session "sess-1"
+  '
+)
+EXPECTED_GOAL_RESUME=$'send-keys -t sess-1: /goal resume\nsend-keys -t sess-1: Enter'
+if [[ "$RESULT_GOAL_RESUME" != "$EXPECTED_GOAL_RESUME" ]]; then
+  echo "❌ resume_session did not use /goal resume for a usage-limited goal (got: '$RESULT_GOAL_RESUME')"
+  FAILED=1
+else
+  echo "✅ resume_session used /goal resume for a usage-limited goal"
+fi
+rm -rf "$TEST_HOME"
+
 echo "Testing Codex already_resumed_for / record_resumed_for dedup resume_session for the same reset_epoch..."
 TEST_HOME=$(mktemp -d)
 RESULT_RESUME_DEDUP=$(

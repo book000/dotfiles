@@ -376,7 +376,27 @@ record_resumed_for() {
     mv "$tmp_file" "$file"
 }
 
-# 指定した tmux セッションに再開キーを送る。
+# rollout の直近の Goal 状態が usageLimited か確認する。
+# Codex の Goal runtime は usage limit 到達時に thread_goal_updated を記録して
+# Goal を usageLimited に遷移させるため、この状態だけは通常メッセージではなく
+# /goal resume で active に戻す必要がある。
+goal_resume_required() {
+    local jsonl="$1" goal_statuses last_goal_status
+
+    [ -f "$jsonl" ] || return 1
+
+    if ! goal_statuses=$(
+        tail -n 200 "$jsonl" \
+            | jq -r 'select(.type == "event_msg" and .payload.type == "thread_goal_updated") | .payload.goal.status // empty' 2>/dev/null
+    ); then
+        return 1
+    fi
+    last_goal_status=$(printf '%s\n' "$goal_statuses" | tail -1)
+
+    [ "$last_goal_status" = "usageLimited" ]
+}
+
+# 指定した tmux セッションに再開入力を送る。
 # ウィンドウ/ペイン番号を固定せずセッション名のみを指定し、tmux の base-index 設定
 # (0 始まりとは限らない)に依存せず常にアクティブなウィンドウ・ペインへ送信する
 #
@@ -384,12 +404,18 @@ record_resumed_for() {
 # "What do you want to do?" 相当の挙動はない)、入力プロンプトはそのまま
 # 使用可能であるため、Escape でメニューを閉じる処理は不要
 resume_session() {
-    local session="$1"
+    local session="$1" jsonl resume_input
+
+    resume_input="<system-reminder>Codex's rate limit has been lifted. Continue the task you were working on before the interruption.</system-reminder>"
+    jsonl=$(resolve_rollout_path "$session" 2>/dev/null || true)
+    if [ -n "$jsonl" ] && goal_resume_required "$jsonl"; then
+        resume_input="/goal resume"
+    fi
 
     # "0" のような裸の数字セッション名は tmux に「未指定」とみなされ
     # 現在のセッションへフォールバックしてしまうため、末尾に ":" を付けて
     # セッション名指定であることを明示する(display-message と同様の理由)
-    tmux send-keys -t "${session}:" "<system-reminder>Codex's rate limit has been lifted. Continue the task you were working on before the interruption.</system-reminder>"
+    tmux send-keys -t "${session}:" "$resume_input"
     sleep 1
     tmux send-keys -t "${session}:" Enter
 }
