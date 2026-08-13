@@ -97,3 +97,55 @@ HOME="$FAKE_HOME" PATH="$FAKE_BIN:/usr/bin:/bin" CLAUDE_ENV_FILE="$WRAPPER_ENV" 
 [[ "$(sed -n '1p' "$EVENT_LOG")" == "sleep:10" ]] || { echo "❌ warning delay did not occur before Claude launch"; exit 1; }
 grep -Fq 'claude:--permission-mode auto --version' "$EVENT_LOG" || { echo "❌ wrapped Claude command was not launched"; exit 1; }
 echo "✅ claude wrapper warning order test passed"
+
+
+echo "Testing codex wrapper auto-connects only TUI launches to running app-server..."
+declare -F codex >/dev/null || { echo "❌ codex wrapper function is not defined"; exit 1; }
+CODEX_HOME="$TEST_ROOT/codex-home"
+CODEX_BIN="$TEST_ROOT/codex-bin"
+CODEX_LOG="$TEST_ROOT/codex-events.log"
+mkdir -p "$CODEX_HOME/.local/share/chezmoi" "$CODEX_BIN"
+printf '#!/bin/bash\nexit 0\n' > "$CODEX_HOME/.local/share/chezmoi/update.sh"
+cat > "$CODEX_BIN/codex" <<'EOF'
+#!/bin/bash
+printf 'codex:%s\n' "$*" >> "$CODEX_LOG"
+if [[ "$*" == "app-server daemon version" ]]; then
+  if [[ "${FAKE_CODEX_DAEMON_STATUS:-running}" == "running" ]]; then
+    printf '{"status":"running"}\n'
+  else
+    printf '{"status":"stopped"}\n'
+  fi
+fi
+EOF
+chmod +x "$CODEX_HOME/.local/share/chezmoi/update.sh" "$CODEX_BIN/codex"
+export CODEX_LOG
+
+: > "$CODEX_LOG"
+HOME="$CODEX_HOME" PATH="$CODEX_BIN:/usr/bin:/bin" FAKE_CODEX_DAEMON_STATUS=running codex resume session-123
+[[ "$(tail -n 1 "$CODEX_LOG")" == "codex:--remote unix:// --yolo resume session-123" ]] || {
+  echo "❌ running daemon did not route Codex TUI through unix remote"
+  cat "$CODEX_LOG"
+  exit 1
+}
+
+: > "$CODEX_LOG"
+HOME="$CODEX_HOME" PATH="$CODEX_BIN:/usr/bin:/bin" FAKE_CODEX_DAEMON_STATUS=stopped codex resume session-123
+[[ "$(tail -n 1 "$CODEX_LOG")" == "codex:--yolo resume session-123" ]] || {
+  echo "❌ stopped daemon did not fall back to local Codex TUI"
+  cat "$CODEX_LOG"
+  exit 1
+}
+
+: > "$CODEX_LOG"
+HOME="$CODEX_HOME" PATH="$CODEX_BIN:/usr/bin:/bin" FAKE_CODEX_DAEMON_STATUS=running codex app-server daemon version >/dev/null
+[[ "$(tail -n 1 "$CODEX_LOG")" == "codex:--yolo app-server daemon version" ]] || {
+  echo "❌ app-server management command was unexpectedly remote-routed"
+  cat "$CODEX_LOG"
+  exit 1
+}
+! grep -Fq -- '--remote' "$CODEX_LOG" || {
+  echo "❌ management command log contains --remote"
+  cat "$CODEX_LOG"
+  exit 1
+}
+echo "✅ codex wrapper routing test passed"

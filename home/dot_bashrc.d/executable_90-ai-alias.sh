@@ -58,7 +58,35 @@ claude() {
       command claude --permission-mode auto "$@" ;;
   esac
 }
-alias codex='[ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick --only codex; ~/.local/share/chezmoi/update.sh; codex --yolo'
+# Codex のラッパー関数。managed app-server が稼働中なら TUI を同じ app-server へ接続する。
+# 管理・非対話サブコマンドは remote 接続せず、従来どおり直接実行する。
+unalias codex 2>/dev/null
+_codex_app_server_running() {
+  command codex app-server daemon version 2>/dev/null \
+    | grep -Eq '"status"[[:space:]]*:[[:space:]]*"running"'
+}
+
+_codex_is_direct_invocation() {
+  case "${1:-}" in
+    app-server|remote-control|exec|review|login|logout|mcp|mcp-server|completion|sandbox|debug|apply|cloud|features|help|--help|-h|--version|-V)
+      return 0 ;;
+    *)
+      return 1 ;;
+  esac
+}
+
+codex() {
+  [ -x ~/bin/update-ai-agents.sh ] && ~/bin/update-ai-agents.sh --quick --only codex
+  ~/.local/share/chezmoi/update.sh
+
+  if _codex_is_direct_invocation "$@"; then
+    command codex --yolo "$@"
+  elif _codex_app_server_running; then
+    command codex --remote unix:// --yolo "$@"
+  else
+    command codex --yolo "$@"
+  fi
+}
 # copilot コマンドのラッパー関数。
 # AI エージェント・chezmoi の更新を行い、カレントディレクトリに .copilot/mcp-config.json が
 # 存在する場合は --additional-mcp-config オプションを付与して実行する。
