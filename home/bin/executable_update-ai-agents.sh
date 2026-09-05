@@ -211,7 +211,7 @@ smoke_test_chrome_mcp() {
     local browser_url="${CHROME_MCP_BROWSER_URL:-http://127.0.0.1:9222}"
     local timeout_seconds="${CHROME_MCP_SMOKE_TIMEOUT_SECONDS:-10}"
     local router="$release_dir/node_modules/.bin/chrome-mcp-router"
-    local response=""
+    local helper="${CHROME_MCP_SMOKE_HELPER:-$HOME/bin/chrome-mcp-smoke-test.mjs}"
 
     if [[ ! -x "$router" ]]; then
         log "❌ Chrome MCP Router executable was not installed"
@@ -222,21 +222,18 @@ smoke_test_chrome_mcp() {
         log "❌ CHROME_MCP_SMOKE_TIMEOUT_SECONDS must be a positive integer"
         return 1
     fi
+    if [[ ! -f "$helper" ]]; then
+        log "❌ Chrome MCP smoke test helper was not installed"
+        return 1
+    fi
 
     log "🔍 Running Chrome MCP initialize smoke test against ${browser_url}..."
-    if ! response=$(printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"chrome-mcp-updater","version":"1.0.0"}}}' | timeout "$timeout_seconds" env "PATH=$release_dir/node_modules/.bin:$PATH" "$router" --browserUrl "$browser_url"); then
+    if ! node "$helper" --router "$router" --browser-url "$browser_url" --timeout-seconds "$timeout_seconds"; then
         log "❌ Chrome MCP initialize smoke test failed"
         return 1
     fi
 
-    response=${response%%$'\n'*}
-    if node -e 'const response = JSON.parse(process.argv[1]); process.exit(response.jsonrpc === "2.0" && response.id === 1 && typeof response.result === "object" ? 0 : 1)' "$response"; then
-        log "✅ Chrome MCP initialize smoke test passed"
-        return 0
-    fi
-
-    log "❌ Chrome MCP initialize smoke test failed"
-    return 1
+    log "✅ Chrome MCP initialize smoke test passed"
 }
 
 # chrome-mcp-router と chrome-devtools-mcp を同一 release として更新する。
