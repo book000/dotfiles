@@ -31,6 +31,11 @@ jobs:
         background: true
         run: bash tests/unit/test_ai_alias.sh
 
+      - name: Run Chrome MCP unit test
+        id: run-chrome-mcp-unit-test
+        background: true
+        run: bash tests/unit/test_chrome_mcp.sh
+
       - name: Run notification unit test
         id: run-notification-unit-test
         background: true
@@ -61,6 +66,7 @@ jobs:
           - run-install-sh-unit-test
           - run-update-sh-unit-test
           - run-ai-alias-unit-test
+          - run-chrome-mcp-unit-test
           - run-notification-unit-test
           - run-hooks-unit-test
           - run-powerline-daemon-launch-unit-test

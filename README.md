@@ -69,6 +69,16 @@ vim ~/.env
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
+### 4. Chrome MCP Router
+
+Chrome MCP Router を使う場合は、最初にローカル release を作成します。更新時の smoke test は `CHROME_MCP_BROWSER_URL` で指定した Chrome の remote debugging URL に対して実行します。未指定時は `http://127.0.0.1:9222` を使用します。
+
+```bash
+CHROME_MCP_BROWSER_URL=http://127.0.0.1:9222 ~/bin/update-ai-agents.sh --only chrome-mcp-router
+```
+
+ホスト固有の MCP 設定では `npx` ではなく `/home/<user>/bin/chrome-mcp-router.sh` のような絶対 path を command に指定してください。launcher は `~/.local/share/chrome-mcp-router/current` の検証済み release だけを実行し、24 時間以上更新されていなければ別プロセスで更新を開始します。更新は staging で `initialize` を確認後に `current` を atomic に切り替えるため、実行中の MCP は再起動しません。
+
 ## サポート環境
 
 - **OS**: Ubuntu, Debian
