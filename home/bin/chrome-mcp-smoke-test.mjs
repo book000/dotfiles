@@ -6,7 +6,7 @@ import { delimiter, dirname } from 'node:path'
  * Smoke test CLI の引数を検証する。
  *
  * @param {string[]} args コマンドライン引数
- * @returns {{router: string, browserUrl: string, timeoutSeconds: number}}
+ * @returns {{router: string, browserUrl?: string, project?: string, timeoutSeconds: number}}
  */
 function parseArgs(args) {
   const values = new Map()
@@ -14,20 +14,21 @@ function parseArgs(args) {
   for (let index = 0; index < args.length; index += 2) {
     const name = args[index]
     const value = args[index + 1]
-    if (!['--router', '--browser-url', '--timeout-seconds'].includes(name) || !value) {
-      throw new Error('Usage: chrome-mcp-smoke-test.mjs --router <path> --browser-url <url> --timeout-seconds <seconds>')
+    if (!['--router', '--browser-url', '--project', '--timeout-seconds'].includes(name) || !value) {
+      throw new Error('Usage: chrome-mcp-smoke-test.mjs --router <path> (--browser-url <url> | --project <name>) --timeout-seconds <seconds>')
     }
     values.set(name, value)
   }
 
   const router = values.get('--router')
   const browserUrl = values.get('--browser-url')
+  const project = values.get('--project')
   const timeoutSeconds = Number(values.get('--timeout-seconds'))
-  if (!router || !browserUrl || !Number.isSafeInteger(timeoutSeconds) || timeoutSeconds < 1) {
+  if (!router || Boolean(browserUrl) === Boolean(project) || !Number.isSafeInteger(timeoutSeconds) || timeoutSeconds < 1) {
     throw new Error('Smoke test arguments are invalid')
   }
 
-  return { router, browserUrl, timeoutSeconds }
+  return { router, browserUrl, project, timeoutSeconds }
 }
 
 /**
@@ -73,7 +74,8 @@ try {
   process.exit(1)
 }
 
-const child = spawn(options.router, ['--browserUrl', options.browserUrl], {
+const routerArgs = options.project ? ['--project', options.project] : ['--browserUrl', options.browserUrl]
+const child = spawn(options.router, routerArgs, {
   detached: true,
   env: {
     ...process.env,

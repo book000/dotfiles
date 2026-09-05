@@ -209,6 +209,7 @@ update_codex() {
 smoke_test_chrome_mcp() {
     local release_dir="$1"
     local browser_url="${CHROME_MCP_BROWSER_URL:-http://127.0.0.1:9222}"
+    local project="${CHROME_MCP_PROJECT:-}"
     local timeout_seconds="${CHROME_MCP_SMOKE_TIMEOUT_SECONDS:-10}"
     local router="$release_dir/node_modules/.bin/chrome-mcp-router"
     local helper="${CHROME_MCP_SMOKE_HELPER:-$HOME/bin/chrome-mcp-smoke-test.mjs}"
@@ -227,10 +228,18 @@ smoke_test_chrome_mcp() {
         return 1
     fi
 
-    log "🔍 Running Chrome MCP initialize smoke test against ${browser_url}..."
-    if ! node "$helper" --router "$router" --browser-url "$browser_url" --timeout-seconds "$timeout_seconds"; then
-        log "❌ Chrome MCP initialize smoke test failed"
-        return 1
+    if [[ -n "$project" ]]; then
+        log "🔍 Running Chrome MCP initialize smoke test for project ${project}..."
+        if ! node "$helper" --router "$router" --project "$project" --timeout-seconds "$timeout_seconds"; then
+            log "❌ Chrome MCP initialize smoke test failed"
+            return 1
+        fi
+    else
+        log "🔍 Running Chrome MCP initialize smoke test against ${browser_url}..."
+        if ! node "$helper" --router "$router" --browser-url "$browser_url" --timeout-seconds "$timeout_seconds"; then
+            log "❌ Chrome MCP initialize smoke test failed"
+            return 1
+        fi
     fi
 
     log "✅ Chrome MCP initialize smoke test passed"
