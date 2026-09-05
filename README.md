@@ -71,7 +71,13 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ### 4. Chrome MCP Router
 
-Chrome MCP Router を使う場合は、最初にローカル release を作成します。更新時の smoke test は `CHROME_MCP_BROWSER_URL` で指定した Chrome の remote debugging URL に対して実行します。未指定時は `http://127.0.0.1:9222` を使用します。
+Chrome MCP Router を使う場合は、最初にローカル release を作成します。MCP 設定が `--project` を使う場合は、同じ project を指定して bootstrap してください。これにより smoke test も router の project 設定から browser URL を解決します。
+
+```bash
+CHROME_MCP_PROJECT=<project> ~/bin/update-ai-agents.sh --only chrome-mcp-router
+```
+
+project を使わず browser URL を直接指定する構成では `CHROME_MCP_BROWSER_URL` を使用します。どちらも未指定の場合は `http://127.0.0.1:9222` を使用します。
 
 ```bash
 CHROME_MCP_BROWSER_URL=http://127.0.0.1:9222 ~/bin/update-ai-agents.sh --only chrome-mcp-router
