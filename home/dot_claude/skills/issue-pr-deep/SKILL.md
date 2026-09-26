@@ -282,11 +282,25 @@ proceed to Phase 13 with a known-failing verification.
 
 ## Phase 13: Deep Review
 
-Run `/deep-review --fix` (local diff mode; fix mode edits the working tree and
-does not commit) per `rules/workflow.md` ADR-003. Resolve every unresolved
-merge-blocker finding before Phase 14 — this is a required gate the
-Stop/PostToolUse hooks enforce. Plain `/deep-review` is review-only and never
-blocks, so do not use it for this gate.
+Dispatch a `general-purpose` sub-agent with the `Agent` tool as a **sync dispatch** (do not pass `run_in_background`) — Phase 13 and Phase 14 are strictly sequential, and there is no other independent work to run alongside it, so `rules/workflow-sub-agents.md`'s decision table calls for sync here. Do not set `isolation`: the sub-agent must run in the current worktree, the same one the parent has been working in.
+
+Give the sub-agent's dispatch prompt:
+
+- It is working in the current worktree (no `isolation`, so it shares the
+  parent's cwd and git state).
+- It must run `/deep-review --fix` (local diff mode; fix mode edits the
+  working tree and does not commit) per `rules/workflow.md` ADR-003.
+- Its final report to the parent must include: the `$CLAUDE_SESSION_ID` it
+  ran under, and the output of
+  `~/.agents/skills/deep-review/scripts/ledger.sh
+  count-open-blockers <that SID>` (the integer count of open merge-blocker
+  findings).
+
+Because this dispatch uses the `Agent` tool rather than the `Skill` tool, the PostToolUse/Stop hooks that normally enforce ADR-003 do not fire for it (they key off the `Skill` tool call and the parent's own session id — see the spec's Constraints & Established Facts). This step's own completion check substitutes for that automatic block: **the parent must not proceed to Phase 14 until the sub-agent's final report shows an open merge-blocker count of 0.** If the count is not 0, or the report omits it, treat Phase 13 as incomplete — do not proceed to Phase 14; report the outstanding count and the ledger session id to the user instead.
+
+After receiving the sub-agent's report, the parent session must independently run `~/.agents/skills/deep-review/scripts/ledger.sh count-open-blockers <SID>` itself via Bash, using the session ID from the report, and gate progression to Phase 14 on that independently-obtained count rather than on the sub-agent's stated figure. If the two counts disagree, or the independently-obtained count is nonzero, do not proceed to Phase 14 — report the discrepancy or the outstanding blockers to the user instead.
+
+If the sync `Agent` call itself errors, or its report is missing the required session ID or blocker count, re-dispatch once (a second sync `Agent` call with the same instructions). If that second attempt also fails or is incomplete, stop and report to the user per `rules/design-workflow.md`'s Stop Conditions item 6 ("A required tool or sub-agent invocation fails with no safe automatic recovery, and only a human can decide how to proceed") — do not reference `rules/workflow-sub-agents.md`'s background-only nudge/re-dispatch idle-notification procedure here, since that procedure is explicitly scoped to background-mode sub-agent dispatches and this is a sync dispatch.
 
 ## Phase 14: Create PR
 
