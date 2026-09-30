@@ -176,6 +176,7 @@ Codex CLI では custom slash command の代わりに user scope の skill を�
 - tmux 内で実行中の Codex では、PR monitor が専用 tmux window を起動し、live watcher lock と同じ PID の state を bounded interval で確認できた時だけ active とします。確認できない場合は新しい window を停止して `foreground_required` と watcher PID の clear を記録し、canonical PR URL を含む `$resume-pr-monitor <PR URL>` の fallback を報告します。active な watcher の後に initial CI/review observation が失敗した場合は、watcher を inactive とせず別の observation failure として報告します。dispatcher は pending event を固定形式の `$resume-pr-monitor` prompt として登録済み pane へ配送できます。dispatcher は prompt 入力後に短く待って Enter を送り、同じ event を再注入しない at-most-once delivery を使います。`UserPromptSubmit` hook が一致する prompt を確認した場合だけ delivery を submitted と記録します。Codex が ready と記録された直後に user が入力を始めると text が混在し得るため、この mode はその race を許容する場合だけ使用します。tmux 外または pane registration が失敗した場合は、monitor を開始せず manual resume fallback を報告します。
 - `$resume-pr-monitor <pr-number-or-url>`: restart、agent capacity 不足、tmux 非対応、watcher 停止後に fresh GitHub state から event を reconcile し、lease を取得した pending action だけを処理します。watcher は action を実行しません。ChatGPT Desktop/Web の Scheduled Tasks を利用できる場合は project context の resume を予定できますが、local shell の detached watcher として扱いません。
 - `$handle-pr-reviews <pr-number-or-url>`: 未解決の PR レビュースレッドを処理します。
+- `$i-have-adhd`: ADHD の読み手向けに、行動優先・番号付き手順・進捗明示の出力へ切り替えます。`stop adhd mode` または `normal mode` で解除します。
 - `$deep-review <pr-number-or-url>`: 複数観点で変更をレビューします。
 - `$lite-review <pr-number-or-url>`: 重点観点を短時間でレビューします。
 - `$issue-pr-deep <issue-number-or-url>` / `$issue-pr-lite <issue-number-or-url>`: 規模に応じて Issue から PR を作成します。
@@ -190,6 +191,10 @@ Codex CLI では custom slash command の代わりに user scope の skill を�
 skill を更新しても Codex CLI の一覧に反映されない場合は、Codex を再起動してください。
 
 ## Claude Code コマンド
+
+### i-have-adhd
+
+`/i-have-adhd` を実行すると、行動優先・番号付き手順・進捗明示の出力へ切り替えます。`stop adhd mode` または `normal mode` で解除します。スキルは `home/dot_claude/skills/i-have-adhd/SKILL.md` として管理されます。
 
 ### issue-pr
 

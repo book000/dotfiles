@@ -67,4 +67,5 @@ Codex CLI では任意の custom slash command ではなく、skill でコマン
 - `$agents-md-maintainer`: `AGENTS.md` のエージェント向けガイダンスを保守する。
 - `$rtk`: RTK の利用手順を参照する。
 - `$trilium`: Trilium 連携の手順を実行する。
+- `$i-have-adhd`: ADHD の読み手向けに、行動優先・番号付き手順・進捗明示の出力へ切り替える。
 - skill を更新しても一覧へ反映されない場合は Codex を再起動する。
