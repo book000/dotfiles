@@ -16,7 +16,7 @@ jobs:
       - name: Run shellcheck with action
         id: run-shellcheck-with-action
         background: true
-        uses: reviewdog/action-shellcheck@d0b8d5fd7fad6afdb6e1b6ce1778892be4d1f427 # v1
+        uses: reviewdog/action-shellcheck@d0b8d5fd7fad6afdb6e1b6ce1778892be4d1f427 # v1.34.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
