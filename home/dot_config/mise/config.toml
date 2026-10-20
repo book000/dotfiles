@@ -1,7 +1,7 @@
 [tools]
 go = "1.26"
 java = "25"
-node = "24"
+node = "v24.22.0"
 python = "3.14"
 pnpm = "11.20.0"
 ghq = "1.10.1"
