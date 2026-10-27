@@ -172,13 +172,21 @@
         "repo": "DietrichGebert/ponytail",
         "ref": "v5.3.2"
       }
+    },
+    "natural-japanese": {
+      "source": {
+        "source": "github",
+        "repo": "coji/natural-japanese",
+        "ref": "v1.6.2"
+      }
     }
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "commit-commands@claude-plugins-official": true,
-    "ponytail@ponytail": true
+    "ponytail@ponytail": true,
+    "natural-japanese@natural-japanese": true
   },
   "language": "Use Japanese for interaction with humans and creating plans. Write the Markdown below .claude in English.",
   "feedbackSurveyRate": 0,

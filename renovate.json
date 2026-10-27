@@ -14,7 +14,7 @@
       "fileFormat": "json",
       "managerFilePatterns": ["/^home/dot_claude/private_settings\\.json$/"],
       "matchStrings": [
-        "extraKnownMarketplaces.ponytail.source.{ \"packageName\": repo, \"currentValue\": ref }"
+        "extraKnownMarketplaces.*.source.{ \"packageName\": repo, \"currentValue\": ref }"
       ],
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "semver-coerced"
