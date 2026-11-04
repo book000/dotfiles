@@ -248,7 +248,7 @@ Follow Conventional Commits. `<description>` language: follow the target reposit
 Resolve the target repository for the PR with `gh-pr-target-repo.sh`. If an `upstream` remote
 exists, it is used as the default target.
 
-Create the PR as a draft (`gh pr create --draft`) when further edits to it are expected after creation, i.e. when any of the following is planned: CI-driven fix pushes, a Copilot review whose comments will be addressed, review-thread handling by `/pr-health-monitor`, or Jira/GlitchTip follow-up commits. Create a regular PR only when none of these is planned or the user explicitly asks for a non-draft PR. An explicit user instruction always takes precedence.
+Create the PR as a draft (`gh pr create --draft`) when further edits to it are expected after creation, i.e. when any of the following is planned: a Copilot review whose comments will be addressed, review-thread handling by `/pr-health-monitor`, or Jira/GlitchTip follow-up commits. CI failures are not a reason for a draft: if CI fails after the PR is ready, return it to draft (`gh pr ready --undo`), fix, push, and re-evaluate. Create a regular PR only when none of these is planned or the user explicitly asks for a non-draft PR. An explicit user instruction always takes precedence.
 
 Set `DRAFT=1` when the PR is to be a draft (leave it empty otherwise) and pass `${DRAFT:+--draft}` to `gh pr create`. The ready decision is made later by `/pr-health-monitor`, not by this skill.
 
