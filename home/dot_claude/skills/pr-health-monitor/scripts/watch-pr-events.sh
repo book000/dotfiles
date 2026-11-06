@@ -1,15 +1,20 @@
 #!/bin/bash
 
-# 使い方: watch-pr-events.sh <OWNER> <REPO> <PR_NUMBER> <DEADLINE_EPOCH>
+# 使い方: watch-pr-events.sh <OWNER> <REPO> <PR_NUMBER> <DEADLINE_EPOCH> [COPILOT_MODE]
 # イベントごとに標準出力へ 1 行出す (pr_closed / pr_conflict_detected / ci_failed / ci_all_success /
-# review_feedback / monitor_deadline_reached / WARNING)。pr_closed と monitor_deadline_reached の後は 0 で終了し、引数が不正なら 2 で終了する。
+# review_feedback / ready_eligible / monitor_deadline_reached / WARNING)。pr_closed と monitor_deadline_reached の後は 0 で終了し、引数が不正なら 2 で終了する。
+# COPILOT_MODE は required (既定) か waived。waived では Copilot レビュー未受信でも ready_eligible の条件を満たす。
+# required でも、最初の Monitor 起動 (DEADLINE_EPOCH - 10800) から COPILOT_WAIT_TIMEOUT 秒 (既定 600) 経てば Copilot の要求を免除する。
 set -u
 
 OWNER="${1:-}"
 REPO="${2:-}"
 PR_NUMBER="${3:-}"
 DEADLINE_EPOCH="${4:-}"
+COPILOT_MODE="${5:-required}"
 POLL_INTERVAL="${POLL_INTERVAL:-30}"
+READY_REMIND_INTERVAL="${READY_REMIND_INTERVAL:-600}"
+COPILOT_WAIT_TIMEOUT="${COPILOT_WAIT_TIMEOUT:-600}"
 
 if ! [[ "$OWNER" =~ ^[A-Za-z0-9._-]+$ ]] || ! [[ "$REPO" =~ ^[A-Za-z0-9._-]+$ ]]; then
     echo "ERROR: OWNER/REPO must match ^[A-Za-z0-9._-]+\$, got: '$OWNER' '$REPO'" >&2
@@ -19,6 +24,17 @@ if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || ! [[ "$DEADLINE_EPOCH" =~ ^[0-9]+$ ]]; th
     echo "ERROR: PR_NUMBER and DEADLINE_EPOCH must be numeric, got: '$PR_NUMBER' '$DEADLINE_EPOCH'" >&2
     exit 2
 fi
+if [[ "$COPILOT_MODE" != "required" && "$COPILOT_MODE" != "waived" ]]; then
+    echo "ERROR: COPILOT_MODE must be 'required' or 'waived', got: '$COPILOT_MODE'" >&2
+    exit 2
+fi
+
+for var in READY_REMIND_INTERVAL COPILOT_WAIT_TIMEOUT; do
+    if ! [[ "${!var}" =~ ^[1-9][0-9]*$ ]]; then
+        echo "ERROR: $var must be a positive integer, got: '${!var}'" >&2
+        exit 2
+    fi
+done
 
 PR_URL="https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}"
 NOTIFY="$HOME/.claude/scripts/completion-notify/send-discord-notification.sh"
@@ -57,6 +73,7 @@ prev_mergeable=""
 last_head=""
 fail_count=0
 zero_checks=0
+last_ready_emit=""
 errf=$(mktemp)
 trap 'rm -f "$errf" "$errf.out"' EXIT
 
@@ -67,12 +84,23 @@ while true; do
     fi
 
     cycle_failed=0
+    # ready_eligible の入力 (pr view と GraphQL) が揃ったサイクルだけ 1 にする。gh pr checks の失敗には影響されない
+    ready_inputs_ok=0
+    view_ok=0
     : >"$errf"
+    # 失敗したサイクルで前サイクルの値を使わないよう空にする
+    is_draft=""
+    review_decision=""
+    unresolved=""
+    copilot=""
 
-    if view=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json state,mergeable,headRefOid 2>>"$errf") && [[ -n "$view" ]]; then
+    if view=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json state,mergeable,headRefOid,isDraft,reviewDecision 2>>"$errf") && [[ -n "$view" ]]; then
         state=$(jq -r '.state' <<<"$view")
         mergeable=$(jq -r '.mergeable' <<<"$view")
         head=$(jq -r '.headRefOid' <<<"$view")
+        is_draft=$(jq -r '.isDraft' <<<"$view")
+        review_decision=$(jq -r '.reviewDecision // ""' <<<"$view")
+        view_ok=1
 
         if [[ "$state" != "OPEN" ]]; then
             emit "pr_closed state=$state" "PR $state" 3447003
@@ -145,6 +173,7 @@ while true; do
               ] | @tsv' <<<"$gql" 2>/dev/null)
         if [[ -n "$summary" ]]; then
             read -r sig unresolved copilot <<<"$summary"
+            ready_inputs_ok=$view_ok
             if [[ "$sig" -gt "$last_sig" ]]; then
                 emit "review_feedback unresolved=$unresolved copilot_reviews=$copilot" "PR review feedback" 3447003
                 last_sig="$sig"
@@ -154,6 +183,22 @@ while true; do
         fi
     else
         cycle_failed=1
+    fi
+
+    # 入力が揃わないサイクルでは判定せず、再出力の状態も変えない
+    if [[ $ready_inputs_ok -eq 1 ]]; then
+        now=$(date +%s)
+        if [[ "$is_draft" == "true" && "$mergeable" == "MERGEABLE" && "$unresolved" -eq 0 \
+            && "$review_decision" != "CHANGES_REQUESTED" \
+            && ( "$COPILOT_MODE" == "waived" || "$copilot" -ge 1 \
+                || "$now" -ge $((DEADLINE_EPOCH - 10800 + COPILOT_WAIT_TIMEOUT)) ) ]]; then
+            if [[ -z "$last_ready_emit" || $((now - last_ready_emit)) -ge "$READY_REMIND_INTERVAL" ]]; then
+                emit "ready_eligible" "PR ready eligible" 3066993
+                last_ready_emit="$now"
+            fi
+        else
+            last_ready_emit=""
+        fi
     fi
 
     if [[ $cycle_failed -eq 1 ]]; then
