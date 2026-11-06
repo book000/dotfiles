@@ -37,8 +37,8 @@ STUB
 chmod +x "$TEST_BIN/gh"
 
 reset() { rm -rf "$STUB_DIR"; mkdir -p "$STUB_DIR"; }
-# view N STATE MERGEABLE HEAD
-view() { jq -nc --arg s "$2" --arg m "$3" --arg h "$4" '{state:$s,mergeable:$m,headRefOid:$h}' > "$STUB_DIR/view.$1"; }
+# view N STATE MERGEABLE HEAD [ISDRAFT=false] [REVIEW_DECISION=""]
+view() { jq -nc --arg s "$2" --arg m "$3" --arg h "$4" --argjson d "${5:-false}" --arg r "${6:-}" '{state:$s,mergeable:$m,headRefOid:$h,isDraft:$d,reviewDecision:$r}' > "$STUB_DIR/view.$1"; }
 # checks N JSON
 checks() { printf '%s\n' "$2" > "$STUB_DIR/checks.$1"; }
 # graphql N REVIEWS_JSON THREADS_JSON
@@ -50,9 +50,10 @@ init_defaults() {
 }
 
 run_watch() {
-    local deadline="${DEADLINE:-$(( $(date +%s) + 600 ))}"
+    local deadline="${DEADLINE:-$(( $(date +%s) + 10800 ))}"
     HOME="$TEST_DIR/home" PATH="$TEST_BIN:$PATH" STUB_DIR="$STUB_DIR" POLL_INTERVAL=0.05 \
-        timeout 20 bash "$SCRIPT" "${ARGS_OWNER:-o}" "${ARGS_REPO:-r}" "${ARGS_PR:-1}" "$deadline" 2>/dev/null
+        READY_REMIND_INTERVAL="${READY_REMIND_INTERVAL:-600}" COPILOT_WAIT_TIMEOUT="${COPILOT_WAIT_TIMEOUT:-600}" \
+        timeout 20 bash "$SCRIPT" "${ARGS_OWNER:-o}" "${ARGS_REPO:-r}" "${ARGS_PR:-1}" "$deadline" "${COPILOT_MODE:-required}" 2>/dev/null
 }
 
 check() {
@@ -178,5 +179,97 @@ for bad in "o/x:r:1" "o:r;id:1" "o:r:abc"; do
     out=$(ARGS_OWNER="$bo" ARGS_REPO="$br" ARGS_PR="$bp" run_watch) || rc=$?
     check "invalid args ($bad) exit 2" "|2" "$out|$rc"
 done
+
+# 9. ready_eligible: 条件が揃った draft で 1 回 (CI が pending のままでも出る)。waived は既定の起点・タイムアウト (600 秒) のままでも待たずに出る
+init_defaults
+view 1 OPEN MERGEABLE h1 true
+view 4 MERGED MERGEABLE h1 true
+check "ready_eligible once (waived, CI pending)" $'ready_eligible\npr_closed state=MERGED' "$(COPILOT_MODE=waived run_watch)"
+
+# 9a. 未解決スレッドがある間は出ず、解決後に出る
+THR_RESOLVED='{"isResolved":true,"comments":{"nodes":[{"author":{"login":"alice"}}]}}'
+init_defaults
+view 1 OPEN MERGEABLE h1 true
+graphql 1 '[]' "[$THR]"
+graphql 3 '[]' "[$THR_RESOLVED]"
+view 6 MERGED MERGEABLE h1 true
+check "ready_eligible after threads resolved" $'review_feedback unresolved=1 copilot_reviews=0\nready_eligible\npr_closed state=MERGED' "$(COPILOT_MODE=waived run_watch)"
+
+# 9b. required は Copilot レビュー受信後に出る
+init_defaults
+view 1 OPEN MERGEABLE h1 true
+graphql 3 "[$COPILOT]" '[]'
+view 6 MERGED MERGEABLE h1 true
+check "ready_eligible waits for copilot (required)" $'review_feedback unresolved=0 copilot_reviews=1\nready_eligible\npr_closed state=MERGED' "$(COPILOT_MODE=required run_watch)"
+
+# 9c. required で Copilot レビューが無いまま、タイムアウト前なら出ない
+init_defaults
+view 1 OPEN MERGEABLE h1 true
+view 4 MERGED MERGEABLE h1 true
+check "no ready_eligible without copilot (required)" "pr_closed state=MERGED" "$(COPILOT_MODE=required COPILOT_WAIT_TIMEOUT=600 run_watch)"
+
+# 9d. CONFLICTING の間は出ず、解消後に出る
+init_defaults
+view 1 OPEN CONFLICTING h1 true
+view 4 OPEN MERGEABLE h1 true
+view 6 MERGED MERGEABLE h1 true
+check "ready_eligible after conflict resolved" $'pr_conflict_detected mergeable=CONFLICTING\nready_eligible\npr_closed state=MERGED' "$(COPILOT_MODE=waived run_watch)"
+
+# 9e. UNKNOWN の間は出ない
+init_defaults
+view 1 OPEN UNKNOWN h1 true
+view 4 MERGED UNKNOWN h1 true
+check "no ready_eligible while mergeable UNKNOWN" "pr_closed state=MERGED" "$(COPILOT_MODE=waived run_watch)"
+
+# 9f. CHANGES_REQUESTED の間は出ない
+init_defaults
+view 1 OPEN MERGEABLE h1 true CHANGES_REQUESTED
+view 4 MERGED MERGEABLE h1 true CHANGES_REQUESTED
+check "no ready_eligible on CHANGES_REQUESTED" "pr_closed state=MERGED" "$(COPILOT_MODE=waived run_watch)"
+
+# 9g. isDraft=false なら出ない
+init_defaults
+view 1 OPEN MERGEABLE h1 false
+view 4 MERGED MERGEABLE h1 false
+check "no ready_eligible when not draft" "pr_closed state=MERGED" "$(COPILOT_MODE=waived run_watch)"
+
+# 9h. 成立が続く間は READY_REMIND_INTERVAL ごとに再出力 (秒単位のため厳密な回数は固定しない)
+init_defaults
+view 1 OPEN MERGEABLE h1 true
+view 45 MERGED MERGEABLE h1 true
+out=$(COPILOT_MODE=waived READY_REMIND_INTERVAL=1 run_watch)
+check "ready_eligible re-emitted" "true" "$([[ $(grep -c '^ready_eligible$' <<<"$out") -ge 2 ]] && echo true || echo false)"
+
+# 9i. COPILOT_MODE が不正なら終了コード 2 で標準出力なし
+init_defaults
+view 1 MERGED MERGEABLE h1
+rc=0
+out=$(COPILOT_MODE=bogus run_watch) || rc=$?
+check "invalid COPILOT_MODE exit 2" "|2" "$out|$rc"
+
+# 9j. required でも起点から COPILOT_WAIT_TIMEOUT 経過後は Copilot レビューなしで出る (起点を 100 秒前に置いて決定的にする)
+init_defaults
+view 1 OPEN MERGEABLE h1 true
+view 4 MERGED MERGEABLE h1 true
+check "ready_eligible after copilot timeout (required)" $'ready_eligible\npr_closed state=MERGED' "$(DEADLINE=$(( $(date +%s) + 10800 - 100 )) COPILOT_MODE=required COPILOT_WAIT_TIMEOUT=1 run_watch)"
+
+# 9k. READY_REMIND_INTERVAL / COPILOT_WAIT_TIMEOUT が正の整数でなければ終了コード 2 で標準出力なし
+init_defaults
+view 1 MERGED MERGEABLE h1
+for bad in abc 0; do
+    rc=0
+    out=$(READY_REMIND_INTERVAL="$bad" run_watch) || rc=$?
+    check "invalid READY_REMIND_INTERVAL=$bad exit 2" "|2" "$out|$rc"
+    rc=0
+    out=$(COPILOT_WAIT_TIMEOUT="$bad" run_watch) || rc=$?
+    check "invalid COPILOT_WAIT_TIMEOUT=$bad exit 2" "|2" "$out|$rc"
+done
+
+# 9l. gh pr checks が失敗し続けても ready_eligible は出る
+init_defaults
+echo FAIL > "$STUB_DIR/checks.1"
+view 1 OPEN MERGEABLE h1 true
+view 4 MERGED MERGEABLE h1 true
+check "ready_eligible independent of gh pr checks failure" $'ready_eligible\npr_closed state=MERGED' "$(COPILOT_MODE=waived run_watch)"
 
 exit "$FAILED"
