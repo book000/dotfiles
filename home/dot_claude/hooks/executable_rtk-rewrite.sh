@@ -71,6 +71,12 @@ if [[ "$CWD" == */.claude/worktrees/* ]]; then
   if [ "$COUNT_REWRITTEN" -gt "$COUNT_CMD" ]; then
     ADOPTED_CMD="$CMD"
   fi
+  # worktree 内では rtk launcher の glob・展開・クォート・%{ 引数が組み込みガードに拒否されるため巻き戻す。
+  # launcher 区間外のクォートは対象外。
+  RISKY_LAUNCHER_RE='(^|[;&|][[:space:]]*)rtk [a-z-]+[^;&|]*([*?$`"'"'"']|%\{)'
+  if grep -qE "$RISKY_LAUNCHER_RE" <<< "$REWRITTEN"; then
+    ADOPTED_CMD="$CMD"
+  fi
 fi
 
 case $EXIT_CODE in

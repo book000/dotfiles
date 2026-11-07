@@ -684,6 +684,40 @@ assert_rtk_bypassed "worktree cwd: 'echo \"rtk git status\" && git status' rever
 assert_rtk_rewritten "normal cwd: 'echo \"rtk git status\" && git status' is still RTK-rewritten (regression)" \
   'echo "rtk git status" && git status' "$NORMAL_CWD" 'echo "rtk git status" && rtk git status'
 
+# worktree 内では、glob / 変数展開 / %{ トークン / クォート文字列を引数に持つ
+# rtk launcher も巻き戻す。通常 cwd と、引数が平易な launcher は対象外。
+assert_rtk_bypassed "worktree cwd: 'ls dir/*' (glob *) is reverted" \
+  'ls dir/*' "$WORKTREE_CWD"
+assert_rtk_bypassed "worktree cwd: 'ls dir/?.md' (glob ?) is reverted" \
+  'ls dir/?.md' "$WORKTREE_CWD"
+# shellcheck disable=SC2016
+assert_rtk_bypassed "worktree cwd: 'ls \$HOME' (variable) is reverted" \
+  'ls $HOME' "$WORKTREE_CWD"
+# shellcheck disable=SC2016
+assert_rtk_bypassed "worktree cwd: 'ls \$(pwd)' (command expansion) is reverted" \
+  'ls $(pwd)' "$WORKTREE_CWD"
+assert_rtk_bypassed "worktree cwd: 'ls \"my dir\"' (quoted text) is reverted" \
+  'ls "my dir"' "$WORKTREE_CWD"
+assert_rtk_bypassed "worktree cwd: 'ls -w %{x}' (%{ token) is reverted" \
+  'ls -w %{x}' "$WORKTREE_CWD"
+assert_rtk_bypassed "worktree cwd: 'echo x && ls *' (launcher in compound) reverts the whole command" \
+  'echo x && ls *' "$WORKTREE_CWD"
+assert_rtk_asked "worktree cwd: 'ls * ASKME' still prompts but keeps the original command" \
+  'ls * ASKME' "$WORKTREE_CWD" 'ls * ASKME'
+assert_rtk_denied "worktree cwd: deny-matched glob command still passes through silently" \
+  'ls * DENYME' "$WORKTREE_CWD"
+assert_rtk_rewritten "worktree cwd: 'ls -la && echo \"a b\"' keeps the rewrite (quote is outside the launcher)" \
+  'ls -la && echo "a b"' "$WORKTREE_CWD" 'rtk ls -la && echo "a b"'
+assert_rtk_rewritten "normal cwd: 'ls dir/*' is still RTK-rewritten" \
+  'ls dir/*' "$NORMAL_CWD" 'rtk ls dir/*'
+# shellcheck disable=SC2016
+assert_rtk_rewritten "normal cwd: 'ls \$HOME' is still RTK-rewritten" \
+  'ls $HOME' "$NORMAL_CWD" 'rtk ls $HOME'
+assert_rtk_rewritten "normal cwd: 'ls \"my dir\"' is still RTK-rewritten" \
+  'ls "my dir"' "$NORMAL_CWD" 'rtk ls "my dir"'
+assert_rtk_rewritten "normal cwd: 'ls -w %{x}' is still RTK-rewritten" \
+  'ls -w %{x}' "$NORMAL_CWD" 'rtk ls -w %{x}'
+
 # deny/ask 判定は worktree 内の git であっても失われてはならない
 # (rewrite だけをスキップし、safety net は維持する)。
 assert_rtk_denied "normal cwd: deny-matched git command passes through silently" \
