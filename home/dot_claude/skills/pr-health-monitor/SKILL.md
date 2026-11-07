@@ -81,8 +81,9 @@ request-review-copilot "https://github.com/${OWNER}/${REPO}/pull/${PR_NUMBER}"
 Skip this if the command does not exist (treat that as rule 1 below). The Copilot requirement is waived by the first rule that applies:
 
 1. The request command exited non-zero (including a failure reported only as a warning): pass `waived` as `<COPILOT_MODE>` in Task B.
-2. The request succeeded, but a `gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json reviewRequests` run right afterwards does not list Copilot: pass `waived` as `<COPILOT_MODE>` in Task B.
-3. Otherwise pass `required`. The script waives the requirement by itself once `COPILOT_WAIT_TIMEOUT` seconds (default 600) have passed since the first Monitor start (`DEADLINE_EPOCH - 10800`) without a Copilot review, so no Monitor restart is needed.
+2. Otherwise (exit code 0) pass `required`. The script waives the requirement by itself once `COPILOT_WAIT_TIMEOUT` seconds (default 600) have passed since the first Monitor start (`DEADLINE_EPOCH - 10800`) without a Copilot review, so no Monitor restart is needed.
+
+Exit code 0 already means Copilot is in the PR's requested reviewers, because `request-review-copilot` exits non-zero otherwise. Do not use `reviewRequests` from `gh pr view` to decide whether Copilot was requested, because it does not return the Copilot bot (it may still be used to see human reviewers).
 
 The same waiver (including the timeout) applies to the draft-release evaluation. The request command returns immediately, so start Task B as soon as its result is known, and never wait for the Copilot review itself before starting the Monitor.
 
@@ -133,7 +134,12 @@ BODY
 
 ## Step 2: Setup Report
 
-Report that the Monitor is running (with `DEADLINE_EPOCH`), the conflict check result, whether the PR body was updated, and whether the Copilot review request succeeded. Do not wait for any event before reporting. After reporting, evaluate "Release Draft" once immediately (without waiting for any event), so a PR that already satisfies the ready conditions does not stay a draft until the next event or the deadline, and include the result in the report.
+Do these two steps in order, in the same turn. Do not wait for any Monitor event in either step.
+
+1. Evaluate "Release Draft": fetch the PR's current state with commands and check the conditions in the `### Release Draft` section one by one; mark the PR ready if they all hold. Do this BEFORE reporting, so a PR that already satisfies the ready conditions does not stay a draft until the next event or the deadline.
+2. Report: the Monitor is running (with `DEADLINE_EPOCH`), the conflict check result, whether the PR body was updated, whether the Copilot review request succeeded, and the evaluation result, which is exactly one of: marked ready / kept as draft with the specific unmet conditions / already ready.
+
+Every reason given in the report for keeping the PR as a draft (or for marking it ready) must be a condition confirmed from the output of a command run in step 1. Never give a reason that was not checked, and never give something that is not a Release Draft condition or that was not confirmed (for example CI progress, or an unchecked guess that a Copilot review will arrive soon). A Release Draft condition may be given as a reason, including condition (3) ("no Copilot review received yet"), only when the command output from the evaluation confirms it (for example the review count). If a condition could not be checked, say it could not be checked and keep the PR as a draft. If an evaluation command fails, report the failure and that the PR stays a draft; do not assume the conditions hold. The already-running Monitor is unaffected and is not restarted. If `gh pr ready` fails, leave the PR as a draft and report the reason.
 
 ---
 
