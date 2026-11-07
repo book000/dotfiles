@@ -3,6 +3,9 @@
 
 set -euo pipefail
 
+# BASH_ENV (~/.bash_env) が mise の PATH を先頭に追加し、PATH 先頭に置いたスタブの gh / gitleaks が本物に隠れるため無効化する
+unset BASH_ENV
+
 echo "Testing AI agent hooks..."
 
 FAILED=0
