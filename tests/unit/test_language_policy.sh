@@ -43,6 +43,29 @@ else
   ok "No Japanese text in Markdown under home/dot_codex or home/dot_agents, or in .github/copilot-instructions.md, AGENTS.md, CLAUDE.md"
 fi
 
+# home/dot_claude の Markdown は英語限定。日本語を意図して含むファイルだけを許可リストに載せる(識別子・UI ラベル・成果物テンプレート・IME 例)
+JA_ALLOWED=(
+  home/dot_claude/rules/coding-csharp.md
+  home/dot_claude/skills/glitchtip-pr-deep/SKILL.md
+  home/dot_claude/skills/issue-pr-deep/SKILL.md
+  home/dot_claude/skills/pr-health-monitor/SKILL.md
+  home/dot_claude/skills/proxmox/SKILL.md
+  home/dot_claude/skills/ticket-pr/SKILL.md
+  home/dot_claude/skills/trilium/SKILL.md
+)
+CLAUDE_JA_FILES=()
+while IFS= read -r f; do
+  [[ " ${JA_ALLOWED[*]} " == *" $f "* ]] && continue
+  if match env LC_ALL=C.UTF-8 grep -qP "[\x{3040}-\x{30FF}\x{4E00}-\x{9FFF}]" "$f"; then
+    CLAUDE_JA_FILES+=("$f")
+  fi
+done < <(find home/dot_claude -name '*.md' | sort)
+if [[ ${#CLAUDE_JA_FILES[@]} -gt 0 ]]; then
+  ng "Japanese text found in Markdown under home/dot_claude outside JA_ALLOWED: ${CLAUDE_JA_FILES[*]}"
+else
+  ok "No Japanese text in Markdown under home/dot_claude outside JA_ALLOWED"
+fi
+
 if [[ $FAILED -eq 0 ]]; then
   echo "✅ All language policy tests passed"
   exit 0
