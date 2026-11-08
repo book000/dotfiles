@@ -381,6 +381,7 @@ applies_to: all        # all | pr-only（省略時は all）
 `~/.claude/hooks/deep-review-immediate-fix.sh`（PostToolUse）と
 `~/.claude/hooks/deep-review-require-fixes.sh`（Stop）が設定されており、
 fix モードの ledger に未解決の マージ前必須 指摘が残っている場合だけ Claude の処理を一時ブロックして対応を促す（review モードでは一切ブロックしない）。`lite-review` も同じ ledger で判定する。
+バックグラウンドのサブエージェントが動作中の間は、修正中とみなしてブロックを見送る。
 
 また、`~/.claude/hooks/detect-leaked-toolcall.sh`（Stop / SubagentStop）は、Claude Code の既知の不具合によりツールコールの XML マークアップがプレーンテキストとして最終アシスタントメッセージに漏れ出していないかを検出し、検出時は自己模倣による再発を防ぐよう促すメッセージでブロックする。
 

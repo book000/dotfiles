@@ -9,6 +9,12 @@ STATE_DIR="$HOME/.claude/data"
 # stdin から JSON を読み込む（公式フック契約: stdin JSON）
 INPUT=$(cat)
 
+# バックグラウンドのサブエージェントが動作中なら修正中とみなしブロックしない（終了後の次の Stop で再判定する）。
+# monitor 等は常駐し得るため対象にしない
+if [[ "$(printf '%s' "$INPUT" | jq -r '[.background_tasks[]? | select(.type == "subagent")] | length' 2>/dev/null)" =~ ^[1-9][0-9]*$ ]]; then
+    exit 0
+fi
+
 # 現在のセッション ID を取得する
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""' 2>/dev/null)
 
@@ -28,7 +34,7 @@ if [[ "$SESSION_ID" =~ ^[A-Za-z0-9_-]+$ ]]; then
 1. ledger の open な merge-blocker 指摘をすべて確認する
 2. 各指摘を修正して検証し、ledger.sh で status を fixed / false_positive / deferred に更新する
 3. 修正内容をコミット・プッシュする
-4. PR 本文を更新する"
+4. PR が存在する場合は PR 本文を更新する"
                 jq -n --arg reason "$REASON" '{"decision":"block","reason":$reason}'
                 exit 0
             fi
