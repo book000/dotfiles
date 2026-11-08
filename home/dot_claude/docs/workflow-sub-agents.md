@@ -27,11 +27,11 @@ Can I do this in ≤ 5 tool calls?
 | Cross-module investigation | 10–15 | Explore agent if parallel work exists |
 | Full feature implementation | 15+ | general-purpose agent with planning |
 | Security / code review | Any | Specialized agent (high signal-to-noise) |
-| Claude Code prompt-file maintenance (`CLAUDE.md`, `AGENTS.md`, `rules/*.md`, `docs/*.md`, `skills/*`, `agents/*.md`, hook scripts, `settings.json`) | Any | Always delegate — see carve-out below |
+| Claude Code prompt-file maintenance (`CLAUDE.md`, `AGENTS.md`, `rules/*.md`, `docs/*.md`, `skills/*`, `agents/*.md`, hook scripts, `settings.json`) | Any | Always delegate, unless the user explicitly waives delegation for the request — see carve-out below |
 
 ## Prompt-file maintenance carve-out
 
-Claude Code's own prompt files (`CLAUDE.md`/`AGENTS.md`, `rules/*.md`, `docs/*.md`, `skills/*`, `agents/*.md`, hooks, `settings.json`) get injected into, or read by, every future session. Reading/editing them from the parent session leaves that exploration sitting in a context that persists for the rest of the conversation — so, regardless of tool-call count, delegate this work to an agent instead of doing it directly. Exception: reading a `docs/*.md` file in order to follow it (as the CLAUDE.md Context loading table directs) is not maintenance and is done directly; maintenance and editing are always delegated.
+Claude Code's own prompt files (`CLAUDE.md`/`AGENTS.md`, `rules/*.md`, `docs/*.md`, `skills/*`, `agents/*.md`, hooks, `settings.json`) get injected into, or read by, every future session. Reading/editing them from the parent session leaves that exploration sitting in a context that persists for the rest of the conversation — so, regardless of tool-call count, delegate this work to an agent instead of doing it directly, unless the user explicitly waives delegation for the request. Exception: reading a `docs/*.md` file in order to follow it (as the CLAUDE.md Context loading table directs) is not maintenance and is done directly; maintenance and editing are delegated unless the user has explicitly waived delegation for the request.
 
 Parent session's job: define the task, pass along any research/decisions already gathered, review the agent's output, and own all user-facing Q&A (agents can't call `AskUserQuestion` — relay per `~/.claude/docs/design-workflow.md`). Keep direct tool use to quick recon (`ls`/`grep`) for scoping only.
 
@@ -119,3 +119,18 @@ This applies whenever a background-mode sub-agent (explicit `run_in_background: 
   tools) may reuse that instead of inventing a new one.
 
 The final message is the result channel: a sub-agent's findings are returned through its final message, and `SendMessage` is not used for the final report. Use `SendMessage` for progress sharing or when a sub-agent needs a response before it can continue; if the final message shows incomplete or unclear status, follow the recovery procedure above.
+
+## Cleanup and long-running work
+
+- After you have consumed a sub-agent's final result, stop it with `TaskStop` if it is still listed as running or idle, and at the end of a multi-agent workflow check `ListAgents` and stop any leftover sub-agents you started.
+- Never stop a peer interactive session or a sub-agent you did not start.
+- For background work expected to take more than about 5 minutes, state an ETA when you launch it, and post a one-line progress update before any longer wait.
+- Answer ETA or "is it stuck?" questions from measured progress (output, checkpoints, `git log`), not from a guess.
+- Keep the number of parallel background agents low, and reduce it when the user reports high machine load.
+- The timeouts and check-in cron in the Follow-up procedure above also apply to a long-running sub-agent that has not returned a final message: fix the give-up deadline when you launch it.
+
+## Peer cross-session messages
+
+- To reach another session (for example the session that owns a different repository), find it with `ListAgents` and contact it with `SendMessage`.
+- Ask the owning session to make changes in its own repository instead of making them from this session.
+- Reply to every inbound cross-session message.
