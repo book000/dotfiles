@@ -427,8 +427,8 @@ if ! jq empty home/dot_codex/hooks.json; then
 elif ! jq -e '
   (.hooks.PreToolUse | length) == 1
   and .hooks.PreToolUse[0].matcher == "^(Bash|exec)$"
-  and .hooks.PreToolUse[0].hooks[0].command == "bash ~/.codex/hooks/agentctl-policy-dispatcher.sh"
-  and .hooks.PreToolUse[0].hooks[1].command == "bash ~/.codex/hooks/git-config-guard.sh"
+  and (.hooks.PreToolUse[0].hooks | length) == 1
+  and .hooks.PreToolUse[0].hooks[0].command == "bash ~/.codex/hooks/git-config-guard.sh"
   and .hooks.PostToolUse[0].hooks[0].command == "bash ~/.codex/scripts/completion-notify/notify-post-tool-use.sh"
   and .hooks.PermissionRequest[0].hooks[0].command == "bash ~/.codex/hooks/pr-monitor-pane-state.sh approval_pending"
   and .hooks.UserPromptSubmit[0].hooks[0].command == "bash ~/.codex/hooks/pr-monitor-pane-state.sh busy"

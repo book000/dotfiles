@@ -74,10 +74,7 @@ assert config["shell_environment_policy"]["set"]["BASH_ENV"].endswith("/.bash_en
 assert config["projects"]["/tmp/codex-runtime-state"]["trust_level"] == "trusted"
 assert config["hooks"]["state"]["/tmp/codex-runtime-hook"]["trusted_hash"] == "sha256:test"
 state = config["hooks"]["state"]
-dispatcher = [(k, v) for k, v in state.items() if k.endswith("/.codex/hooks.json:pre_tool_use:0:0")]
-git_guard = [(k, v) for k, v in state.items() if k.endswith("/.codex/hooks.json:pre_tool_use:0:1")]
-assert len(dispatcher) == 1
-assert dispatcher[0][1]["trusted_hash"] == "sha256:8863117dfc0f0ed890109dff2a9c7eaa3076dd94ed001602d3de33ef7517dbdc"
+git_guard = [(k, v) for k, v in state.items() if k.endswith("/.codex/hooks.json:pre_tool_use:0:0")]
 assert len(git_guard) == 1
 assert git_guard[0][1]["trusted_hash"] == "sha256:5be52eb577c8c54cec54e7635c1fb9ad3fa4166798f3652f0444a50a5fadf979"
 assert config["notice"]["model_migrations"]["gpt_5_4"] == "gpt-5.6"
@@ -97,7 +94,6 @@ hooks = json.loads(Path("home/dot_codex/hooks.json").read_text())["hooks"]["PreT
 assert len(hooks) == 1, hooks
 group = hooks[0]
 expected = [
-    "sha256:8863117dfc0f0ed890109dff2a9c7eaa3076dd94ed001602d3de33ef7517dbdc",
     "sha256:5be52eb577c8c54cec54e7635c1fb9ad3fa4166798f3652f0444a50a5fadf979",
 ]
 actual = []

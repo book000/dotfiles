@@ -39,3 +39,12 @@ bin/tmux-ipc-send.sh
 .claude/skills/handle-pr-reviews
 .claude/skills/wait-for-copilot-review
 .claude/skills/wait-for-pr-close
+bin/agentctl
+bin/agentctl-backend-claude.sh
+bin/agentctl-backend-codex.sh
+bin/agentctl-classify.sh
+bin/agentctl-common.sh
+bin/agentctl-deployment-preflight
+bin/agentctl-policy-dispatcher.sh
+bin/agentctl-policy-validate.jq
+.codex/hooks/agentctl-policy-dispatcher.sh

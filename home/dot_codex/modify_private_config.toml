@@ -15,22 +15,17 @@
 {{- $config = $config | setValueAtPath "features.shell_snapshot" true -}}
 {{- $config = $config | setValueAtPath "features.default_mode_request_user_input" true -}}
 {{- $config = $config | setValueAtPath "shell_environment_policy.set.BASH_ENV" (printf "%s/.bash_env" .chezmoi.homeDir) -}}
-{{- /* Codex hook trust is keyed by source path + event/group/handler index. Pin only
-      the two managed global PreToolUse identities so a targeted hooks.json deploy does
-      not stop real agentctl Codex runtimes at the interactive Hook Review screen. */ -}}
+{{- /* Codex hook trust is keyed by source path + event/group/handler index. Pin the
+      managed global PreToolUse identity so a targeted hooks.json deploy does not stop
+      Codex runtimes at the interactive Hook Review screen. */ -}}
 {{- $hooks := dict -}}
 {{- if hasKey $config "hooks" -}}{{- $hooks = index $config "hooks" -}}{{- end -}}
 {{- $hookState := dict -}}
 {{- if hasKey $hooks "state" -}}{{- $hookState = index $hooks "state" -}}{{- end -}}
-{{- $dispatcherKey := printf "%s/.codex/hooks.json:pre_tool_use:0:0" .chezmoi.homeDir -}}
-{{- $dispatcherState := dict -}}
-{{- if hasKey $hookState $dispatcherKey -}}{{- $dispatcherState = index $hookState $dispatcherKey -}}{{- end -}}
-{{- $_ := set $dispatcherState "trusted_hash" "sha256:8863117dfc0f0ed890109dff2a9c7eaa3076dd94ed001602d3de33ef7517dbdc" -}}
-{{- $_ = set $hookState $dispatcherKey $dispatcherState -}}
-{{- $gitGuardKey := printf "%s/.codex/hooks.json:pre_tool_use:0:1" .chezmoi.homeDir -}}
+{{- $gitGuardKey := printf "%s/.codex/hooks.json:pre_tool_use:0:0" .chezmoi.homeDir -}}
 {{- $gitGuardState := dict -}}
 {{- if hasKey $hookState $gitGuardKey -}}{{- $gitGuardState = index $hookState $gitGuardKey -}}{{- end -}}
-{{- $_ = set $gitGuardState "trusted_hash" "sha256:5be52eb577c8c54cec54e7635c1fb9ad3fa4166798f3652f0444a50a5fadf979" -}}
+{{- $_ := set $gitGuardState "trusted_hash" "sha256:5be52eb577c8c54cec54e7635c1fb9ad3fa4166798f3652f0444a50a5fadf979" -}}
 {{- $_ = set $hookState $gitGuardKey $gitGuardState -}}
 {{- $_ = set $hooks "state" $hookState -}}
 {{- $_ = set $config "hooks" $hooks -}}
