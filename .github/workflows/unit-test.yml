@@ -96,6 +96,16 @@ jobs:
         background: true
         run: bash tests/unit/test_language_policy.sh
 
+      - name: Run list-compose-dirs unit test
+        id: run-list-compose-dirs-unit-test
+        background: true
+        run: bash tests/unit/test_list_compose_dirs.sh
+
+      - name: Run deep-review measure-usage unit test
+        id: run-measure-usage-unit-test
+        background: true
+        run: bash tests/unit/test_measure_usage.sh
+
       - name: Wait for unit tests
         wait:
           - run-install-sh-unit-test
@@ -113,3 +123,5 @@ jobs:
           - run-trilium-validation-unit-test
           - run-tmux-selector-preview-unit-test
           - run-language-policy-unit-test
+          - run-list-compose-dirs-unit-test
+          - run-measure-usage-unit-test

@@ -25,6 +25,13 @@ jobs:
       - name: Run mise CLI smoke test
         run: bash tests/integration/test_mise_tools.sh
 
+      # tmux 未導入だとテストが SKIP (exit 0) して素通りするため、先に導入する
+      - name: Install tmux
+        run: sudo apt-get update && sudo apt-get install -y tmux
+
+      - name: Run PR monitor tmux integration test
+        run: bash tests/integration/test_pr_monitor_tmux.sh
+
   docker-integration-test:
     name: Test chezmoi apply in Docker
     runs-on: ubuntu-latest

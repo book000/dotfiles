@@ -62,9 +62,9 @@ Discouraged:
 ## Testing
 
 - Shell script tests live under `tests/` and fall into the following 3 groups:
-  - `tests/syntax/`: `test_bash_syntax.sh` / `test_shellcheck.sh` / `test_json_schema.sh` (syntax, shellcheck, JSON schema).
-  - `tests/unit/`: `test_install.sh` / `test_update.sh` / `test_notifications.sh` / `test_hooks.sh` / `test_deep_review_ledger.sh` / `test_deep_review_comment.sh` / `test_deep_review_layout.sh` / `test_measure_usage.sh` / `test_language_policy.sh` / `test_pr_watch_events.sh`.
-  - `tests/integration/`: `test_chezmoi_apply.sh` (integration test for `chezmoi apply`) / `test_gitleaks.sh` (regression test against a pinned real gitleaks binary).
+  - `tests/syntax/`: `test_bash_syntax.sh` / `test_shellcheck.sh` / `test_json_schema.sh` (syntax, shellcheck, JSON schema). The shell syntax and shellcheck tests skip `.claude/worktrees/` and `.worktrees/`.
+  - `tests/unit/`: `test_install.sh` / `test_update.sh` / `test_notifications.sh` / `test_hooks.sh` / `test_deep_review_ledger.sh` / `test_deep_review_comment.sh` / `test_deep_review_layout.sh` / `test_measure_usage.sh` / `test_list_compose_dirs.sh` / `test_language_policy.sh` / `test_pr_watch_events.sh`.
+  - `tests/integration/`: `test_chezmoi_apply.sh` (integration test for `chezmoi apply`) / `test_gitleaks.sh` (regression test against a pinned real gitleaks binary) / `test_mise_tools.sh` (mise CLI smoke test) / `test_pr_monitor_tmux.sh` (real tmux delayed-Enter test; CI installs tmux first because the test skips without it).
 - CI runs automatically on pull_request via `unit-test.yml` / `integration-test.yml` / `pr-checks.yml` under `.github/workflows/` (`unit-test.yml` / `integration-test.yml` also run on push to master).
 - When you change or delete notification/hook-related scripts (`home/dot_claude/scripts/`, `home/dot_claude/hooks/`, `home/dot_codex/`, etc.) or helpers under `home/bin/`, check that references in the corresponding tests have not become stale.
 - After changes, also run `chezmoi apply` in Docker locally and check the result.
