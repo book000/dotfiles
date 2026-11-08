@@ -109,23 +109,15 @@ heredoc, sensitive-info check, `--repo` explicit).
 
 ## Phase 8: Write Session State
 
-Same as `issue-pr-deep`'s Phase 15, verbatim:
+Same as `issue-pr-deep`'s Phase 15:
 
 ```bash
-mkdir -p ~/.claude/data && chmod 700 ~/.claude/data
-PR_URL=$(gh pr view --repo "$ISSUE_OWNER/$ISSUE_REPO" --json url -q .url)
-if [ -z "$PR_URL" ]; then
-  echo "ERROR: gh pr view returned an empty URL, not writing session-state.json" >&2
-  exit 1
-fi
-if ! jq -n --arg pr_url "$PR_URL" --arg session_id "${CLAUDE_CODE_SESSION_ID:-}" --argjson timestamp "$(date +%s)" \
-    '{"pr_url": $pr_url, "session_id": $session_id, "timestamp": $timestamp}' \
-    > ~/.claude/data/session-state.json; then
-  echo "ERROR: failed to write session-state.json" >&2
-  exit 1
-fi
-chmod 600 ~/.claude/data/session-state.json
+write-session-state.sh "$ISSUE_OWNER/$ISSUE_REPO"
 ```
+
+The script prints the PR URL on success; use that value as `PR_URL` in the
+next phase. If it exits non-zero (empty URL or failed `jq` write), stop and
+report it instead of leaving a stale/empty state file.
 
 ## Phase 9: After PR Creation
 

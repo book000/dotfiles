@@ -305,23 +305,12 @@ After PR creation, write the PR URL to the session state file so hooks can refer
 without parsing the transcript:
 
 ```bash
-mkdir -p ~/.claude/data && chmod 700 ~/.claude/data
-PR_URL=$(gh pr view ${REPO:+--repo "$REPO"} --json url -q .url)
-if [ -z "$PR_URL" ]; then
-  echo "ERROR: gh pr view returned an empty URL, not writing session-state.json" >&2
-  exit 1
-fi
-if ! jq -n --arg pr_url "$PR_URL" --arg session_id "${CLAUDE_CODE_SESSION_ID:-}" --argjson timestamp "$(date +%s)" \
-    '{"pr_url": $pr_url, "session_id": $session_id, "timestamp": $timestamp}' \
-    > ~/.claude/data/session-state.json; then
-  echo "ERROR: failed to write session-state.json" >&2
-  exit 1
-fi
-chmod 600 ~/.claude/data/session-state.json
+write-session-state.sh "$REPO"
 ```
 
-If `PR_URL` comes back empty or the `jq` write fails, stop and report it
-instead of leaving a stale/empty state file — hooks read this file without
+The script prints the PR URL on success; use that value as `PR_URL` below. If it
+exits non-zero (empty URL or failed `jq` write), stop and report it instead of
+leaving a stale/empty state file — hooks read this file without
 parsing the transcript, so a silently broken write here breaks them too.
 
 ### After PR Creation
