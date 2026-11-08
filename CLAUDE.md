@@ -63,7 +63,7 @@ Discouraged:
 
 - Shell script tests live under `tests/` and fall into the following 3 groups:
   - `tests/syntax/`: `test_bash_syntax.sh` / `test_shellcheck.sh` / `test_json_schema.sh` (syntax, shellcheck, JSON schema). The shell syntax and shellcheck tests skip `.claude/worktrees/` and `.worktrees/`.
-  - `tests/unit/`: `test_install.sh` / `test_update.sh` / `test_notifications.sh` / `test_hooks.sh` / `test_deep_review_ledger.sh` / `test_deep_review_comment.sh` / `test_deep_review_layout.sh` / `test_measure_usage.sh` / `test_list_compose_dirs.sh` / `test_language_policy.sh` / `test_pr_watch_events.sh` / `test_rtk_hook_hash.sh` / `test_write_session_state.sh` / `test_review_thread_hook.sh`.
+  - `tests/unit/`: `test_install.sh` / `test_update.sh` / `test_notifications.sh` / `test_hooks.sh` / `test_deep_review_ledger.sh` / `test_deep_review_comment.sh` / `test_deep_review_layout.sh` / `test_measure_usage.sh` / `test_list_compose_dirs.sh` / `test_language_policy.sh` / `test_pr_watch_events.sh` / `test_rtk_hook_hash.sh` / `test_write_session_state.sh` / `test_review_thread_hook.sh` / `test_git_config_guard.sh` (command corpus for the git config guard hooks of both Claude and Codex).
   - `tests/integration/`: `test_chezmoi_apply.sh` (integration test for `chezmoi apply`) / `test_gitleaks.sh` (regression test against a pinned real gitleaks binary) / `test_mise_tools.sh` (mise CLI smoke test) / `test_pr_monitor_tmux.sh` (real tmux delayed-Enter test; CI installs tmux first because the test skips without it).
 - CI runs automatically on pull_request via `unit-test.yml` / `integration-test.yml` / `pr-checks.yml` under `.github/workflows/` (`unit-test.yml` / `integration-test.yml` also run on push to master).
 - When you change or delete notification/hook-related scripts (`home/dot_claude/scripts/`, `home/dot_claude/hooks/`, `home/dot_codex/`, etc.) or helpers under `home/bin/`, check that references in the corresponding tests have not become stale.
@@ -104,6 +104,8 @@ Claude Code hooks are configured in `home/dot_claude/private_settings.json` and 
 - **Review enforcement, etc.**: scripts under `home/dot_claude/hooks/` (deep-review (by default it runs in review mode and does not block; it blocks only when the `--fix` mode ledger has an unresolved must-fix-before-merge finding; `lite-review` is judged by the same ledger; the Stop hook does not block while a background sub-agent is running), unresolved review thread check (the Stop hook resolves owner/repo/number from the PR URL, not from `origin`), rtk rewriting, git config guard, etc.). In addition, `executable_detect-leaked-toolcall.sh`, as a concern separate from review enforcement, detects leakage of tool-call XML markup into assistant messages on both `Stop` and `SubagentStop`.
 
 When you change a hook command or its target script, check that references in `tests/unit/test_hooks.sh` / `test_notifications.sh` have not become stale.
+
+The git config guard analyzes the command as shell syntax (quotes, heredocs, redirects, `$(...)`, `bash -c`, container mounts) so that the words only appearing as data are allowed. The shared logic lives in `git-config-guard-lib.sh`, which is deployed next to `git-config-guard.sh` in both `~/.claude/hooks/` and `~/.codex/hooks/` as byte-identical copies (checked by `tests/unit/test_git_config_guard.sh`). Without the `executable_` prefix it is deployed non-executable and is only sourced. When you change it, edit both copies and run `tests/unit/test_hooks.sh` and `tests/unit/test_git_config_guard.sh`.
 
 ## Git Hook (Secret Scanning)
 

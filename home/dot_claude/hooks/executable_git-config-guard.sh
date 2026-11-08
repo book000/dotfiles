@@ -2,20 +2,9 @@
 # git config の書き込み系操作をブロックする PreToolUse フック。
 # permission mode に関わらず必ず実行されるため、書き込みを防ぐ唯一の確実な強制手段として扱う。
 #
-# コマンド文字列は &&/||/;/| で区切ったセグメントごとに判定する。全体を単一の
-# 文字列として正規表現照合すると、連結された別コマンド側の読み取りオプションや
-# 別の "git config" 文字列に引きずられて、実際の書き込みセグメントを見逃すため。
-#
+# 判定ロジックは同じディレクトリの git-config-guard-lib.sh にある。コマンド文字列を
+# シェルの構文として解析し、コマンド位置の git config だけを対象にする。
 # 位置引数(オプションを除く実引数)が2個以上ならフラグの内容に関わらず拒否する。
-# --get 等の読み取り系オプションを個別に判定すると、値の末尾に付与して分類を
-# 偽装する回避策(例: git config user.name attacker --get x)を許してしまうため。
-#
-# 既知の制限: 素直な "git config ..." 形式のみ検出する。
-# "git -C <dir> config" や "git --git-dir=... config" などの変則的な前置形式、
-# alias・変数展開経由の呼び出しは対象外。
-
-# 将来の例外を許す allow-list(現時点では空)。一致すれば書き込みでも常に許可する。
-ALLOWLIST=()
 
 if ! command -v jq &> /dev/null; then
     echo "[git-config-guard] WARNING: jq is not installed. Hook cannot inspect commands, allowing." >&2
@@ -25,59 +14,44 @@ fi
 INPUT=$(cat)
 
 # jq 起動前に生の JSON 文字列上で足切りする(ホットパス最適化)。
-# JSON の \uXXXX で綴った語は jq でデコードして初めて "git config" になるため、
-# \u を含む入力は足切りせずデコード後の $CMD で判定する。
-if [[ "$INPUT" != *"git config"* && "$INPUT" != *'\u'* ]]; then
+# "git -C dir config" や $GIT config のように git が現れない形もあるため "config" だけを見る。
+# JSON 中のクォートやバックスラッシュを除いて見るので、con""fig のような分割では回避できない。
+# \u エスケープを含む入力は文字列を確定できないので足切りせず、jq のデコード後に判定する。
+INPUT_FLAT=${INPUT//[\\\"\']/}
+if [[ "$INPUT_FLAT" != *config* && "$INPUT" != *'\u'* ]]; then
     exit 0
 fi
 
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+CMD=$(jq -r '.tool_input.command? // empty' <<< "$INPUT")
 
-if [[ -z "$CMD" || "$CMD" != *"git config"* ]]; then
+# JSON の \uXXXX で綴られた語は jq でデコードして初めて見えるため、デコード後にも確認する。
+CMD_FLAT=${CMD//[\\\"\']/}
+if [[ -z "$CMD" || "$CMD_FLAT" != *config* ]]; then
     exit 0
 fi
 
-IFS=$'\n' read -rd '' -a SEGMENTS < <(printf '%s\n' "$CMD" | sed -E 's/(&&|\|\||;|\|)/\n/g') || true
+deny() {
+    jq -n \
+        --arg reason "$1" \
+        '{
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": $reason
+            }
+        }'
+    exit 0
+}
 
-DENY=0
-for SEGMENT in "${SEGMENTS[@]}"; do
-    [[ "$SEGMENT" == *"git config"* ]] || continue
-
-    IS_ALLOWED=0
-    for pattern in "${ALLOWLIST[@]}"; do
-        if [[ "$SEGMENT" == *"$pattern"* ]]; then
-            IS_ALLOWED=1
-            break
-        fi
-    done
-    [ "$IS_ALLOWED" -eq 1 ] && continue
-
-    if [[ "$SEGMENT" =~ --unset-all|--unset|--remove-section|--rename-section|--edit|(^|[[:space:]])-e([[:space:]]|$) ]]; then
-        DENY=1
-        break
-    fi
-
-    AFTER_CONFIG=$(echo "$SEGMENT" | sed -E 's/^.*git[[:space:]]+config[[:space:]]*//')
-    read -ra ARGS <<< "$AFTER_CONFIG"
-    POSITIONAL_COUNT=0
-    for arg in "${ARGS[@]}"; do
-        [[ "$arg" == -* ]] && continue
-        POSITIONAL_COUNT=$((POSITIONAL_COUNT + 1))
-    done
-    if [ "$POSITIONAL_COUNT" -ge 2 ]; then
-        DENY=1
-        break
-    fi
-done
-
-[ "$DENY" -eq 1 ] || exit 0
-
-jq -n \
-    --arg reason "git config writes are blocked by policy; ask the user to run this manually" \
-    '{
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "deny",
-            "permissionDecisionReason": $reason
-        }
-    }'
+# 字句解析は入力が大きいと二乗で遅くなる。フックのタイムアウトで素通しにならないよう、
+# 別プロセスで時間を制限して実行し、時間切れや異常終了は拒否として扱う。
+CWD=$(jq -r '.cwd? // empty' <<<"$INPUT")
+RC=0
+# shellcheck disable=SC2016
+printf '%s' "$CMD" | timeout 5 bash -c 'source "$1" 2>/dev/null || exit 97; CMD=$(cat); gcg_denies "$CMD" "$2"' _ "${BASH_SOURCE[0]%/*}/git-config-guard-lib.sh" "$CWD" || RC=$?
+case $RC in
+1) exit 0 ;;
+0) deny "git config writes are blocked by policy; ask the user to run this manually" ;;
+97) deny "git-config-guard-lib.sh is missing next to git-config-guard.sh; run chezmoi apply" ;;
+*) deny "git config analysis failed or timed out (exit $RC); split the command or ask the user to run it manually" ;;
+esac
