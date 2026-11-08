@@ -121,7 +121,7 @@ update_chezmoi() {
 }
 
 # chezmoi の公式インストーラで ~/.local/bin の単一バイナリを更新する。
-installer=$(curl -fsSL https://get.chezmoi.io)
+installer=$(curl -fsSL --retry 5 --retry-delay 5 https://get.chezmoi.io)
 sh -c "$installer" -- -b "$HOME/.local/bin"
 
 # インストーラ経由の暗黙実行に依存せず、管理対象のバイナリを明示して更新する。

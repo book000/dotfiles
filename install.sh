@@ -377,7 +377,7 @@ install_chezmoi() {
     mkdir -p "$HOME/.local/bin"
 
     # chezmoi を ~/.local/bin にインストール（ホームディレクトリから実行）
-    (cd "$HOME" && sh -c "$(curl -fsLS https://get.chezmoi.io/lb)")
+    (cd "$HOME" && sh -c "$(curl -fsLS --retry 5 --retry-delay 5 https://get.chezmoi.io/lb)")
 
     log_info "chezmoi が正常にインストールされました"
   fi
@@ -447,11 +447,11 @@ install_mise() {
 
   # 公式インストーラはパイプを使うため run_command でラップできず、DRY_RUN を手動で分岐する
   if [[ "$DRY_RUN" == "1" ]]; then
-    log_info "[DRY RUN] curl -fsSL https://mise.run | MISE_VERSION=$MISE_VERSION sh"
+    log_info "[DRY RUN] curl -fsSL --retry 5 --retry-delay 5 https://mise.run | MISE_VERSION=$MISE_VERSION sh"
     return 0
   fi
 
-  curl -fsSL https://mise.run | MISE_VERSION="$MISE_VERSION" sh
+  curl -fsSL --retry 5 --retry-delay 5 https://mise.run | MISE_VERSION="$MISE_VERSION" sh
 
   # コマンド置換をログ引数に埋め込むと set -e 下で失敗が握りつぶされるため、変数に代入してから渡す
   local installed_version
@@ -541,7 +541,7 @@ install_mkwork() {
     mkdir -p "$HOME/.local/share/mkwork"
 
     # mkwork.sh をダウンロード
-    curl -fsSL https://github.com/book000/mkwork/releases/latest/download/mkwork.sh -o "$mkwork_script"
+    curl -fsSL --retry 5 --retry-delay 5 https://github.com/book000/mkwork/releases/latest/download/mkwork.sh -o "$mkwork_script"
     chmod +x "$mkwork_script"
 
     log_info "mkwork が正常にインストールされました"

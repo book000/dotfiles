@@ -23,7 +23,7 @@ export HOME="$TEST_HOME"
 export PATH="$HOME/.local/bin:$PATH"
 export MISE_GLOBAL_CONFIG_FILE="$CONFIG"
 
-curl -fsSL https://mise.run | MISE_VERSION="$MISE_VERSION" sh
+curl -fsSL --retry 5 --retry-delay 5 https://mise.run | MISE_VERSION="$MISE_VERSION" sh
 
 # npm backend の devcontainer-cli と Maven の実行依存を先に用意する。
 mise install node java

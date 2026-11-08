@@ -19,7 +19,7 @@ TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 ARCHIVE="$TMP_DIR/gitleaks.tar.gz"
 URL="https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_${ASSET_ARCH}.tar.gz"
-curl -fsSL "$URL" -o "$ARCHIVE"
+curl -fsSL --retry 5 --retry-delay 5 "$URL" -o "$ARCHIVE"
 tar -xzf "$ARCHIVE" -C "$TMP_DIR" gitleaks
 
 FIXTURE="$TMP_DIR/fixture.txt"
