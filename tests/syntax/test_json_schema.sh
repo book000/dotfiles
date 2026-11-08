@@ -9,7 +9,7 @@ echo "Validating AI agent configuration files..."
 if ! command -v chezmoi &> /dev/null; then
   CHEZMOI_BIN_DIR=$(mktemp -d)
   trap 'rm -rf "$CHEZMOI_BIN_DIR"' EXIT
-  curl -sfL https://git.io/chezmoi | sh -s -- -b "$CHEZMOI_BIN_DIR"
+  curl -sfL --retry 5 --retry-delay 5 https://git.io/chezmoi | sh -s -- -b "$CHEZMOI_BIN_DIR"
   PATH="$CHEZMOI_BIN_DIR:$PATH"
 fi
 

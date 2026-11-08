@@ -21,7 +21,7 @@ CHEZMOI_BIN="./bin/chezmoi"
 if [ ! -x "$CHEZMOI_BIN" ]; then
   # リポジトリに含まれていない場合は chezmoi をインストール
   echo "chezmoi not found in ./bin/, installing..."
-  curl -sfL https://git.io/chezmoi | sh -s -- -b "$TEST_HOME/bin"
+  curl -sfL --retry 5 --retry-delay 5 https://git.io/chezmoi | sh -s -- -b "$TEST_HOME/bin"
   CHEZMOI_BIN="$TEST_HOME/bin/chezmoi"
 fi
 
