@@ -460,6 +460,37 @@ for cmd in \
   fi
 done
 
+# JSON の \uXXXX エスケープで綴った語は、生の JSON には "git config" として現れない。
+# 足切りをすり抜けず、jq のデコード後に判定されること(Claude / Codex 両方)。
+BS=$(printf '\134')
+GCG_DENY_REASON="git config writes are blocked by policy; ask the user to run this manually"
+for hook in "$GIT_CONFIG_GUARD" "$CODEX_GIT_CONFIG_GUARD"; do
+  for escaped in \
+    "${BS}u0067${BS}u0069${BS}u0074 ${BS}u0063${BS}u006f${BS}u006e${BS}u0066${BS}u0069${BS}u0067 a b" \
+    "${BS}u0067it config a b" \
+    "git ${BS}u0063onfig a b" \
+    "bash -c 'git c${BS}u006fnfig --global a b'"; do
+    OUTPUT=$(printf '%s' "{\"tool_input\":{\"command\":\"$escaped\"}}" | bash "$hook")
+    if [[ "$(echo "$OUTPUT" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)" != "deny" ||
+      "$(echo "$OUTPUT" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)" != "$GCG_DENY_REASON" ]]; then
+      echo "❌ $hook did not deny an escaped write: $escaped"
+      FAILED=1
+    else
+      echo "✅ $hook denied an escaped write: $escaped"
+    fi
+  done
+  # \u を含んでいても無関係なコマンドは許可される(標準出力なし)
+  for escaped in "${BS}u0067it status" "echo h${BS}u0065llo"; do
+    OUTPUT=$(printf '%s' "{\"tool_input\":{\"command\":\"$escaped\"}}" | bash "$hook")
+    if [[ -n "$OUTPUT" ]]; then
+      echo "❌ $hook denied an unrelated escaped command: $escaped"
+      FAILED=1
+    else
+      echo "✅ $hook allowed an unrelated escaped command: $escaped"
+    fi
+  done
+done
+
 echo "Testing detect-leaked-toolcall hook behavior..."
 DETECT_LEAKED_TOOLCALL="home/dot_claude/hooks/executable_detect-leaked-toolcall.sh"
 

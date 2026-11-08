@@ -9,7 +9,9 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 INPUT=$(cat)
-if [[ "$INPUT" != *"git config"* ]]; then
+# JSON の \uXXXX で綴った語は jq でデコードして初めて "git config" になるため、
+# \u を含む入力は足切りせずデコード後の $CMD で判定する。
+if [[ "$INPUT" != *"git config"* && "$INPUT" != *'\u'* ]]; then
     exit 0
 fi
 
