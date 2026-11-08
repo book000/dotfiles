@@ -94,11 +94,15 @@ HEAD_REF=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json headRefName -q .
   fall back to raw `git worktree` commands:
 
   ```bash
-  WORKTREE_PATH=$(git worktree list --porcelain | awk -v ref="refs/heads/$HEAD_REF" '
-    /^worktree /{path=$2} /^branch /{if ($2==ref) print path}')
-  if [ -n "$WORKTREE_PATH" ]; then
-    git worktree remove --force "$WORKTREE_PATH"
-  fi
+  git worktree list --porcelain
+  ```
+
+  Find the `worktree <path>` entry whose following `branch` line is
+  `refs/heads/<HEAD_REF>`. If there is one, remove it, with the path written
+  out literally:
+
+  ```bash
+  git worktree remove --force <WORKTREE_PATH>
   ```
 
   `--force` is required for the same reason `discard_changes: true` is
@@ -109,14 +113,31 @@ HEAD_REF=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json headRefName -q .
 If it's a plain branch (no worktree involved either way):
 
 ```bash
-git branch -D "$HEAD_REF"
+git branch -D <HEAD_REF>
 ```
+
+This session may be worktree-isolated, and Claude Code refuses a Bash call that
+mixes `$VAR` / `$(...)` arguments with a `git` command. Run every `git` command
+in this skill as its own simple Bash call with literal arguments: read the
+value (for example `HEAD_REF`) from the previous output and write it out
+instead of passing a shell variable. Substitute the value single-quoted
+(for example `git branch -D 'feat/x'`): branch names, including those from fork
+PR authors, may contain `;`, `$` or other shell metacharacters.
 
 ## Step 3: Update the Local Default Branch
 
 ```bash
-DEFAULT_BRANCH=$(gh repo view "$ORIGIN_OWNER/$ORIGIN_REPO" --json defaultBranchRef -q .defaultBranchRef.name)
-git checkout "$DEFAULT_BRANCH"
+gh repo view "$ORIGIN_OWNER/$ORIGIN_REPO" --json defaultBranchRef -q .defaultBranchRef.name
+```
+
+Then, as separate calls with the printed branch name written out literally
+(for example `master`):
+
+```bash
+git checkout <DEFAULT_BRANCH>
+```
+
+```bash
 git pull
 ```
 

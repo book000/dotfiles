@@ -117,42 +117,62 @@ is a fork.**
 local `origin`'s owner/repo (a fork working on an upstream Issue), `origin`'s
 default branch may be stale relative to `ISSUE_OWNER/ISSUE_REPO`'s. Rebase
 onto the correct base immediately, before any spec/plan/implementation work
-begins:
+begins.
 
-```bash
-# Resolve via the shared gh-pr-target-repo.sh script's `--origin` mode,
-# not via unqualified `gh repo view` — when both `origin` and `upstream`
-# remotes exist (this fork scenario itself), `gh repo view` with no
-# repository argument resolves ambiguously and can silently return
-# `upstream`'s owner/repo instead of `origin`'s, which would make the
-# comparison below wrongly conclude there's no fork mismatch and skip the
-# rebase entirely. `--origin` always targets `origin` specifically,
-# bypassing the script's default upstream-preferring resolution.
-ORIGIN_REPO_FULL=$(gh-pr-target-repo.sh --origin)
-ORIGIN_OWNER=${ORIGIN_REPO_FULL%%/*}
-ORIGIN_REPO=${ORIGIN_REPO_FULL#*/}
-if [ "$ISSUE_OWNER/$ISSUE_REPO" != "$ORIGIN_OWNER/$ORIGIN_REPO" ]; then
-  # Reuse an existing remote pointing at ISSUE_OWNER/ISSUE_REPO, or add one.
-  REMOTE_NAME=$(git remote -v | grep -F "github.com/$ISSUE_OWNER/$ISSUE_REPO" | head -1 | cut -f1)
-  if [ -z "$REMOTE_NAME" ]; then
-    REMOTE_NAME="upstream"
-    if git remote get-url "$REMOTE_NAME" >/dev/null 2>&1; then
-      echo "ERROR: remote '$REMOTE_NAME' already exists but does not point at $ISSUE_OWNER/$ISSUE_REPO" >&2
-      exit 1
-    fi
-    git remote add "$REMOTE_NAME" "https://github.com/$ISSUE_OWNER/$ISSUE_REPO.git"
-  fi
-  DEFAULT_BRANCH=$(gh repo view "$ISSUE_OWNER/$ISSUE_REPO" --json defaultBranchRef -q .defaultBranchRef.name)
-  git fetch "$REMOTE_NAME" "$DEFAULT_BRANCH"
-  git reset --hard "$REMOTE_NAME/$DEFAULT_BRANCH"
-fi
-```
+This session is worktree-isolated, and Claude Code refuses a Bash call that
+mixes `$VAR` / `$(...)` arguments with a `git` command (or chains `git` with
+`&&` / `;`). Run each step below as its own simple Bash call, and substitute
+the values you read from the previous output as literals (single-quote a value
+that could contain shell metacharacters).
+
+1. Resolve `origin`'s owner/repo. Use the shared `gh-pr-target-repo.sh`
+   `--origin` mode, not unqualified `gh repo view`: when both `origin` and
+   `upstream` remotes exist (this fork scenario itself), `gh repo view` with no
+   repository argument resolves ambiguously and can silently return
+   `upstream`'s owner/repo, which would wrongly conclude there is no fork
+   mismatch and skip the rebase. `--origin` always targets `origin`.
+
+   ```bash
+   gh-pr-target-repo.sh --origin
+   ```
+
+2. If the printed `OWNER/REPO` equals `ISSUE_OWNER/ISSUE_REPO`, stop: no
+   rebase is needed. Otherwise list the remotes.
+
+   ```bash
+   git remote -v
+   ```
+
+3. Reuse the remote whose URL contains `github.com/<ISSUE_OWNER>/<ISSUE_REPO>`
+   (call its name `<REMOTE_NAME>`). If there is none, use `upstream`: if a remote
+   named `upstream` already exists but points elsewhere, stop and ask the user
+   how to proceed rather than overwriting it; otherwise add it, with the
+   owner/repo written out literally.
+
+   ```bash
+   git remote add upstream https://github.com/<ISSUE_OWNER>/<ISSUE_REPO>.git
+   ```
+
+4. Look up the default branch of the Issue's repository (`gh`, no `git`, so
+   it may use variables), and note the printed name as `<DEFAULT_BRANCH>`.
+
+   ```bash
+   gh repo view "$ISSUE_OWNER/$ISSUE_REPO" --json defaultBranchRef -q .defaultBranchRef.name
+   ```
+
+5. Fetch and reset, one call each, with the remote and branch written out
+   literally (for example `upstream` and `master`).
+
+   ```bash
+   git fetch <REMOTE_NAME> <DEFAULT_BRANCH>
+   ```
+
+   ```bash
+   git reset --hard <REMOTE_NAME>/<DEFAULT_BRANCH>
+   ```
 
 This is safe because no implementation work has happened yet at this point
-in the flow — `git reset --hard` here discards nothing of value. If the
-`git remote add` step fails because a same-named remote already exists
-pointing elsewhere, stop and ask the user how to proceed rather than
-overwriting it.
+in the flow — `git reset --hard` here discards nothing of value.
 
 ## Phase 2.5: Scale Judgment
 
