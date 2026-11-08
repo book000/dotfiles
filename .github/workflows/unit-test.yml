@@ -106,6 +106,11 @@ jobs:
         background: true
         run: bash tests/unit/test_measure_usage.sh
 
+      - name: Run write-session-state unit test
+        id: run-write-session-state-unit-test
+        background: true
+        run: bash tests/unit/test_write_session_state.sh
+
       - name: Run rtk hook hash unit test
         id: run-rtk-hook-hash-unit-test
         background: true
@@ -130,4 +135,5 @@ jobs:
           - run-language-policy-unit-test
           - run-list-compose-dirs-unit-test
           - run-measure-usage-unit-test
+          - run-write-session-state-unit-test
           - run-rtk-hook-hash-unit-test
