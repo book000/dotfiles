@@ -9,6 +9,7 @@ FAILED=0
 
 # シェル断片 (shebang なし) を含む全スクリプトを検査
 # -print0 と while read でパス名の空白を安全に処理
+# worktree 配下は本体の複製で二重に検査されるため除外する
 while IFS= read -r -d '' script; do
   # シェバンの種類に応じて呼び出し方を切り替えるが、いずれも bash として検査する
   if head -n 1 "$script" | grep -qE '^#!(.*/)?(bash|sh)'; then
@@ -31,6 +32,8 @@ while IFS= read -r -d '' script; do
 done < <(find . -type f \( -name "*.sh" -o -name "executable_*" \) \
   -not -path "./.bare/*" \
   -not -path "./bin/*" \
+  -not -path "./.claude/worktrees/*" \
+  -not -path "./.worktrees/*" \
   -print0)
 
 # 主要な設定ファイルも bash として検査
