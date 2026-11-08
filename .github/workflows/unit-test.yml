@@ -51,6 +51,11 @@ jobs:
         background: true
         run: bash tests/unit/test_hooks.sh
 
+      - name: Run git-config-guard unit test
+        id: run-git-config-guard-unit-test
+        background: true
+        run: bash tests/unit/test_git_config_guard.sh
+
       - name: Run deep-review ledger unit test
         id: run-deep-review-ledger-unit-test
         background: true
@@ -129,6 +134,7 @@ jobs:
           - run-chrome-mcp-unit-test
           - run-notification-unit-test
           - run-hooks-unit-test
+          - run-git-config-guard-unit-test
           - run-deep-review-ledger-unit-test
           - run-deep-review-comment-unit-test
           - run-powerline-daemon-launch-unit-test

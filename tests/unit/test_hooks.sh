@@ -1,6 +1,9 @@
 #!/bin/bash
 # AI エージェント フックのユニットテスト
 
+# git-config-guard のコマンド文字列は展開させずシングルクォートで渡す
+# shellcheck disable=SC2016
+
 set -euo pipefail
 
 # BASH_ENV (~/.bash_env) が mise の PATH を先頭に追加し、PATH 先頭に置いたスタブの gh / gitleaks が本物に隠れるため無効化する
@@ -490,6 +493,78 @@ for hook in "$GIT_CONFIG_GUARD" "$CODEX_GIT_CONFIG_GUARD"; do
     fi
   done
 done
+
+# 語が単なるデータとして現れるだけのコマンドは許可される(Claude / Codex 両方)。
+# 詳細なコーパスは test_git_config_guard.sh にある。
+GCG_HEREDOC=$'cat > note.md <<\'EOF\'\nrun git config --global user.name x to set it\nEOF'
+GCG_HEREDOC_BASH=$'bash <<\'EOF\'\necho "git config a b"\nEOF'
+for hook in "$GIT_CONFIG_GUARD" "$CODEX_GIT_CONFIG_GUARD"; do
+  for cmd in \
+    "$GCG_HEREDOC" \
+    "$GCG_HEREDOC_BASH" \
+    'echo "do not run git config user.name attacker"' \
+    "printf '%s\n' 'git config --global a b'" \
+    'git commit -m "docs: explain git config user.name attacker"' \
+    'gh pr create --body "git config --global a b is blocked"' \
+    'git config --get user.name >/dev/null && echo ok' \
+    'git config --list 2>/dev/null | head -1' \
+    'echo hi > git-config-notes.txt' \
+    'grep -n "git config" README.md' \
+    "docker run --rm ubuntu bash -c 'git config --global --add safe.directory /work && echo ok'"; do
+    OUTPUT=$(jq -n --arg cmd "$cmd" '{tool_input: {command: $cmd}}' | env HOME=/home/tester bash "$hook")
+    if [[ -n "$OUTPUT" ]]; then
+      echo "❌ $hook denied a command where the words are only data: ${cmd//$'\n'/ }"
+      FAILED=1
+    else
+      echo "✅ $hook allowed data-only mention: ${cmd//$'\n'/ }"
+    fi
+  done
+
+  # 実際の書き込みは、ラッパー・連結・展開の内側でも完全一致の理由で拒否される
+  for cmd in \
+    "bash -c 'git config user.name attacker'" \
+    "sh -c \"echo start && git config --global user.email a@b.c\"" \
+    'echo ok && (git config --unset user.name)' \
+    'echo $(git config user.name attacker)' \
+    'echo `git config user.name attacker`' \
+    'echo x | xargs git config user.name' \
+    'git -C /tmp config user.name attacker' \
+    'git config --add a.b c' \
+    'git config --edit' \
+    "docker run --rm -v \$HOME:/root ubuntu git config --global a b" \
+    $'bash <<\'EOF\'\ngit config user.name attacker\nEOF'; do
+    OUTPUT=$(jq -n --arg cmd "$cmd" '{tool_input: {command: $cmd}}' | env HOME=/home/tester bash "$hook")
+    if [[ "$(echo "$OUTPUT" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)" != "deny" ||
+      "$(echo "$OUTPUT" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)" != "$GCG_DENY_REASON" ]]; then
+      echo "❌ $hook did not deny a wrapped write: ${cmd//$'\n'/ }"
+      FAILED=1
+    else
+      echo "✅ $hook denied a wrapped write: ${cmd//$'\n'/ }"
+    fi
+  done
+done
+
+# cwd が HOME のとき、$PWD のバインドマウントは HOME のマウントなので拒否する
+GCG_HOME_DIR=$(mktemp -d)
+GCG_PROJ_DIR=$(mktemp -d)
+for hook in "$GIT_CONFIG_GUARD" "$CODEX_GIT_CONFIG_GUARD"; do
+  PWD_CMD='docker run --rm -v $PWD:/w ubuntu git config --global a b'
+  OUTPUT=$(jq -n --arg cmd "$PWD_CMD" --arg cwd "$GCG_HOME_DIR" '{cwd: $cwd, tool_input: {command: $cmd}}' | env HOME="$GCG_HOME_DIR" bash "$hook")
+  if [[ "$(echo "$OUTPUT" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)" != "$GCG_DENY_REASON" ]]; then
+    echo "❌ $hook did not deny a \$PWD mount with cwd=HOME"
+    FAILED=1
+  else
+    echo "✅ $hook denied a \$PWD mount with cwd=HOME"
+  fi
+  OUTPUT=$(jq -n --arg cmd "$PWD_CMD" --arg cwd "$GCG_PROJ_DIR" '{cwd: $cwd, tool_input: {command: $cmd}}' | env HOME="$GCG_HOME_DIR" bash "$hook")
+  if [[ -n "$OUTPUT" ]]; then
+    echo "❌ $hook denied a \$PWD mount from a project directory"
+    FAILED=1
+  else
+    echo "✅ $hook allowed a \$PWD mount from a project directory"
+  fi
+done
+rm -rf "$GCG_HOME_DIR" "$GCG_PROJ_DIR"
 
 echo "Testing detect-leaked-toolcall hook behavior..."
 DETECT_LEAKED_TOOLCALL="home/dot_claude/hooks/executable_detect-leaked-toolcall.sh"
