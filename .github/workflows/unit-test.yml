@@ -111,6 +111,11 @@ jobs:
         background: true
         run: bash tests/unit/test_write_session_state.sh
 
+      - name: Run rtk hook hash unit test
+        id: run-rtk-hook-hash-unit-test
+        background: true
+        run: bash tests/unit/test_rtk_hook_hash.sh
+
       - name: Wait for unit tests
         wait:
           - run-install-sh-unit-test
@@ -131,3 +136,4 @@ jobs:
           - run-list-compose-dirs-unit-test
           - run-measure-usage-unit-test
           - run-write-session-state-unit-test
+          - run-rtk-hook-hash-unit-test
