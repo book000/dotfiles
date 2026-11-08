@@ -48,7 +48,7 @@ if [[ -z "$PR_URL" && -n "$TRANSCRIPT_PATH" && -f "$TRANSCRIPT_PATH" ]]; then
         select(type == "object") |
         select(.type == "assistant") |
         .message.content[]? |
-        if type == "string" then . else "" end |
+        (if type == "string" then . elif type == "object" and .type == "text" then (.text // "") else "" end) |
         scan("https://github\\.com/[^/\\s]+/[^/\\s]+/pull/[0-9]+")
     ' "$TRANSCRIPT_PATH" 2>/dev/null | tail -1)
 fi
@@ -58,9 +58,12 @@ if [[ -z "$PR_URL" ]]; then
     exit 0
 fi
 
-# PR 番号を抽出する（Bash 正規表現で PCRE 非依存）
-if [[ "$PR_URL" =~ /pull/([0-9]+) ]]; then
-    PR_NUMBER="${BASH_REMATCH[1]}"
+# owner/repo/PR 番号は PR URL から取る。origin はフォークを指し、PR は upstream 側にあることがあるため
+# git remote からは引かない。リポジトリ名にはドットを含み得る
+if [[ "$PR_URL" =~ github\.com/([^/]+)/([^/]+)/pull/([0-9]+) ]]; then
+    OWNER="${BASH_REMATCH[1]}"
+    REPO="${BASH_REMATCH[2]}"
+    PR_NUMBER="${BASH_REMATCH[3]}"
 else
     exit 0
 fi
@@ -73,20 +76,6 @@ if [[ -n "$SESSION_ID" && -f "$DECLINE_FILE" ]]; then
     if [[ "$IS_DECLINED" == "true" ]]; then
         exit 0
     fi
-fi
-
-# --- owner/repo 解決 ---
-
-REMOTE_URL=$(git remote get-url origin 2>/dev/null)
-if [[ -z "$REMOTE_URL" ]]; then
-    exit 0
-fi
-
-if [[ "$REMOTE_URL" =~ github\.com[:/]([^/]+)/([^/\.]+) ]]; then
-    OWNER="${BASH_REMATCH[1]}"
-    REPO="${BASH_REMATCH[2]}"
-else
-    exit 0
 fi
 
 # --- GraphQL で未解決レビュースレッドを取得 ---

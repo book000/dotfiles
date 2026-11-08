@@ -850,6 +850,13 @@ assert_dr_hook block "lite-review immediate-fix blocks on fix-mode ledger with o
   "$DR_IMMEDIATE" "$(dr_immediate_input s-lite lite-review)"
 assert_dr_hook block "lite-review Stop blocks on fix-mode ledger with open blocker" \
   "$DR_STOP" '{"session_id":"s-lite"}'
+# Stop フックは動作中のバックグラウンドサブエージェントがある間だけブロックを見送る (monitor は対象外)
+assert_dr_hook pass "Stop hook defers while a background subagent is running" \
+  "$DR_STOP" '{"session_id":"s-lite","background_tasks":[{"type":"subagent","status":"running"}]}'
+assert_dr_hook block "Stop hook still blocks when only a monitor is running" \
+  "$DR_STOP" '{"session_id":"s-lite","background_tasks":[{"type":"monitor"},{"type":"shell"}]}'
+assert_dr_hook block "Stop hook still blocks with empty background_tasks" \
+  "$DR_STOP" '{"session_id":"s-lite","background_tasks":[]}'
 dr_ledger set-status s-lite 1 fixed abc verified >/dev/null
 assert_dr_hook pass "lite-review immediate-fix does not block after blocker is resolved" \
   "$DR_IMMEDIATE" "$(dr_immediate_input s-lite lite-review)"
