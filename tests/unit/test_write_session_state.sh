@@ -21,6 +21,30 @@ printf '%s' "${STUB_URL:-}"
 STUB
 chmod +x "$TEST_BIN/gh"
 
+# git スタブ: 現在のブランチ名と origin の URL だけを返す。STUB_BRANCH が空なら detached HEAD 相当、
+# STUB_ORIGIN_FAIL=1 なら origin の URL 取得に失敗する。
+cat > "$TEST_BIN/git" <<'STUB'
+#!/usr/bin/env bash
+case "$*" in
+    "branch --show-current")
+        printf '%s\n' "${STUB_BRANCH-feat/x}"
+        ;;
+    "remote get-url origin")
+        [[ "${STUB_ORIGIN_FAIL:-}" == "1" ]] && exit 1
+        printf '%s\n' "${STUB_ORIGIN_URL:-git@github.com:fork/r.git}"
+        ;;
+    *)
+        echo "unexpected git call: $*" >&2
+        exit 1
+        ;;
+esac
+STUB
+chmod +x "$TEST_BIN/git"
+
+# origin の owner の解決は実物のヘルパーを使う (スクリプトは PATH 上の名前で呼ぶ)。
+cp "$ROOT_DIR/home/bin/executable_gh-pr-target-repo.sh" "$TEST_BIN/gh-pr-target-repo.sh"
+chmod +x "$TEST_BIN/gh-pr-target-repo.sh"
+
 pass() { echo "PASS: $1"; }
 fail() { echo "FAIL: $1"; FAILED=1; }
 # check NAME EXPECTED ACTUAL
@@ -45,7 +69,7 @@ run_case() {
 # 1. リポジトリ指定あり
 STUB_URL="https://github.com/o/r/pull/7" CLAUDE_CODE_SESSION_ID="sess-1" run_case repo "o/r"
 check "exit code with repo" 0 "$RC"
-check "gh gets --repo" "pr view --repo o/r --json url -q .url" "$(cat "$STUB_ARGS")"
+check "gh gets origin owner:branch and --repo" "pr view fork:feat/x --repo o/r --json url -q .url" "$(cat "$STUB_ARGS")"
 check "pr_url written" "https://github.com/o/r/pull/7" "$(jq -r .pr_url "$STATE")"
 check "URL printed to stdout" "https://github.com/o/r/pull/7" "$OUT"
 check "session_id written" "sess-1" "$(jq -r .session_id "$STATE")"
@@ -61,6 +85,22 @@ check "no arg omits --repo" "$ARGS_NOREPO" "$(cat "$STUB_ARGS")"
 STUB_URL="https://github.com/o/r/pull/8" run_case emptyrepo ""
 check "empty arg: exit code" 0 "$RC"
 check "empty arg omits --repo" "$ARGS_NOREPO" "$(cat "$STUB_ARGS")"
+
+# 2b. ブランチ名を得られない (detached HEAD) 場合はエラーで、gh を呼ばずファイルも書かない
+rm -f "$TEST_DIR/args"
+STUB_BRANCH="" STUB_URL="https://github.com/o/r/pull/8" run_case detached "o/r"
+check "detached HEAD: exit code" 1 "$RC"
+check "detached HEAD message" "ERROR: cannot determine the current branch (detached HEAD?)" "$(cat "$TEST_DIR/stderr")"
+check "detached HEAD: gh not called" "absent" "$([[ -e "$TEST_DIR/args" ]] && echo present || echo absent)"
+check "detached HEAD: no state file" "absent" "$([[ -e "$STATE" ]] && echo present || echo absent)"
+
+# 2c. origin の owner を解決できない場合はエラーで、gh を呼ばずファイルも書かない
+rm -f "$TEST_DIR/args"
+STUB_ORIGIN_FAIL=1 STUB_URL="https://github.com/o/r/pull/8" run_case noorigin "o/r"
+check "no origin: exit code" 1 "$RC"
+check "no origin message" 1 "$(grep -c 'ERROR: cannot resolve the owner of origin' "$TEST_DIR/stderr")"
+check "no origin: gh not called" "absent" "$([[ -e "$TEST_DIR/args" ]] && echo present || echo absent)"
+check "no origin: no state file" "absent" "$([[ -e "$STATE" ]] && echo present || echo absent)"
 
 # 3. session_id 未設定なら空文字
 unset CLAUDE_CODE_SESSION_ID
