@@ -53,10 +53,12 @@ check() {
   fi
   echo "✅ $msg"
 }
+# 引数: PR URL、session id (既定 s1)、timestamp (既定は現在)。session-state-<id>.json に書く
 write_state() {
-  jq -nc --arg u "$1" --argjson t "$(date +%s)" '{session_id: "s1", timestamp: $t, pr_url: $u}' \
-    >"$TMP/home/.claude/data/session-state.json"
+  jq -nc --arg u "$1" --arg s "${2:-s1}" --argjson t "${3:-$(date +%s)}" '{session_id: $s, timestamp: $t, pr_url: $u}' \
+    >"$TMP/home/.claude/data/session-state-${2:-s1}.json"
 }
+clear_state() { rm -f "$TMP/home/.claude/data/"session-state*.json; }
 
 # 1. フォーク構成: PR URL の本家リポジトリを GraphQL に渡す (origin ではない)
 write_state "https://github.com/book000/dotfiles/pull/445"
@@ -68,7 +70,7 @@ write_state "https://github.com/octo/my.repo.name/pull/7"
 check "dotted repo name is passed intact" block "owner=octo -f repo=my.repo.name -F number=7"
 
 # 3. transcript フォールバック: text ブロックと文字列 content の両方から URL を拾う
-rm -f "$TMP/home/.claude/data/session-state.json"
+clear_state
 jq -nc '{type:"assistant",message:{content:[{type:"text",text:"PR https://github.com/book000/dotfiles/pull/12 を作成"}]}}' >"$TMP/t.jsonl"
 INPUT=$(jq -nc --arg p "$TMP/t.jsonl" '{session_id:"s1",transcript_path:$p}')
 check "transcript fallback: URL in a text content block" block "owner=book000 -f repo=dotfiles -F number=12"
@@ -78,6 +80,30 @@ check "transcript fallback: URL in a string content item" block "owner=o -f repo
 # 4. PR が見つからない場合はブロックせず gh も呼ばない
 jq -nc '{type:"assistant",message:{content:[{type:"text",text:"no pr here"}]}}' >"$TMP/t.jsonl"
 check "no PR URL: no block and no gh call" pass ""
+
+# 5. 他セッションの state / 旧 session-state.json は読まない (state の URL #1 は transcript に無い)
+INPUT='{"session_id":"s1"}'
+clear_state; write_state "https://github.com/o/r/pull/1" s2
+check "other session's state file is ignored" pass ""
+clear_state
+jq -nc --argjson t "$(date +%s)" '{session_id:"s1",timestamp:$t,pr_url:"https://github.com/o/r/pull/1"}' >"$TMP/home/.claude/data/session-state.json"
+check "legacy session-state.json is ignored" pass ""
+clear_state
+
+# 6. session_id が空 / 不正なら state を読まず transcript (#99) にフォールバックする
+jq -nc '{type:"assistant",message:{content:[{type:"text",text:"https://github.com/o/r/pull/99"}]}}' >"$TMP/t.jsonl"
+write_state "https://github.com/o/r/pull/1" s1
+INPUT=$(jq -nc --arg p "$TMP/t.jsonl" '{session_id:"",transcript_path:$p}')
+check "empty session_id: falls back to transcript" block "number=99"
+INPUT=$(jq -nc --arg p "$TMP/t.jsonl" '{session_id:"../x",transcript_path:$p}')
+check "invalid session_id: falls back to transcript" block "number=99"
+clear_state
+
+# 7. TTL 超過の state は使わず transcript にフォールバックする
+write_state "https://github.com/o/r/pull/1" s1 "$(( $(date +%s) - 172800 ))"
+INPUT=$(jq -nc --arg p "$TMP/t.jsonl" '{session_id:"s1",transcript_path:$p}')
+check "expired state: falls back to transcript" block "number=99"
+clear_state
 
 if [ $FAILED -eq 0 ]; then
   echo "✅ All review-thread hook tests passed"

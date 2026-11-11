@@ -28,12 +28,13 @@ check() { if [[ "$2" == "$3" ]]; then pass "$1"; else fail "$1 (expected: $2, ac
 ARGS_NOREPO="pr view --json url -q .url"
 
 # run_case NAME [ARGS...]: HOME を分離して実行し、終了コードを RC、標準出力を OUT に入れる。
+# KEEP_HOME=1 なら既存の HOME を作り直さない。
 run_case() {
     HOME="$TEST_DIR/home_$1"
-    rm -rf "$HOME"
+    [[ "${KEEP_HOME:-}" == "1" ]] || rm -rf "$HOME"
     mkdir -p "$HOME"
     shift
-    STATE="$HOME/.claude/data/session-state.json"
+    STATE="$HOME/.claude/data/session-state-${CLAUDE_CODE_SESSION_ID:-}.json"
     STUB_ARGS="$TEST_DIR/args"
     export HOME STUB_ARGS
     set +e
@@ -41,6 +42,9 @@ run_case() {
     RC=$?
     set -e
 }
+
+# state_count: HOME 配下の session-state-*.json の数
+state_count() { find "$HOME/.claude/data" -maxdepth 1 -name 'session-state-*.json' 2>/dev/null | wc -l | tr -d ' '; }
 
 # 1. リポジトリ指定あり
 STUB_URL="https://github.com/o/r/pull/7" CLAUDE_CODE_SESSION_ID="sess-1" run_case repo "o/r"
@@ -62,24 +66,54 @@ STUB_URL="https://github.com/o/r/pull/8" run_case emptyrepo ""
 check "empty arg: exit code" 0 "$RC"
 check "empty arg omits --repo" "$ARGS_NOREPO" "$(cat "$STUB_ARGS")"
 
-# 3. session_id 未設定なら空文字
+# 3. 別セッションの state を上書きしない
+STUB_URL="https://github.com/o/r/pull/10" CLAUDE_CODE_SESSION_ID="sess-1" run_case shared "o/r"
+STUB_URL="https://github.com/o/r/pull/11" CLAUDE_CODE_SESSION_ID="sess-2" KEEP_HOME=1 run_case shared "o/r"
+check "second session: exit code" 0 "$RC"
+check "first session state is kept" "https://github.com/o/r/pull/10" "$(jq -r .pr_url "$HOME/.claude/data/session-state-sess-1.json")"
+check "second session state is written" "https://github.com/o/r/pull/11" "$(jq -r .pr_url "$HOME/.claude/data/session-state-sess-2.json")"
+
+# 4. session id が未設定または不正なら state を書かず、URL は出力して成功する
 unset CLAUDE_CODE_SESSION_ID
 STUB_URL="https://github.com/o/r/pull/9" run_case nosession "o/r"
-check "missing session id is empty" "" "$(jq -r .session_id "$STATE")"
+check "missing session id: exit code" 0 "$RC"
+check "missing session id: URL printed" "https://github.com/o/r/pull/9" "$OUT"
+check "missing session id: no state file" 0 "$(state_count)"
+check "missing session id: warning" 1 "$(grep -c "WARNING: CLAUDE_CODE_SESSION_ID is empty or contains invalid characters (got: '')" "$TEST_DIR/stderr")"
+STUB_URL="https://github.com/o/r/pull/9" CLAUDE_CODE_SESSION_ID="../x" run_case badsession "o/r"
+check "invalid session id: exit code" 0 "$RC"
+check "invalid session id: URL printed" "https://github.com/o/r/pull/9" "$OUT"
+check "invalid session id: no state file" 0 "$(state_count)"
+check "invalid session id: nothing escapes data dir" "absent" "$([[ -e "$HOME/.claude/x.json" ]] && echo present || echo absent)"
+check "invalid session id: warning" 1 "$(grep -c "WARNING: CLAUDE_CODE_SESSION_ID is empty or contains invalid characters (got: '../x')" "$TEST_DIR/stderr")"
 
-# 4. 空の URL はエラーで、ファイルを書かない
-STUB_URL="" run_case emptyurl "o/r"
+# 5. 24 時間より古い state だけが書き込み時に削除される
+mkdir -p "$TEST_DIR/home_cleanup/.claude/data"
+echo '{}' > "$TEST_DIR/home_cleanup/.claude/data/session-state-old.json"
+touch -d '2 days ago' "$TEST_DIR/home_cleanup/.claude/data/session-state-old.json"
+echo '{}' > "$TEST_DIR/home_cleanup/.claude/data/session-state-fresh.json"
+STUB_URL="https://github.com/o/r/pull/12" CLAUDE_CODE_SESSION_ID="sess-3" KEEP_HOME=1 run_case cleanup "o/r"
+check "cleanup: exit code" 0 "$RC"
+check "cleanup: stale state removed" "absent" "$([[ -e "$HOME/.claude/data/session-state-old.json" ]] && echo present || echo absent)"
+check "cleanup: fresh state kept" "present" "$([[ -e "$HOME/.claude/data/session-state-fresh.json" ]] && echo present || echo absent)"
+check "cleanup: own state written" "present" "$([[ -e "$HOME/.claude/data/session-state-sess-3.json" ]] && echo present || echo absent)"
+
+# 6. 空の URL はエラーで、ファイルを書かない (session id の有無に依らない)
+STUB_URL="" CLAUDE_CODE_SESSION_ID="sess-1" run_case emptyurl "o/r"
 check "empty URL: exit code" 1 "$RC"
-check "empty URL: no state file" "absent" "$([[ -e "$STATE" ]] && echo present || echo absent)"
+check "empty URL: no state file" 0 "$(state_count)"
 check "empty URL message" 1 "$(grep -c 'empty URL' "$TEST_DIR/stderr")"
 
-# 5. gh 失敗時 (出力なし) もファイルを書かない
-STUB_FAIL=1 run_case ghfail "o/r"
+STUB_URL="" run_case emptyurl_nosession "o/r"
+check "empty URL without session id: exit code" 1 "$RC"
+
+# 7. gh 失敗時 (出力なし) もファイルを書かない
+STUB_FAIL=1 CLAUDE_CODE_SESSION_ID="sess-1" run_case ghfail "o/r"
 check "gh failure: exit code" 1 "$RC"
 check "gh failure message" 1 "$(grep -c 'gh pr view failed' "$TEST_DIR/stderr")"
-check "gh failure: no state file" "absent" "$([[ -e "$STATE" ]] && echo present || echo absent)"
+check "gh failure: no state file" 0 "$(state_count)"
 
-# 6. ~/.claude/data を作れない場合はエラー
+# 8. ~/.claude/data を作れない場合はエラー
 HOME="$TEST_DIR/home_nodata"
 rm -rf "$HOME"
 mkdir -p "$HOME"
