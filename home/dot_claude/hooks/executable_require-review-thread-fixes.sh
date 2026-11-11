@@ -2,7 +2,7 @@
 
 # Stop hook: セッション終了時に未解決レビュースレッドをチェックし、対応を促す。
 # PR 番号の取得優先順:
-#   1. ~/.claude/data/session-state.json（issue-pr / ticket-pr スキルが書き出す）
+#   1. ~/.claude/data/session-state-<session_id>.json（issue-pr / ticket-pr スキルが書き出す、セッションごとに別ファイル）
 #   2. transcript の JSONL パース（フォールバック）
 # JSONL パースによりプレーンテキスト grep より確実に PR URL を抽出する。
 
@@ -11,12 +11,16 @@ if [[ "${SKIP_REVIEW_CHECK:-}" == "1" ]]; then
     exit 0
 fi
 
-STATE_FILE="$HOME/.claude/data/session-state.json"
-
 # stdin から JSON を読み込む
 INPUT=$(cat)
 TRANSCRIPT_PATH=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null)
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // ""' 2>/dev/null)
+
+# session_id が空または不正な場合は state を読まず transcript にフォールバックする
+STATE_FILE=""
+if [[ "$SESSION_ID" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    STATE_FILE="$HOME/.claude/data/session-state-${SESSION_ID}.json"
+fi
 
 # --- PR URL 解決 ---
 
@@ -24,21 +28,14 @@ PR_URL=""
 # セッション状態ファイルの有効期限（24時間）
 STATE_TTL=86400
 
-# 優先 1: ステートファイル（スキルが書き出した構造化データ）
-# TTL 以内かつ session_id が一致（または一方が空なら後方互換で許容）の場合のみ信頼する
-if [[ -f "$STATE_FILE" ]]; then
-    STATE_SESSION=$(jq -r '.session_id // ""' "$STATE_FILE" 2>/dev/null)
+# 優先 1: セッション別ステートファイル（スキルが書き出した構造化データ）
+# ファイル名が session_id で分離されているため、TTL 以内なら中身をそのまま信頼する
+if [[ -n "$STATE_FILE" && -f "$STATE_FILE" ]]; then
     STATE_TIMESTAMP=$(jq -r '.timestamp // 0' "$STATE_FILE" 2>/dev/null)
     CURRENT_TIME=$(date +%s)
     STATE_AGE=$(( CURRENT_TIME - STATE_TIMESTAMP ))
     if [[ "$STATE_AGE" -le "$STATE_TTL" ]]; then
-        # 双方が空（session_id 導入前の完全な後方互換ケース）、または値が一致する
-        # 場合のみ信頼する。SESSION_ID はあるのに STATE_SESSION が空（旧形式ファイル）
-        # の場合は他セッション由来の可能性があるため採用せず、transcript パースへ
-        # フォールバックする
-        if [[ ( -z "$SESSION_ID" && -z "$STATE_SESSION" ) || "$SESSION_ID" == "$STATE_SESSION" ]]; then
-            PR_URL=$(jq -r '.pr_url // ""' "$STATE_FILE" 2>/dev/null)
-        fi
+        PR_URL=$(jq -r '.pr_url // ""' "$STATE_FILE" 2>/dev/null)
     fi
 fi
 
