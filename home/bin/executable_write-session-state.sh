@@ -4,7 +4,9 @@
 # transcript を解析せずに hook から参照できるようにする。
 #
 # Usage: write-session-state.sh [owner/repo]
-#   owner/repo  PR が存在するリポジトリ。`gh pr view --repo` に渡す。
+#   owner/repo  PR が存在するリポジトリ。origin の owner と現在のブランチ名から
+#               `<origin の owner>:<branch>` を作り、そのリポジトリの PR を特定する
+#               (fork の PR や upstream 追跡のないブランチでも解決できる)。
 #               省略 (または空文字) の場合は gh の解決に任せる。
 # 成功時は書き込んだ PR URL を標準出力に出す。URL が空、または書き込みに失敗した場合は
 # 非 0 で終了する。URL が空の場合と gh の失敗時は state ファイルに触れない。jq の書き込み失敗時は
@@ -19,7 +21,21 @@ if ! mkdir -p ~/.claude/data || ! chmod 700 ~/.claude/data; then
   exit 1
 fi
 
-if ! PR_URL=$(gh pr view ${REPO:+--repo "$REPO"} --json url -q .url); then
+PR_VIEW_ARGS=()
+if [ -n "$REPO" ]; then
+  BRANCH=$(git branch --show-current)
+  if [ -z "$BRANCH" ]; then
+    echo "ERROR: cannot determine the current branch (detached HEAD?)" >&2
+    exit 1
+  fi
+  if ! ORIGIN_REPO=$(gh-pr-target-repo.sh --origin) || [ -z "${ORIGIN_REPO%%/*}" ]; then
+    echo "ERROR: cannot resolve the owner of origin" >&2
+    exit 1
+  fi
+  PR_VIEW_ARGS=("${ORIGIN_REPO%%/*}:$BRANCH" --repo "$REPO")
+fi
+
+if ! PR_URL=$(gh pr view ${PR_VIEW_ARGS[@]+"${PR_VIEW_ARGS[@]}"} --json url -q .url); then
   echo "ERROR: gh pr view failed, not writing session-state.json" >&2
   exit 1
 fi
