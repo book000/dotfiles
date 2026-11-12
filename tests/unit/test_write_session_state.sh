@@ -13,9 +13,27 @@ trap 'rm -rf "$TEST_DIR"' EXIT
 mkdir -p "$TEST_BIN"
 
 # gh スタブ: 受け取った引数を記録し、STUB_URL を出力する (STUB_FAIL=1 なら何も出さず失敗する)。
+# 実 gh と同様に、`pr view` に --repo を渡すのに PR 番号・URL・ブランチの位置引数が無い場合は失敗する。
 cat > "$TEST_BIN/gh" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" > "$STUB_ARGS"
+if [[ "${1:-}" == "pr" && "${2:-}" == "view" ]]; then
+    has_repo=0
+    has_positional=0
+    shift 2
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --repo|-R) has_repo=1; shift 2 ;;
+            --json|--jq|-q|--template|-t) shift 2 ;;
+            -*) shift ;;
+            *) has_positional=1; shift ;;
+        esac
+    done
+    if [[ $has_repo -eq 1 && $has_positional -eq 0 ]]; then
+        echo "argument required when using the --repo flag" >&2
+        exit 1
+    fi
+fi
 [[ "${STUB_FAIL:-}" == "1" ]] && exit 1
 printf '%s' "${STUB_URL:-}"
 STUB
