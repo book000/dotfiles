@@ -32,15 +32,26 @@ if ! grep -q -- "--skip-gitleaks" <<< "$HELP_OUTPUT"; then
 fi
 echo "✅ --help mentions --skip-gitleaks"
 
-# テスト 2.6: apt パッケージに libatomic1 が含まれること
-echo "Test 2.6: apt packages include libatomic1"
+# テスト 2.6: apt が非対話かつ conffile 保持で実行され、パッケージに libatomic1 が含まれること
+echo "Test 2.6: apt runs non-interactively, keeps conffiles, and includes libatomic1"
 APT_DRY_RUN=$(bash install.sh --dry-run --skip-interactive --skip-gh --skip-ghq --skip-mkwork --skip-roots --skip-mise --skip-gitleaks 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
-APT_INSTALL_LINE=$(grep -F "[DRY RUN] sudo apt install -y " <<< "$APT_DRY_RUN")
-if ! grep -qw "libatomic1" <<< "$APT_INSTALL_LINE"; then
-  echo "❌ apt package list does not include libatomic1"
+APT_UPDATE_LINE=$(grep -F "[DRY RUN] sudo env DEBIAN_FRONTEND=noninteractive apt update" <<< "$APT_DRY_RUN")
+if [[ -z "$APT_UPDATE_LINE" ]]; then
+  echo "❌ apt update is not run with DEBIAN_FRONTEND=noninteractive"
   exit 1
 fi
-echo "✅ apt package list includes libatomic1"
+APT_INSTALL_LINE=$(grep -F "[DRY RUN] sudo env DEBIAN_FRONTEND=noninteractive apt install -y " <<< "$APT_DRY_RUN")
+if [[ -z "$APT_INSTALL_LINE" ]]; then
+  echo "❌ apt install is not run with DEBIAN_FRONTEND=noninteractive"
+  exit 1
+fi
+for expected in "libatomic1" "-o Dpkg::Options::=--force-confdef" "-o Dpkg::Options::=--force-confold"; do
+  if ! grep -qF -- "$expected" <<< "$APT_INSTALL_LINE"; then
+    echo "❌ apt install line does not include: $expected"
+    exit 1
+  fi
+done
+echo "✅ apt runs non-interactively, keeps conffiles, and includes libatomic1"
 
 # テスト 2.7: 開発用 CLI が mise config に宣言されていること
 echo "Test 2.7: mise config includes development tools"
