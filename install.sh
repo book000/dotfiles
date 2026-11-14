@@ -421,11 +421,15 @@ install_apt_packages() {
 
   # apt update
   log_info "パッケージリストを更新しています..."
-  run_command sudo apt update
+  run_command sudo env DEBIAN_FRONTEND=noninteractive apt update
 
   # パッケージのインストール
+  # curl | bash では stdin が EOF のため、conffile プロンプトで失敗しないよう変更済みの設定は保持する
   log_info "パッケージをインストールしています: ${packages[*]}"
-  run_command sudo apt install -y "${packages[@]}"
+  run_command sudo env DEBIAN_FRONTEND=noninteractive apt install -y \
+    -o Dpkg::Options::=--force-confdef \
+    -o Dpkg::Options::=--force-confold \
+    "${packages[@]}"
 }
 
 # mise のバージョン (Renovate で追跡するため固定文字列として記述する)
