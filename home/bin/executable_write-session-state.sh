@@ -5,9 +5,8 @@
 # 並行して動く別セッションの state を上書きしない。
 #
 # Usage: write-session-state.sh [owner/repo]
-#   owner/repo  PR が存在するリポジトリ。origin の owner と現在のブランチ名から
-#               `<origin の owner>:<branch>` を作り、そのリポジトリの PR を特定する
-#               (fork の PR や upstream 追跡のないブランチでも解決できる)。
+#   owner/repo  PR が存在するリポジトリ。現在のブランチ名を head に持ち、head の owner が origin の owner と
+#               一致する最新の PR を特定する。同一リポジトリの PR も fork の PR も解決できる。
 #               省略 (または空文字) の場合は gh の解決に任せる。
 # 成功時は PR URL を標準出力に出す。URL が空、gh の失敗、または書き込みに失敗した場合は
 # 非 0 で終了する。URL が空の場合と gh の失敗時は state ファイルに触れない。書き込みは一時ファイル
@@ -25,7 +24,6 @@ if ! mkdir -p "$DATA_DIR" || ! chmod 700 "$DATA_DIR"; then
   exit 1
 fi
 
-PR_VIEW_ARGS=()
 if [ -n "$REPO" ]; then
   BRANCH=$(git branch --show-current)
   if [ -z "$BRANCH" ]; then
@@ -36,15 +34,17 @@ if [ -n "$REPO" ]; then
     echo "ERROR: cannot resolve the owner of origin" >&2
     exit 1
   fi
-  PR_VIEW_ARGS=("${ORIGIN_REPO%%/*}:$BRANCH" --repo "$REPO")
-fi
-
-if ! PR_URL=$(gh pr view ${PR_VIEW_ARGS[@]+"${PR_VIEW_ARGS[@]}"} --json url -q .url); then
+  if ! PR_URL=$(gh pr list --repo "$REPO" --head "$BRANCH" --state all --limit 100 --json url,headRepositoryOwner |
+      jq -r --arg owner "${ORIGIN_REPO%%/*}" 'map(select(.headRepositoryOwner.login == $owner)) | .[0].url // empty'); then
+    echo "ERROR: gh pr list failed, not writing session state" >&2
+    exit 1
+  fi
+elif ! PR_URL=$(gh pr view --json url -q .url); then
   echo "ERROR: gh pr view failed, not writing session state" >&2
   exit 1
 fi
 if [ -z "$PR_URL" ]; then
-  echo "ERROR: gh pr view returned an empty URL, not writing session state" >&2
+  echo "ERROR: PR resolution returned an empty URL, not writing session state" >&2
   exit 1
 fi
 
