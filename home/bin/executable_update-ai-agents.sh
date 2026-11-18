@@ -37,15 +37,8 @@ rotate_log() {
 run_locked() {
     local only_agent=""
     local lock_status
-    local arg
     local index
     local -a args=("$@")
-
-    for arg in "${args[@]}"; do
-        if [[ "$arg" == "--_lock-held" ]]; then
-            main "$@"
-        fi
-    done
 
     for ((index = 0; index < ${#args[@]}; index += 1)); do
         if [[ "${args[index]}" == "--only" ]]; then
@@ -57,7 +50,7 @@ run_locked() {
         LOCK_FILE="$CACHE_DIR/update-${only_agent}.lock"
     fi
 
-    if flock -n -E 75 -o "$LOCK_FILE" "$0" "$@" --_lock-held; then
+    if flock -n -E 75 -o "$LOCK_FILE" bash -c "source \"\$1\"; main \"\${@:2}\"" _ "$0" "$@"; then
         return 0
     else
         lock_status=$?
@@ -323,7 +316,6 @@ main() {
                 only_agent="$2"
                 shift
                 ;;
-            --_lock-held) ;;
             *) ;;
         esac
         shift
@@ -380,4 +372,6 @@ main() {
     exit "$exit_code"
 }
 
-run_locked "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    run_locked "$@"
+fi
