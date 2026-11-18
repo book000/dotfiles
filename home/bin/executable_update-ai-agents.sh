@@ -33,21 +33,42 @@ rotate_log() {
     fi
 }
 
-# ロックファイル機構
-acquire_lock() {
-    # 古いロックファイルのクリーンアップ (1 時間以上前)
-    if [[ -f "$LOCK_FILE" ]]; then
-        local lock_age=$(($(date +%s) - $(stat -c %Y "$LOCK_FILE" 2>/dev/null || echo 0)))
-        if [[ $lock_age -gt 3600 ]]; then
-            rm -f "$LOCK_FILE"
-        else
-            log "⚠️  Another update is running (lock age: $((lock_age / 60)) minutes)"
-            exit 0
+# ロックを保持する flock プロセスから、ロック FD を閉じた状態で更新処理を実行する。
+run_locked() {
+    local only_agent=""
+    local lock_status
+    local arg
+    local index
+    local -a args=("$@")
+
+    for arg in "${args[@]}"; do
+        if [[ "$arg" == "--_lock-held" ]]; then
+            main "$@"
         fi
+    done
+
+    for ((index = 0; index < ${#args[@]}; index += 1)); do
+        if [[ "${args[index]}" == "--only" ]]; then
+            only_agent="${args[index + 1]:-}"
+        fi
+    done
+
+    if [[ -n "$only_agent" ]]; then
+        LOCK_FILE="$CACHE_DIR/update-${only_agent}.lock"
     fi
 
-    trap 'rm -f "$LOCK_FILE"' EXIT
-    touch "$LOCK_FILE"
+    if flock -n -E 75 -o "$LOCK_FILE" "$0" "$@" --_lock-held; then
+        return 0
+    else
+        lock_status=$?
+    fi
+
+    if [[ $lock_status -eq 75 ]]; then
+        log "⚠️  Another update is running"
+        return 0
+    fi
+
+    return "$lock_status"
 }
 
 # タイムスタンプチェック (--quick オプション用)
@@ -302,6 +323,7 @@ main() {
                 only_agent="$2"
                 shift
                 ;;
+            --_lock-held) ;;
             *) ;;
         esac
         shift
@@ -320,9 +342,6 @@ main() {
     if [[ $quick -eq 1 ]]; then
         check_timestamp
     fi
-
-    # ロック取得
-    acquire_lock
 
     log "================================================"
     log "🚀 Starting AI agents update check${only_agent:+ (only: ${only_agent})}"
@@ -361,4 +380,4 @@ main() {
     exit "$exit_code"
 }
 
-main "$@"
+run_locked "$@"

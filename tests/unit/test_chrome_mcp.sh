@@ -57,6 +57,12 @@ make_fake_npm() {
     cat > "$bin_dir/npm" <<'EOF'
 #!/bin/bash
 printf '%s\n' "$*" >> "${FAKE_NPM_LOG:?}"
+if [[ "$1" == "install" && -n "${FAKE_NPM_HOLD_MARKER:-}" ]]; then
+    : > "$FAKE_NPM_HOLD_MARKER"
+    while [[ ! -e "$FAKE_NPM_RELEASE_MARKER" ]]; do
+        sleep 0.05
+    done
+fi
 prefix=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -220,6 +226,38 @@ grep -Fq '"method":"initialize"' "$TEST_ROOT/success-router-input" || fail "upda
 [[ "$(cat "$TEST_ROOT/success-router-eof")" == "closed" ]] || fail "smoke client did not close stdin after initialize response"
 [[ -f "$SUCCESS_HOME/.cache/update-ai-agents/last-update-chrome-mcp-router" ]] || fail "successful update did not record its timestamp"
 echo "✅ successful staged update test passed"
+
+echo "Testing concurrent updates share an atomic lock even when its file is old..."
+CONCURRENT_HOME="$TEST_ROOT/concurrent-home"
+CONCURRENT_BIN="$TEST_ROOT/concurrent-bin"
+mkdir -p "$CONCURRENT_BIN" "$CONCURRENT_HOME/bin"
+ln -s "$SMOKE_HELPER" "$CONCURRENT_HOME/bin/chrome-mcp-smoke-test.mjs"
+CONCURRENT_OLD_RELEASE=$(make_release "$CONCURRENT_HOME" old)
+set_current_release "$CONCURRENT_HOME" "$CONCURRENT_OLD_RELEASE"
+make_fake_npm "$CONCURRENT_BIN"
+make_fake_curl "$CONCURRENT_BIN"
+make_fake_node "$CONCURRENT_BIN"
+CONCURRENT_NPM_LOG="$TEST_ROOT/concurrent-npm.log"
+CONCURRENT_HOLD_MARKER="$TEST_ROOT/concurrent-hold"
+CONCURRENT_RELEASE_MARKER="$TEST_ROOT/concurrent-release"
+CONCURRENT_ENV=(HOME="$CONCURRENT_HOME" PATH="$CONCURRENT_BIN:/usr/bin:/bin" REAL_NODE="$REAL_NODE" FAKE_NPM_LOG="$CONCURRENT_NPM_LOG" FAKE_NPM_HOLD_MARKER="$CONCURRENT_HOLD_MARKER" FAKE_NPM_RELEASE_MARKER="$CONCURRENT_RELEASE_MARKER" CHROME_ROUTER_ARGS="$TEST_ROOT/concurrent-router-args" CHROME_ROUTER_INPUT="$TEST_ROOT/concurrent-router-input" CHROME_DEVTOOLS_PATH="$TEST_ROOT/concurrent-devtools-path" CHROME_ROUTER_EOF_LOG="$TEST_ROOT/concurrent-router-eof" CHROME_MCP_SMOKE_TIMEOUT_SECONDS=2)
+env "${CONCURRENT_ENV[@]}" bash "$UPDATER" --only chrome-mcp-router &
+CONCURRENT_FIRST_PID=$!
+for _ in $(seq 1 100); do
+    [[ -f "$CONCURRENT_HOLD_MARKER" ]] && break
+    sleep 0.05
+done
+[[ -f "$CONCURRENT_HOLD_MARKER" ]] || fail "first update did not reach the held package installation"
+CONCURRENT_LOCK="$CONCURRENT_HOME/.cache/update-ai-agents/update-chrome-mcp-router.lock"
+touch -d '2 hours ago' "$CONCURRENT_LOCK"
+env "${CONCURRENT_ENV[@]}" bash "$UPDATER" --only chrome-mcp-router
+[[ "$(grep -c '^install ' "$CONCURRENT_NPM_LOG")" == 1 ]] || fail "concurrent update started a second package installation"
+[[ "$(readlink -f "$CONCURRENT_HOME/.local/share/chrome-mcp-router/current")" == "$CONCURRENT_OLD_RELEASE" ]] || fail "concurrent update changed current while the first update was still running"
+[[ -f "$CONCURRENT_LOCK" ]] || fail "concurrent update removed the lock file"
+: > "$CONCURRENT_RELEASE_MARKER"
+wait "$CONCURRENT_FIRST_PID" || fail "first concurrent update failed"
+[[ "$(readlink -f "$CONCURRENT_HOME/.local/share/chrome-mcp-router/current")" != "$CONCURRENT_OLD_RELEASE" ]] || fail "first update did not activate its release"
+echo "✅ concurrent update lock test passed"
 
 echo "Testing a failed smoke test keeps the previous current release..."
 FAILURE_HOME="$TEST_ROOT/failure-home"
