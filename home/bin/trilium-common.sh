@@ -55,20 +55,45 @@ trilium_validate_doc_type() {
   esac
 }
 
+# $1 (topic) から folder_<正規化topic> の noteId を検証した上で標準出力に1行出力する。
+# topic は trilium_validate_topic により ^[a-zA-Z0-9_-]{1,25}$ であることが
+# 呼び出し元で検証済みのため、切り詰めや文字除去を行わず、
+# ハイフンをアンダースコアに変換するのみで足りる。
+trilium_folder_id() {
+  local topic="$1"
+  local normalized folder_id
+
+  normalized=$(printf '%s' "$topic" | tr '-' '_')
+  folder_id="folder_${normalized}"
+  trilium_validate_id "$folder_id" "folder noteId"
+  printf '%s\n' "$folder_id"
+}
+
+# $1 (note_json) のノートが、このツールが作成して marker 付与に失敗した状態かを判定する。
+# $2 (folder_id) を親に持ち、かつ当該ノート自身が所有する属性を持たない場合に限り
+# 終了コード 0 を返し、それ以外(不正な JSON を含む)は 1 を返す。
+# 新規作成時は marker を最初のラベルとして付与するため、付与に失敗したノートは属性を持たない。
+trilium_is_unmarked_upload_orphan() {
+  local note_json="$1"
+  local folder_id="$2"
+
+  if printf '%s' "$note_json" | jq -e --arg folder "$folder_id" \
+      '. as $note | any((.parentNoteIds // [])[]; . == $folder) and ([(.attributes // [])[] | select(.noteId == $note.noteId)] | length) == 0' \
+      >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
 # $1 (topic) から folder_<正規化topic> の noteId を組み立て、既存なら再利用し、
 # 存在しなければ $2 (folder_title) で "_share" 直下に新規作成する。
 # 標準出力に noteId を1行出力する。$2 が空で新規作成が必要な場合はエラー終了する。
 trilium_resolve_folder() {
   local topic="$1"
   local folder_title="$2"
-  local normalized folder_id auth_header status payload
+  local folder_id auth_header status payload
 
-  # topic は trilium_validate_topic により ^[a-zA-Z0-9_-]{1,25}$ であることが
-  # 呼び出し元で検証済みのため、ここでは切り詰めや文字除去を行わず、
-  # ハイフンをアンダースコアに変換するのみで足りる。
-  normalized=$(printf '%s' "$topic" | tr '-' '_')
-  folder_id="folder_${normalized}"
-  trilium_validate_id "$folder_id" "folder noteId"
+  folder_id=$(trilium_folder_id "$topic")
 
   auth_header="Authorization: $TRILIUM_ETAPI_TOKEN"
   status=$(curl -s -o /dev/null -w '%{http_code}' -H "$auth_header" \

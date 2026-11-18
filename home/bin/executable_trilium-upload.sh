@@ -79,10 +79,16 @@ if [ "$get_status" = "200" ]; then
   # 衝突防止: マーカーラベルを持たないノートは他用途のノートとみなし、上書きを拒否する。
   # NOTE: ETAPI に単独の GET /etapi/notes/{id}/attributes エンドポイントは存在しない
   # (404 Router not found) ため、ノート本体のレスポンスに含まれる "attributes" フィールドを見る。
+  # 例外: 新規作成直後に marker 付与が失敗したノート(トピックのフォルダ配下で属性なし)は
+  # このスクリプトが作成したものとして復旧する。
   if ! printf '%s' "$note_json" | jq -e --arg name "$marker_label" \
       '.attributes | any(.[]; .type == "label" and .name == $name)' >/dev/null; then
-    echo "ERROR: note $note_id exists but lacks the $marker_label marker; refusing to overwrite a note this script did not create" >&2
-    exit 1
+    if trilium_is_unmarked_upload_orphan "$note_json" "$(trilium_folder_id "$topic")"; then
+      echo "NOTE: note $note_id has no $marker_label marker but looks like an interrupted upload by this script; recovering" >&2
+    else
+      echo "ERROR: note $note_id exists but lacks the $marker_label marker; refusing to overwrite a note this script did not create" >&2
+      exit 1
+    fi
   fi
 
   # 既存ノートを更新: title と content の両方を上書きする。
