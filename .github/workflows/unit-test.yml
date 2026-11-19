@@ -91,6 +91,11 @@ jobs:
         background: true
         run: bash tests/unit/test_trilium_validation.sh
 
+      - name: Run trilium upload recovery unit test
+        id: run-trilium-upload-recovery-unit-test
+        background: true
+        run: bash tests/unit/test_trilium_upload_recovery.sh
+
       - name: Run tmux selector preview unit test
         id: run-tmux-selector-preview-unit-test
         background: true
@@ -141,6 +146,7 @@ jobs:
           - run-pr-monitor-unit-test
           - run-pr-watch-events-unit-test
           - run-trilium-validation-unit-test
+          - run-trilium-upload-recovery-unit-test
           - run-tmux-selector-preview-unit-test
           - run-language-policy-unit-test
           - run-list-compose-dirs-unit-test
