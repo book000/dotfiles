@@ -248,3 +248,30 @@ for _ in $(seq 1 20); do
 done
 ! kill -0 "$FAILURE_CHILD_PID" 2> /dev/null || fail "smoke timeout left a child process running"
 echo "✅ failed smoke test rollback test passed"
+
+echo "Testing a failed release activation keeps the previous current release..."
+SWITCH_HOME="$TEST_ROOT/switch-home"
+SWITCH_BIN="$TEST_ROOT/switch-bin"
+mkdir -p "$SWITCH_BIN" "$SWITCH_HOME/bin"
+ln -s "$SMOKE_HELPER" "$SWITCH_HOME/bin/chrome-mcp-smoke-test.mjs"
+SWITCH_OLD_RELEASE=$(make_release "$SWITCH_HOME" old)
+set_current_release "$SWITCH_HOME" "$SWITCH_OLD_RELEASE"
+make_fake_npm "$SWITCH_BIN"
+make_fake_curl "$SWITCH_BIN"
+make_fake_node "$SWITCH_BIN"
+cat > "$SWITCH_BIN/mv" <<'MVEOF'
+#!/bin/bash
+[[ "$1" == "-Tf" ]] && exit 1
+exec /usr/bin/mv "$@"
+MVEOF
+chmod +x "$SWITCH_BIN/mv"
+: > "$TEST_ROOT/switch-router-input"
+set +e
+HOME="$SWITCH_HOME" PATH="$SWITCH_BIN:/usr/bin:/bin" REAL_NODE="$REAL_NODE" FAKE_NPM_LOG="$TEST_ROOT/switch-npm.log" CHROME_ROUTER_ARGS="$TEST_ROOT/switch-router-args" CHROME_ROUTER_INPUT="$TEST_ROOT/switch-router-input" CHROME_DEVTOOLS_PATH="$TEST_ROOT/switch-devtools-path" CHROME_MCP_SMOKE_TIMEOUT_SECONDS=2 bash "$UPDATER" --only chrome-mcp-router
+SWITCH_RC=$?
+set -e
+[[ $SWITCH_RC -ne 0 ]] || fail "updater succeeded despite the failed release activation"
+[[ "$(readlink -f "$SWITCH_HOME/.local/share/chrome-mcp-router/current")" == "$SWITCH_OLD_RELEASE" ]] || fail "failed activation replaced the previous current release"
+[[ ! -f "$SWITCH_HOME/.cache/update-ai-agents/last-update-chrome-mcp-router" ]] || fail "failed activation recorded a successful timestamp"
+compgen -G "$SWITCH_HOME/.local/share/chrome-mcp-router/.current.*" > /dev/null && fail "failed activation left a switch link behind"
+echo "✅ failed release activation test passed"

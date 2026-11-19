@@ -242,8 +242,14 @@ update_chrome_mcp_router() {
     local release_dir
     local switch_link
 
-    mkdir -p "$releases_dir"
-    staging_dir=$(mktemp -d "$releases_dir/.staging.XXXXXX")
+    if ! mkdir -p "$releases_dir"; then
+        log "❌ Failed to create Chrome MCP releases directory: $releases_dir"
+        return 1
+    fi
+    if ! staging_dir=$(mktemp -d "$releases_dir/.staging.XXXXXX"); then
+        log "❌ Failed to create Chrome MCP staging directory in: $releases_dir"
+        return 1
+    fi
 
     log "🔄 Updating Chrome MCP packages in staging..."
     if ! npm install --prefix "$staging_dir" --no-audit --no-fund chrome-mcp-router@latest chrome-devtools-mcp@latest 2>&1 | tee -a "$LOG_FILE"; then
@@ -257,8 +263,12 @@ update_chrome_mcp_router() {
         return 1
     fi
 
-    router_version=$(node -p 'require(process.argv[1]).version' "$staging_dir/node_modules/chrome-mcp-router/package.json")
-    devtools_version=$(node -p 'require(process.argv[1]).version' "$staging_dir/node_modules/chrome-devtools-mcp/package.json")
+    if ! router_version=$(node -p 'require(process.argv[1]).version' "$staging_dir/node_modules/chrome-mcp-router/package.json") ||
+        ! devtools_version=$(node -p 'require(process.argv[1]).version' "$staging_dir/node_modules/chrome-devtools-mcp/package.json"); then
+        rm -rf "$staging_dir"
+        log "❌ Failed to read installed Chrome MCP package versions"
+        return 1
+    fi
     release_name="router-${router_version//[^A-Za-z0-9._-]/_}__devtools-${devtools_version//[^A-Za-z0-9._-]/_}"
     release_dir="$releases_dir/$release_name"
 
@@ -269,13 +279,23 @@ update_chrome_mcp_router() {
     fi
     if [[ -d "$release_dir" ]]; then
         rm -rf "$staging_dir"
-    else
-        mv "$staging_dir" "$release_dir"
+    elif ! mv "$staging_dir" "$release_dir"; then
+        rm -rf "$staging_dir"
+        log "❌ Failed to place Chrome MCP release: $release_dir"
+        return 1
     fi
 
     switch_link="$install_dir/.current.$$"
-    ln -s "releases/$release_name" "$switch_link"
-    mv -Tf "$switch_link" "$install_dir/current"
+    rm -f "$switch_link"
+    if ! ln -s "releases/$release_name" "$switch_link"; then
+        log "❌ Failed to create Chrome MCP switch link: $switch_link"
+        return 1
+    fi
+    if ! mv -Tf "$switch_link" "$install_dir/current"; then
+        rm -f "$switch_link"
+        log "❌ Failed to activate Chrome MCP release: $release_name"
+        return 1
+    fi
     log "✅ Chrome MCP release activated: $release_name"
 }
 
