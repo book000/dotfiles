@@ -56,7 +56,7 @@ echo "✅ apt runs non-interactively, keeps conffiles, and includes libatomic1"
 # テスト 2.7: 開発用 CLI が mise config に宣言されていること
 echo "Test 2.7: mise config includes development tools"
 MISE_CONFIG="home/dot_config/mise/config.toml"
-MISE_TOOLS=(maven ripgrep yq actionlint hadolint shfmt devcontainer-cli delta lazydocker oxker "npm:ccstatusline")
+MISE_TOOLS=(maven ripgrep yq jactionlint hadolint shfmt devcontainer-cli delta lazydocker oxker "npm:ccstatusline")
 for tool in "${MISE_TOOLS[@]}"; do
   if ! grep -Eq "^\"?${tool}\"? = " "$MISE_CONFIG"; then
     echo "❌ mise config does not include $tool"
@@ -85,7 +85,7 @@ echo "✅ integration workflow runs mise CLI smoke test"
 # テスト 2.8: install フローが開発用 CLI を mise 経由で導入すること
 echo "Test 2.8: install flow installs development tools via mise"
 MISE_DRY_RUN=$(bash install.sh --dry-run --skip-interactive --skip-apt --skip-gh --skip-ghq --skip-mkwork --skip-roots --skip-gitleaks 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
-MISE_DIRECT_TOOLS=(maven ripgrep yq actionlint hadolint shfmt delta lazydocker oxker)
+MISE_DIRECT_TOOLS=(maven ripgrep yq jactionlint hadolint shfmt delta lazydocker oxker)
 for tool in "${MISE_DIRECT_TOOLS[@]}"; do
   if ! grep -Fq "[DRY RUN] mise install $tool" <<< "$MISE_DRY_RUN"; then
     echo "❌ install flow does not install $tool via mise"

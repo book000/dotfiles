@@ -503,7 +503,7 @@ install_mise_tools() {
     "maven"
     "ripgrep"
     "yq"
-    "actionlint"
+    "jactionlint"
     "hadolint"
     "shfmt"
     "delta"
