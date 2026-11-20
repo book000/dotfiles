@@ -28,7 +28,7 @@ curl -fsSL --retry 5 --retry-delay 5 https://mise.run | MISE_VERSION="$MISE_VERS
 # npm backend の devcontainer-cli と Maven の実行依存を先に用意する。
 mise install node java
 mise install pnpm ghq gh github:k1LoW/roots gitleaks \
-  maven ripgrep yq actionlint hadolint shfmt devcontainer-cli delta \
+  maven ripgrep yq jactionlint hadolint shfmt devcontainer-cli delta \
   lazydocker oxker npm:ccstatusline
 
 checks=(
@@ -40,7 +40,7 @@ checks=(
   "java,maven|mvn --version"
   "ripgrep|rg --version"
   "yq|yq --version"
-  "actionlint|actionlint --version"
+  "jactionlint|jactionlint --version"
   "hadolint|hadolint --version"
   "shfmt|shfmt --version"
   "node,devcontainer-cli|devcontainer --version"
