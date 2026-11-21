@@ -445,8 +445,18 @@ install_mise() {
   log_info "mise をインストールしています..."
 
   if command -v mise &> /dev/null; then
-    log_warn "mise は既にインストールされています ($(mise --version))"
-    return 0
+    local current_version mise_path
+    current_version=$(mise --version 2>/dev/null | awk '{print $1}') || current_version=""
+    if [[ "$current_version" == "${MISE_VERSION#v}" ]]; then
+      log_warn "mise は既にインストールされています ($(mise --version))"
+      return 0
+    fi
+    log_info "mise を ${current_version:-不明な版} から ${MISE_VERSION#v} に更新します"
+    # 公式インストーラは ~/.local/bin/mise にしか書かないため、PATH 上で別の mise が優先されると版が収束しない
+    mise_path=$(command -v mise)
+    if [[ "$mise_path" != "$HOME/.local/bin/mise" ]]; then
+      log_warn "PATH 上の mise ($mise_path) は $HOME/.local/bin/mise ではないため、更新後も固定版にならない可能性があります"
+    fi
   fi
 
   # 公式インストーラはパイプを使うため run_command でラップできず、DRY_RUN を手動で分岐する
@@ -503,7 +513,7 @@ install_mise_tools() {
     "maven"
     "ripgrep"
     "yq"
-    "jactionlint"
+    "github:jdx/jactionlint"
     "hadolint"
     "shfmt"
     "delta"

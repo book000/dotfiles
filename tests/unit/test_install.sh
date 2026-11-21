@@ -56,7 +56,7 @@ echo "✅ apt runs non-interactively, keeps conffiles, and includes libatomic1"
 # テスト 2.7: 開発用 CLI が mise config に宣言されていること
 echo "Test 2.7: mise config includes development tools"
 MISE_CONFIG="home/dot_config/mise/config.toml"
-MISE_TOOLS=(maven ripgrep yq jactionlint hadolint shfmt devcontainer-cli delta lazydocker oxker "npm:ccstatusline")
+MISE_TOOLS=(maven ripgrep yq github:jdx/jactionlint hadolint shfmt devcontainer-cli delta lazydocker oxker "npm:ccstatusline")
 for tool in "${MISE_TOOLS[@]}"; do
   if ! grep -Eq "^\"?${tool}\"? = " "$MISE_CONFIG"; then
     echo "❌ mise config does not include $tool"
@@ -85,7 +85,7 @@ echo "✅ integration workflow runs mise CLI smoke test"
 # テスト 2.8: install フローが開発用 CLI を mise 経由で導入すること
 echo "Test 2.8: install flow installs development tools via mise"
 MISE_DRY_RUN=$(bash install.sh --dry-run --skip-interactive --skip-apt --skip-gh --skip-ghq --skip-mkwork --skip-roots --skip-gitleaks 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
-MISE_DIRECT_TOOLS=(maven ripgrep yq jactionlint hadolint shfmt delta lazydocker oxker)
+MISE_DIRECT_TOOLS=(maven ripgrep yq github:jdx/jactionlint hadolint shfmt delta lazydocker oxker)
 for tool in "${MISE_DIRECT_TOOLS[@]}"; do
   if ! grep -Fq "[DRY RUN] mise install $tool" <<< "$MISE_DRY_RUN"; then
     echo "❌ install flow does not install $tool via mise"
@@ -99,6 +99,48 @@ if ! grep -Fq "[DRY RUN] mise install node" <<< "$MISE_DRY_RUN" \
   exit 1
 fi
 echo "✅ install flow installs development tools via mise"
+
+# テスト 2.9: 既存 mise が固定版と異なる場合はインストーラを再実行し、一致する場合は何もしないこと
+echo "Test 2.9: install_mise reinstalls only when the installed mise differs from MISE_VERSION"
+PINNED_MISE_VERSION=$(sed -n 's/^MISE_VERSION="\(v[0-9.]*\)"$/\1/p' install.sh)
+if [[ -z "$PINNED_MISE_VERSION" ]]; then
+  echo "❌ MISE_VERSION was not found in install.sh"
+  exit 1
+fi
+MISE_STUB_DIR=$(mktemp -d)
+trap 'rm -rf "$MISE_STUB_DIR"' EXIT
+# BASH_ENV が bash 起動ごとに mise を呼ぶ環境で再帰しないよう、スタブは sh で書き BASH_ENV を外して実行する
+make_mise_stub() {
+  printf '#!/bin/sh\necho "%s linux-x64 (2026-01-01)"\n' "$1" > "$MISE_STUB_DIR/mise"
+  chmod +x "$MISE_STUB_DIR/mise"
+}
+run_install_mise_dry_run() {
+  env -u BASH_ENV PATH="$MISE_STUB_DIR:$PATH" bash install.sh --dry-run --skip-interactive --skip-apt --skip-gh --skip-ghq --skip-mkwork --skip-roots --skip-gitleaks 2>&1 | sed 's/\x1b\[[0-9;]*m//g'
+}
+
+make_mise_stub "2026.8.5"
+STALE_OUTPUT=$(run_install_mise_dry_run)
+for expected in \
+  "mise を 2026.8.5 から ${PINNED_MISE_VERSION#v} に更新します" \
+  "[DRY RUN] curl -fsSL --retry 5 --retry-delay 5 https://mise.run | MISE_VERSION=$PINNED_MISE_VERSION sh" \
+  "PATH 上の mise ($MISE_STUB_DIR/mise) は $HOME/.local/bin/mise ではないため"; do
+  if ! grep -Fq -- "$expected" <<< "$STALE_OUTPUT"; then
+    echo "❌ stale mise output does not include: $expected"
+    exit 1
+  fi
+done
+
+make_mise_stub "${PINNED_MISE_VERSION#v}"
+CURRENT_OUTPUT=$(run_install_mise_dry_run)
+if ! grep -Fq "mise は既にインストールされています (${PINNED_MISE_VERSION#v} linux-x64" <<< "$CURRENT_OUTPUT"; then
+  echo "❌ up-to-date mise is not reported as already installed"
+  exit 1
+fi
+if grep -Fq "MISE_VERSION=$PINNED_MISE_VERSION sh" <<< "$CURRENT_OUTPUT"; then
+  echo "❌ up-to-date mise triggers the installer"
+  exit 1
+fi
+echo "✅ install_mise reinstalls only when the installed mise differs from MISE_VERSION"
 
 # テスト 3: 無効なオプション
 echo "Test 3: invalid option"
