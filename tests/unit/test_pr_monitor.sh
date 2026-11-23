@@ -788,8 +788,11 @@ if [[ -d "$XDG_STATE_HOME/codex-pr-monitor/${STATE_ID}.watch.lock" ]]; then
     echo "❌ Foreground fallback left a watcher lock" >&2
     exit 1
 fi
-if rg -n 'nohup|systemd-run|setsid' "$WATCH_SCRIPT" >/dev/null; then
+if grep -En 'nohup|systemd-run|setsid' "$WATCH_SCRIPT" >/dev/null; then
     echo "❌ Watcher still contains an unverified detached-launch path" >&2
+    exit 1
+elif [[ $? -ne 1 ]]; then
+    echo "❌ Failed to check watcher for detached-launch paths" >&2
     exit 1
 fi
 
