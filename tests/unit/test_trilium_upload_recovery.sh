@@ -1,6 +1,5 @@
 #!/bin/bash
-# trilium-upload.sh の復旧経路(新規作成後に marker 付与が失敗したノートの再実行)と、
-# trilium_is_unmarked_upload_orphan のユニットテスト。
+# marker のない既存ノートを保護する trilium-upload.sh のテスト。
 # curl / pandoc は stub に差し替えるため、ネットワークアクセスや実 ~/.env の読み込みは行わない。
 
 set -euo pipefail
@@ -16,7 +15,6 @@ FAILED=0
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 UPLOAD_SH="$REPO_DIR/home/bin/executable_trilium-upload.sh"
-TRILIUM_COMMON="$REPO_DIR/home/bin/trilium-common.sh"
 
 WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -182,30 +180,48 @@ check() {
   fi
 }
 
-note_attr_names() {
-  jq -r '[.attributes[].name] | sort | join(",")' "$STUB_DIR/notes/$1.json"
-}
-
-# create 成功 → marker POST 失敗 → 同じ引数で再実行すると復旧できる
+# marker 付与に失敗した場合も所有権を証明できないため再実行を拒否する。
 new_stub ac1
 if STUB_FAIL_MARKER_POST=1 run_upload "orphan01" >"$WORK_DIR/out1" 2>"$WORK_DIR/err1"; then
   echo "❌ first run should fail when the marker POST fails"
   FAILED=1
-else
-  echo "✅ first run fails when the marker POST fails"
 fi
-check "orphan note exists with no attributes after the failed first run" \
-  test -f "$STUB_DIR/notes/orphan01.json" -a "$(jq '.attributes | length' "$STUB_DIR/notes/orphan01.json")" = "0"
+: > "$STUB_DIR/log"
 if run_upload "orphan01" >"$WORK_DIR/out2" 2>"$WORK_DIR/err2"; then
-  echo "✅ retry with the same noteId succeeds"
-else
-  echo "❌ retry with the same noteId failed: $(cat "$WORK_DIR/err2")"
+  echo "❌ retry without a marker should be refused"
   FAILED=1
 fi
-check "retry leaves marker, docType and topic labels" \
-  test "$(note_attr_names orphan01)" = "docType,topic,triliumUploadTool"
-check "retry prints the share URL on the last line" \
-  test "$(tail -n 1 "$WORK_DIR/out2")" = "http://trilium.test/share/orphan01"
+check "retry without proof makes no writes" test ! -s "$STUB_DIR/log"
+
+# 同じ親の属性なしノートも無関係なノートとして保護する。
+new_stub collision
+seed_note "foreign02" "$FOLDER_ID" "[]" "original title"
+if run_upload "foreign02" >"$WORK_DIR/out_collision" 2>"$WORK_DIR/err_collision"; then
+  echo "❌ unmarked note under the same parent should be refused"
+  FAILED=1
+fi
+check "collision preserves title and content without writes" \
+  test "$(jq -r .title "$STUB_DIR/notes/foreign02.json")" = "original title" -a "$(cat "$STUB_DIR/content/foreign02")" = "seeded" -a ! -s "$STUB_DIR/log"
+
+# 継承した marker も所有権の証明にはならない。
+new_stub inherited
+seed_note "foreign03" "$FOLDER_ID" '[{"noteId":"folder_mytopic","type":"label","name":"triliumUploadTool","value":"1"}]' "original title"
+if run_upload "foreign03" >"$WORK_DIR/out_inherited" 2>"$WORK_DIR/err_inherited"; then
+  echo "❌ inherited marker should not authorize an update"
+  FAILED=1
+fi
+check "inherited marker preserves title and content without writes" \
+  test "$(jq -r .title "$STUB_DIR/notes/foreign03.json")" = "original title" -a "$(cat "$STUB_DIR/content/foreign03")" = "seeded" -a ! -s "$STUB_DIR/log"
+
+# 自身の marker を持つノートは更新できる。
+new_stub owned
+seed_note "owned001" "$FOLDER_ID" '[{"noteId":"owned001","type":"label","name":"triliumUploadTool","value":"1"}]' "old title"
+if run_upload "owned001" >"$WORK_DIR/out_owned" 2>"$WORK_DIR/err_owned"; then
+  check "owned note is updated" test "$(jq -r .title "$STUB_DIR/notes/owned001.json")" = "new title" -a "$(cat "$STUB_DIR/content/owned001")" = "<p>stub</p>"
+else
+  echo "❌ owned note should be updated"
+  FAILED=1
+fi
 
 # 別の親を持つ marker なしノートは拒否される
 new_stub ac2
@@ -232,37 +248,6 @@ else
 fi
 check "labeled note title is unchanged and nothing was written" \
   test "$(jq -r .title "$STUB_DIR/notes/labeled01.json")" = "labeled" -a ! -s "$STUB_DIR/log"
-
-# trilium_is_unmarked_upload_orphan の単体判定
-orphan_rc() {
-  (
-    # shellcheck source=/dev/null
-    source "$TRILIUM_COMMON"
-    trilium_is_unmarked_upload_orphan "$1" "$2"
-  ) >/dev/null 2>&1
-}
-check "orphan check accepts matching parent and no attributes" \
-  orphan_rc '{"noteId":"n1","parentNoteIds":["folder_a"],"attributes":[]}' "folder_a"
-if orphan_rc '{"noteId":"n1","parentNoteIds":["other"],"attributes":[]}' "folder_a"; then
-  echo "❌ orphan check should reject a different parent"
-  FAILED=1
-else
-  echo "✅ orphan check rejects a different parent"
-fi
-if orphan_rc '{"noteId":"n1","parentNoteIds":["folder_a"],"attributes":[{"noteId":"n1","type":"label","name":"x","value":""}]}' "folder_a"; then
-  echo "❌ orphan check should reject a note with its own attribute"
-  FAILED=1
-else
-  echo "✅ orphan check rejects a note with its own attribute"
-fi
-check "orphan check ignores attributes owned by another note" \
-  orphan_rc '{"noteId":"n1","parentNoteIds":["folder_a"],"attributes":[{"noteId":"folder_a","type":"label","name":"x","value":""}]}' "folder_a"
-if orphan_rc 'not json' "folder_a"; then
-  echo "❌ orphan check should reject invalid JSON"
-  FAILED=1
-else
-  echo "✅ orphan check rejects invalid JSON"
-fi
 
 if [ "$FAILED" -eq 0 ]; then
   echo "✅ All trilium upload recovery tests passed"

@@ -69,22 +69,6 @@ trilium_folder_id() {
   printf '%s\n' "$folder_id"
 }
 
-# $1 (note_json) のノートが、このツールが作成して marker 付与に失敗した状態かを判定する。
-# $2 (folder_id) を親に持ち、かつ当該ノート自身が所有する属性を持たない場合に限り
-# 終了コード 0 を返し、それ以外(不正な JSON を含む)は 1 を返す。
-# 新規作成時は marker を最初のラベルとして付与するため、付与に失敗したノートは属性を持たない。
-trilium_is_unmarked_upload_orphan() {
-  local note_json="$1"
-  local folder_id="$2"
-
-  if printf '%s' "$note_json" | jq -e --arg folder "$folder_id" \
-      '. as $note | any((.parentNoteIds // [])[]; . == $folder) and ([(.attributes // [])[] | select(.noteId == $note.noteId)] | length) == 0' \
-      >/dev/null 2>&1; then
-    return 0
-  fi
-  return 1
-}
-
 # $1 (topic) から folder_<正規化topic> の noteId を組み立て、既存なら再利用し、
 # 存在しなければ $2 (folder_title) で "_share" 直下に新規作成する。
 # 標準出力に noteId を1行出力する。$2 が空で新規作成が必要な場合はエラー終了する。
