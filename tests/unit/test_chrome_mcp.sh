@@ -8,7 +8,17 @@ SMOKE_HELPER="$(pwd)/home/bin/chrome-mcp-smoke-test.mjs"
 REAL_NODE="$(node -p 'process.execPath')"
 
 TEST_ROOT=$(mktemp -d)
-trap 'rm -rf "$TEST_ROOT"' EXIT
+cleanup() {
+    : > "$TEST_ROOT/launcher-updater-release"
+    if [[ -e "$TEST_ROOT/launcher-updater-hold" ]]; then
+        for _ in $(seq 1 100); do
+            [[ -e "$TEST_ROOT/launcher-updater-done" ]] && break
+            sleep 0.05
+        done
+    fi
+    rm -rf "$TEST_ROOT"
+}
+trap cleanup EXIT
 
 fail() {
     echo "❌ $*"
@@ -158,10 +168,16 @@ LAUNCHER_RELEASE=$(make_release "$LAUNCHER_HOME" old)
 set_current_release "$LAUNCHER_HOME" "$LAUNCHER_RELEASE"
 cat > "$LAUNCHER_HOME/bin/update-ai-agents.sh" <<'EOF'
 #!/bin/bash
-sleep 2
 printf '%s\n' "$*" > "${FAKE_UPDATER_LOG:?}"
 printf '%s\n' "${CHROME_MCP_PROJECT:-}" > "${FAKE_UPDATER_PROJECT_LOG:?}"
 printf '%s\n' "${CHROME_MCP_BROWSER_URL:-}" > "${FAKE_UPDATER_BROWSER_URL_LOG:?}"
+if [[ -n "${FAKE_UPDATER_HOLD:-}" ]]; then
+    : > "$FAKE_UPDATER_HOLD"
+    while [[ ! -e "$FAKE_UPDATER_RELEASE" ]]; do
+        sleep 0.05
+    done
+    : > "$FAKE_UPDATER_DONE"
+fi
 EOF
 cat > "$LAUNCHER_BIN/npx" <<'EOF'
 #!/bin/bash
@@ -169,14 +185,16 @@ exit 99
 EOF
 chmod +x "$LAUNCHER_HOME/bin/update-ai-agents.sh" "$LAUNCHER_BIN/npx"
 : > "$TEST_ROOT/launcher-router-input"
-SECONDS=0
-HOME="$LAUNCHER_HOME" PATH="$LAUNCHER_BIN:/usr/bin:/bin" CHROME_ROUTER_ARGS="$TEST_ROOT/launcher-router-args" CHROME_ROUTER_INPUT="$TEST_ROOT/launcher-router-input" FAKE_UPDATER_LOG="$TEST_ROOT/launcher-updater" FAKE_UPDATER_PROJECT_LOG="$TEST_ROOT/launcher-updater-project" FAKE_UPDATER_BROWSER_URL_LOG="$TEST_ROOT/launcher-updater-browser-url" bash "$LAUNCHER" --project collect-points < /dev/null
-[[ $SECONDS -lt 1 ]] || fail "launcher waited for the updater"
+if ! HOME="$LAUNCHER_HOME" PATH="$LAUNCHER_BIN:/usr/bin:/bin" CHROME_ROUTER_ARGS="$TEST_ROOT/launcher-router-args" CHROME_ROUTER_INPUT="$TEST_ROOT/launcher-router-input" FAKE_UPDATER_LOG="$TEST_ROOT/launcher-updater" FAKE_UPDATER_PROJECT_LOG="$TEST_ROOT/launcher-updater-project" FAKE_UPDATER_BROWSER_URL_LOG="$TEST_ROOT/launcher-updater-browser-url" FAKE_UPDATER_HOLD="$TEST_ROOT/launcher-updater-hold" FAKE_UPDATER_RELEASE="$TEST_ROOT/launcher-updater-release" FAKE_UPDATER_DONE="$TEST_ROOT/launcher-updater-done" timeout 10 bash "$LAUNCHER" --project collect-points < /dev/null; then
+    fail "launcher failed or waited for the updater"
+fi
 [[ "$(cat "$TEST_ROOT/launcher-router-args")" == "--project collect-points" ]] || fail "launcher did not execute the current router"
 for _ in $(seq 1 30); do
-    [[ -f "$TEST_ROOT/launcher-updater" ]] && break
+    [[ -f "$TEST_ROOT/launcher-updater-hold" ]] && break
     sleep 0.1
 done
+[[ -f "$TEST_ROOT/launcher-updater-hold" ]] || fail "updater did not enter the hold"
+: > "$TEST_ROOT/launcher-updater-release"
 [[ "$(cat "$TEST_ROOT/launcher-updater")" == "--quick --only chrome-mcp-router" ]] || fail "launcher did not request the throttled MCP update"
 [[ "$(cat "$TEST_ROOT/launcher-updater-project")" == "collect-points" ]] || fail "launcher did not propagate the MCP project to the updater"
 echo "Testing the launcher propagates direct browser URLs to the updater..."
