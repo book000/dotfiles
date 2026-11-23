@@ -120,6 +120,10 @@ gitleaks は `home/dot_config/mise/config.toml` で検証済みバージョン�
 - `gitleaks` コマンドが見つからない場合は fail-open(警告を表示した上でコミットを続行)します。`install.sh` が mise 経由で `gitleaks` を自動インストールしますが、`--skip-gitleaks` でスキップした環境や、dotfiles 導入前の環境ではスキャンが行われません。
 - 誤検知が発生した場合は、対象リポジトリに独自の `.gitleaks.toml` を配置するか、`git commit --no-verify` でバイパスしてください。
 
+## Trilium アップロード
+
+既存ノートの更新には、そのノート自身の `triliumUploadTool` ラベルが必要です。新規作成後にラベルの付与が失敗した場合、再実行しても自動復旧しません。ノートの所有者と内容を確認したうえで手動で復旧してください。
+
 ## Claude Code 通知機能
 
 Claude Code がユーザー操作を必要とする場合に、Discord Webhook を使用して通知する機能が実装されています。
