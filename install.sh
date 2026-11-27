@@ -433,7 +433,7 @@ install_apt_packages() {
 }
 
 # mise のバージョン (Renovate で追跡するため固定文字列として記述する)
-MISE_VERSION="v2026.11.12"
+MISE_VERSION="v2026.11.13"
 
 # mise のインストール
 install_mise() {
